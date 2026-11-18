@@ -1,0 +1,33 @@
+{{- if .Values.trafficGenerator.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "sre-metrics-app.fullname" . }}-traffic-generator
+  labels:
+    {{- include "sre-metrics-app.trafficGeneratorLabels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.trafficGenerator.replicaCount | default 1 }}
+  selector:
+    matchLabels:
+      {{- include "sre-metrics-app.trafficGeneratorSelectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "sre-metrics-app.trafficGeneratorSelectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: curl
+          image: "{{ .Values.trafficGenerator.image.repository }}:{{ .Values.trafficGenerator.image.tag }}"
+          imagePullPolicy: {{ .Values.trafficGenerator.image.pullPolicy }}
+          command: ["/bin/sh", "-c"]
+          args:
+            - >-
+              while true; do
+                curl -s -o /dev/null {{ .Values.trafficGenerator.targetUrl | default (printf "http://%s:%d/store" (include "sre-metrics-app.fullname" .) (.Values.service.port | int)) }};
+                sleep {{ .Values.trafficGenerator.intervalSeconds | default 2 }};
+              done
+          {{- with .Values.trafficGenerator.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+{{- end }}

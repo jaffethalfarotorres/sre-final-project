@@ -1,3 +1,5 @@
+# The Grafana admin Secret "grafana-admin-credentials" is NOT defined here.
+# Create it from k8s/grafana-secret.example.yaml (see the README); the real file is gitignored.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -36,7 +38,7 @@ data:
       "panels": [
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "fieldConfig": {"defaults": {}, "overrides": []},
+          "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []},
           "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
           "id": 1,
           "targets": [{"expr": "sum(rate(http_requests_total{endpoint=\"/store\"}[1m]))", "refId": "A"}],
@@ -45,7 +47,7 @@ data:
         },
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "fieldConfig": {"defaults": {}, "overrides": []},
+          "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
           "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
           "id": 2,
           "targets": [{"expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{endpoint=\"/store\"}[5m])) by (le))", "refId": "A"}],
@@ -54,9 +56,18 @@ data:
         },
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
-          "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8},
+          "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []},
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
           "id": 3,
+          "targets": [{"expr": "sum(rate(http_requests_total{endpoint=\"/store\",status=\"500\"}[1m])) or vector(0)", "refId": "A"}],
+          "title": "Store Error Rate (5xx)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+          "id": 4,
           "targets": [{"expr": "sum(http_requests_total{endpoint=\"/store\"})", "refId": "A"}],
           "title": "Total Store Requests",
           "type": "stat"
@@ -88,6 +99,36 @@ spec:
           image: grafana/grafana:11.1.0
           ports:
             - containerPort: 3000
+          env:
+            - name: GF_SECURITY_ADMIN_USER
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-admin-credentials
+                  key: admin-user
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-admin-credentials
+                  key: admin-password
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 300m
+              memory: 256Mi
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
           volumeMounts:
             - name: provisioning
               mountPath: /etc/grafana/provisioning/datasources/datasources.yaml

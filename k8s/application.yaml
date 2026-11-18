@@ -28,12 +28,30 @@ spec:
           imagePullPolicy: Never
           ports:
             - containerPort: 5000
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+          # Generous timeouts: a busy Minikube node can delay responses.
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
           readinessProbe:
             httpGet:
               path: /
               port: 5000
             initialDelaySeconds: 3
             periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 3
 ---
 apiVersion: v1
 kind: Service
@@ -67,4 +85,15 @@ spec:
           image: curlimages/curl:8.10.1
           command: ["/bin/sh", "-c"]
           args:
-            - while true; do curl -fsS http://sre-metrics-app:5000/store > /dev/null; sleep 2; done
+            - >-
+              while true; do
+                curl -s -o /dev/null http://sre-metrics-app:5000/store;
+                sleep 2;
+              done
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi

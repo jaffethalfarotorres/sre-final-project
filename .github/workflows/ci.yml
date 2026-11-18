@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: Lint and unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      - run: pip install -r requirements-dev.txt
+      - run: flake8 app tests --max-line-length=120
+      - run: pytest tests -q
+
+  validate:
+    name: Validate manifests, Helm chart and alert rules
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: Helm lint and template
+        run: |
+          helm lint helm/sre-metrics-app
+          helm template sre helm/sre-metrics-app --namespace application > /dev/null
+
+      - name: Kubeconform on raw manifests
+        run: |
+          curl -sL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz | tar xz
+          ./kubeconform -strict -summary k8s/prometheus.yaml k8s/rbac.yaml k8s/alertmanager.yaml \
+            k8s/application.yaml k8s/grafana.yaml k8s/alertmanager-secret.example.yaml
+
+      - name: Check alert rules and Alertmanager config
+        run: |
+          VERSION=2.54.1
+          curl -sL https://github.com/prometheus/prometheus/releases/download/v${VERSION}/prometheus-${VERSION}.linux-amd64.tar.gz | tar xz
+          curl -sL https://github.com/prometheus/alertmanager/releases/download/v0.27.0/alertmanager-0.27.0.linux-amd64.tar.gz | tar xz
+          pip install pyyaml
+          python - <<'EOF'
+          import yaml
+          docs = [d for d in yaml.safe_load_all(open("k8s/prometheus.yaml")) if d]
+          rules = next(d for d in docs if d["metadata"]["name"] == "prometheus-rules")
+          open("/tmp/alerts.yml", "w").write(rules["data"]["alerts.yml"])
+          docs = [d for d in yaml.safe_load_all(open("k8s/alertmanager.yaml")) if d]
+          cfg = next(d for d in docs if d["kind"] == "ConfigMap")
+          open("/tmp/alertmanager.yml", "w").write(cfg["data"]["alertmanager.yml"])
+          EOF
+          ./prometheus-${VERSION}.linux-amd64/promtool check rules /tmp/alerts.yml
+          # amtool validates that referenced *_file paths exist, so create dummy secret files
+          sudo mkdir -p /etc/alertmanager-secrets
+          echo x | sudo tee /etc/alertmanager-secrets/slack-webhook-url /etc/alertmanager-secrets/smtp-auth-password > /dev/null
+          ./alertmanager-0.27.0.linux-amd64/amtool check-config /tmp/alertmanager.yml
+
+  docker-build:
+    name: Docker build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t sre-metrics-app:ci .

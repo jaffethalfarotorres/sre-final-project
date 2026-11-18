@@ -1,0 +1,14 @@
+# Patterns to ignore when packaging a Helm chart
+.DS_Store
+# Common VCS dirs
+.git/
+.gitignore
+# Common editor files
+.idea/
+*.swp
+*.bak
+*.tmp
+*.orig
+*~
+# Kubernetes Generated files
+*.minikube/

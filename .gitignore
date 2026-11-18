@@ -9,3 +9,20 @@ venv/
 *.tar
 *.gz
 .DS_Store
+.pytest_cache/
+.coverage
+
+# Exclude training materials & course PDF
+*.pdf
+
+# Secret safeguards (committed examples only). Scoped so Helm templates stay trackable.
+k8s/*secret*.yaml
+k8s/*secret*.yml
+!k8s/*secret*.example.yaml
+!k8s/*secret*.example.yml
+helm/*secret*.yaml
+helm/values-*.local.yaml
+secrets/
+
+# Internal working notes (not part of the published project)
+sre-final-project-completion-plan.md

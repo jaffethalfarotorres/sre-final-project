@@ -3,18 +3,105 @@ kind: ConfigMap
 metadata:
   name: alertmanager-config
   namespace: monitoring
+  labels:
+    app.kubernetes.io/name: alertmanager
+    app.kubernetes.io/part-of: sre-final-project
 data:
   alertmanager.yml: |
+    # Credentials are read from files mounted from the "alertmanager-secret" Secret
+    # (see k8s/alertmanager-secret.example.yaml). Alertmanager does not expand env vars.
+    # EDIT the smtp_* and "to:" addresses below to your own before deploying.
+    global:
+      resolve_timeout: 5m
+      smtp_smarthost: 'smtp.gmail.com:587'
+      smtp_from: 'sre-alerts@example.com'
+      smtp_auth_username: 'sre-alerts@example.com'
+      smtp_auth_password_file: /etc/alertmanager-secrets/smtp-auth-password
+      smtp_require_tls: true
+
     route:
-      receiver: discard
+      group_by: ['alertname', 'namespace', 'severity']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+      receiver: 'default-notifications'
+      routes:
+        # Smoke-test alert: Slack only, long repeat interval to avoid noise
+        - matchers:
+            - severity = "demo"
+          receiver: 'demo-receiver'
+          repeat_interval: 12h
+
+        # ServiceDown, HighErrorRate: Slack + email, fast dispatch
+        - matchers:
+            - severity = "critical"
+          receiver: 'critical-notifications'
+          group_wait: 10s
+          repeat_interval: 1h
+
+        # HighLatency: Slack + email
+        - matchers:
+            - severity = "warning"
+          receiver: 'warning-notifications'
+          repeat_interval: 3h
+
     receivers:
-      - name: discard
+      - name: 'critical-notifications'
+        slack_configs:
+          - channel: '#sre-alerts'
+            send_resolved: true
+            api_url_file: /etc/alertmanager-secrets/slack-webhook-url
+            title: '[{{ .Status | toUpper }}] CRITICAL {{ .CommonLabels.alertname }}'
+            text: |-
+              {{ range .Alerts }}*{{ .Annotations.summary }}*
+              {{ .Annotations.description }}
+              {{ end }}
+        email_configs:
+          - to: 'sre-oncall@example.com'
+            send_resolved: true
+            headers:
+              Subject: '[{{ .Status | toUpper }}] CRITICAL {{ .CommonLabels.alertname }}'
+
+      - name: 'warning-notifications'
+        slack_configs:
+          - channel: '#sre-alerts'
+            send_resolved: true
+            api_url_file: /etc/alertmanager-secrets/slack-webhook-url
+            title: '[{{ .Status | toUpper }}] WARNING {{ .CommonLabels.alertname }}'
+            text: |-
+              {{ range .Alerts }}*{{ .Annotations.summary }}*
+              {{ .Annotations.description }}
+              {{ end }}
+        email_configs:
+          - to: 'sre-oncall@example.com'
+            send_resolved: true
+            headers:
+              Subject: '[{{ .Status | toUpper }}] WARNING {{ .CommonLabels.alertname }}'
+
+      - name: 'demo-receiver'
+        slack_configs:
+          - channel: '#sre-alerts'
+            send_resolved: true
+            api_url_file: /etc/alertmanager-secrets/slack-webhook-url
+            title: '[DEMO] {{ .CommonLabels.alertname }}'
+            text: '{{ .CommonAnnotations.summary }}'
+
+      - name: 'default-notifications'
+        slack_configs:
+          - channel: '#sre-alerts'
+            send_resolved: true
+            api_url_file: /etc/alertmanager-secrets/slack-webhook-url
+            title: '[{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'
+            text: '{{ .CommonAnnotations.summary }}'
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: alertmanager
   namespace: monitoring
+  labels:
+    app.kubernetes.io/name: alertmanager
+    app.kubernetes.io/part-of: sre-final-project
 spec:
   replicas: 1
   selector:
@@ -30,21 +117,51 @@ spec:
           image: prom/alertmanager:v0.27.0
           args:
             - --config.file=/etc/alertmanager/alertmanager.yml
+            - --storage.path=/alertmanager
           ports:
             - containerPort: 9093
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: 9093
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: 9093
+            initialDelaySeconds: 5
+            periodSeconds: 5
           volumeMounts:
             - name: config
               mountPath: /etc/alertmanager
+            - name: alertmanager-secrets
+              mountPath: /etc/alertmanager-secrets
+              readOnly: true
       volumes:
         - name: config
           configMap:
             name: alertmanager-config
+        # Required: the pod stays in ContainerCreating until this Secret exists.
+        - name: alertmanager-secrets
+          secret:
+            secretName: alertmanager-secret
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: alertmanager
   namespace: monitoring
+  labels:
+    app.kubernetes.io/name: alertmanager
+    app.kubernetes.io/part-of: sre-final-project
 spec:
   selector:
     app: alertmanager

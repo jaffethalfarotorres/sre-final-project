@@ -19,6 +19,7 @@ data:
             - targets: ["alertmanager.monitoring.svc.cluster.local:9093"]
     rule_files:
       - /etc/prometheus/rules/*.yml
+      - /etc/prometheus/rules/*.yaml
     scrape_configs:
       - job_name: prometheus
         static_configs:
@@ -39,6 +40,8 @@ data:
             regex: (.+):(?:\d+);(\d+)
             replacement: $1:$2
             target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
           - source_labels: [__meta_kubernetes_namespace]
             action: replace
             target_label: namespace
@@ -52,8 +55,37 @@ metadata:
   name: prometheus-rules
   namespace: monitoring
 data:
-  demo-alerts.yml: |
+  alerts.yml: |
     groups:
+      - name: sre-metrics-app-slo
+        rules:
+          - alert: ServiceDown
+            expr: up{namespace="application"} == 0
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Service sre-metrics-app is down"
+              description: "Target sre-metrics-app on {{ $labels.instance }} is unreachable (up == 0)."
+
+          - alert: HighErrorRate
+            expr: (sum(rate(http_requests_total{namespace="application", status=~"5.."}[2m])) / sum(rate(http_requests_total{namespace="application"}[2m]))) > 0.05
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: "High HTTP error rate (>5%) on sre-metrics-app"
+              description: "HTTP 5xx error rate is {{ $value | humanizePercentage }} (threshold > 5%) over the last 2 minutes."
+
+          - alert: HighLatency
+            expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{namespace="application"}[2m])) by (le)) > 0.5
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High p95 latency (>500ms) on sre-metrics-app"
+              description: "p95 response latency is {{ $value | humanizeDuration }} (threshold > 500ms) over the last 2 minutes."
+
       - name: demo
         rules:
           - alert: AlwaysFiringDemoAlert
@@ -63,6 +95,7 @@ data:
               severity: demo
             annotations:
               summary: "Demonstration alert for Alertmanager verification"
+              description: "Continuous demo alert verifying Prometheus-to-Alertmanager alerting pipeline."
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -88,9 +121,29 @@ spec:
             - --storage.tsdb.path=/prometheus
           ports:
             - containerPort: 9090
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: 9090
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: 9090
+            initialDelaySeconds: 5
+            periodSeconds: 5
           volumeMounts:
             - name: config
-              mountPath: /etc/prometheus
+              mountPath: /etc/prometheus/prometheus.yml
+              subPath: prometheus.yml
             - name: rules
               mountPath: /etc/prometheus/rules
       volumes:

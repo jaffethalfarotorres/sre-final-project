@@ -1,0 +1,243 @@
+# Custom Helm values for upstream kube-prometheus-stack
+# Chart repository: https://prometheus-community.github.io/helm-charts
+# Chart name: prometheus-community/kube-prometheus-stack
+
+# Global configurations
+global:
+  rbac:
+    create: true
+
+# Prometheus Operator and Server configuration
+prometheus:
+  prometheusSpec:
+    # Discover ServiceMonitors, PodMonitors and PrometheusRules across all namespaces
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    serviceMonitorNamespaceSelector: {}
+    podMonitorNamespaceSelector: {}
+    ruleNamespaceSelector: {}
+    scrapeInterval: "10s"
+    evaluationInterval: "10s"
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+# Custom Alerting Rules provisioned via Prometheus Operator PrometheusRule CRD
+additionalPrometheusRulesMap:
+  sre-rules:
+    groups:
+      - name: sre-metrics-alerts
+        rules:
+          # Keep identical to k8s/prometheus.yaml (prometheus-rules ConfigMap).
+          - alert: ServiceDown
+            expr: up{namespace="application"} == 0
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Service sre-metrics-app is down"
+              description: "Target sre-metrics-app on {{ $labels.instance }} is unreachable (up == 0)."
+
+          - alert: HighErrorRate
+            expr: (sum(rate(http_requests_total{namespace="application", status=~"5.."}[2m])) / sum(rate(http_requests_total{namespace="application"}[2m]))) > 0.05
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: "High HTTP error rate (>5%) on sre-metrics-app"
+              description: "HTTP 5xx error rate is {{ $value | humanizePercentage }} (threshold > 5%) over the last 2 minutes."
+
+          - alert: HighLatency
+            expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{namespace="application"}[2m])) by (le)) > 0.5
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High p95 latency (>500ms) on sre-metrics-app"
+              description: "p95 response latency is {{ $value | humanizeDuration }} (threshold > 500ms) over the last 2 minutes."
+
+          - alert: AlwaysFiringDemoAlert
+            expr: vector(1)
+            for: 1m
+            labels:
+              severity: demo
+            annotations:
+              summary: "Demonstration alert for Alertmanager verification"
+              description: "Continuous demo alert verifying Prometheus-to-Alertmanager alerting pipeline."
+
+# Alertmanager: Slack + email receivers. Credentials come from the "alertmanager-secret" Secret
+# (create it in the monitoring namespace from k8s/alertmanager-secret.example.yaml BEFORE install).
+# The Prometheus Operator mounts it at /etc/alertmanager/secrets/alertmanager-secret/.
+# EDIT the smtp_* and "to:" addresses below to your own before deploying.
+alertmanager:
+  enabled: true
+  alertmanagerSpec:
+    replicas: 1
+    secrets:
+      - alertmanager-secret
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 128Mi
+  config:
+    global:
+      resolve_timeout: 5m
+      smtp_smarthost: "smtp.gmail.com:587"
+      smtp_from: "sre-alerts@example.com"
+      smtp_auth_username: "sre-alerts@example.com"
+      smtp_auth_password_file: /etc/alertmanager/secrets/alertmanager-secret/smtp-auth-password
+      smtp_require_tls: true
+    route:
+      group_by: ["alertname", "namespace", "severity"]
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+      # Default receiver is a null receiver so built-in kube-prometheus-stack alerts
+      # (Watchdog, control-plane alerts on Minikube) do not spam Slack.
+      receiver: "null"
+      routes:
+        - matchers:
+            - alertname =~ "Watchdog|InfoInhibitor"
+          receiver: "null"
+        - matchers:
+            - severity = "demo"
+          receiver: "demo-receiver"
+          repeat_interval: 12h
+        - matchers:
+            - severity = "critical"
+            - alertname =~ "ServiceDown|HighErrorRate"
+          receiver: "critical-notifications"
+          group_wait: 10s
+          repeat_interval: 1h
+        - matchers:
+            - severity = "warning"
+            - alertname = "HighLatency"
+          receiver: "warning-notifications"
+          repeat_interval: 3h
+    receivers:
+      - name: "null"
+      - name: "critical-notifications"
+        slack_configs:
+          - channel: "#sre-alerts"
+            send_resolved: true
+            api_url_file: /etc/alertmanager/secrets/alertmanager-secret/slack-webhook-url
+            title: '[{{ .Status | toUpper }}] CRITICAL {{ .CommonLabels.alertname }}'
+            text: |-
+              {{ range .Alerts }}*{{ .Annotations.summary }}*
+              {{ .Annotations.description }}
+              {{ end }}
+        email_configs:
+          - to: "sre-oncall@example.com"
+            send_resolved: true
+            headers:
+              Subject: '[{{ .Status | toUpper }}] CRITICAL {{ .CommonLabels.alertname }}'
+      - name: "warning-notifications"
+        slack_configs:
+          - channel: "#sre-alerts"
+            send_resolved: true
+            api_url_file: /etc/alertmanager/secrets/alertmanager-secret/slack-webhook-url
+            title: '[{{ .Status | toUpper }}] WARNING {{ .CommonLabels.alertname }}'
+            text: |-
+              {{ range .Alerts }}*{{ .Annotations.summary }}*
+              {{ .Annotations.description }}
+              {{ end }}
+        email_configs:
+          - to: "sre-oncall@example.com"
+            send_resolved: true
+            headers:
+              Subject: '[{{ .Status | toUpper }}] WARNING {{ .CommonLabels.alertname }}'
+      - name: "demo-receiver"
+        slack_configs:
+          - channel: "#sre-alerts"
+            send_resolved: true
+            api_url_file: /etc/alertmanager/secrets/alertmanager-secret/slack-webhook-url
+            title: '[DEMO] {{ .CommonLabels.alertname }}'
+            text: '{{ .CommonAnnotations.summary }}'
+
+# Grafana configuration with provisioned 4-panel SRE dashboard
+grafana:
+  enabled: true
+  # Admin credentials come from the "grafana-admin-credentials" Secret (k8s/grafana-secret.example.yaml),
+  # which must exist in the monitoring namespace before install. No password is stored in this file.
+  admin:
+    existingSecret: grafana-admin-credentials
+    userKey: admin-user
+    passwordKey: admin-password
+  # Grafana 12 is OOMKilled at 256Mi on Minikube, so allow more memory.
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 768Mi
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: "sre-demo"
+          orgId: 1
+          folder: "SRE Demo"
+          type: file
+          disableDeletion: false
+          editable: true
+          options:
+            path: /var/lib/grafana/dashboards/sre-demo
+  dashboards:
+    sre-demo:
+      sre-metrics:
+        json: |
+          {
+            "annotations": {"list": []},
+            "editable": true,
+            "panels": [
+              {
+                "datasource": {"type": "prometheus", "uid": "prometheus"},
+                "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []},
+                "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+                "id": 1,
+                "targets": [{"expr": "sum(rate(http_requests_total{endpoint=\"/store\"}[1m]))", "refId": "A"}],
+                "title": "Store Request Rate",
+                "type": "timeseries"
+              },
+              {
+                "datasource": {"type": "prometheus", "uid": "prometheus"},
+                "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
+                "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+                "id": 2,
+                "targets": [{"expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{endpoint=\"/store\"}[5m])) by (le))", "refId": "A"}],
+                "title": "Store Latency p95",
+                "type": "timeseries"
+              },
+              {
+                "datasource": {"type": "prometheus", "uid": "prometheus"},
+                "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []},
+                "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+                "id": 3,
+                "targets": [{"expr": "sum(rate(http_requests_total{endpoint=\"/store\",status=\"500\"}[1m])) or vector(0)", "refId": "A"}],
+                "title": "Store Error Rate (5xx)",
+                "type": "timeseries"
+              },
+              {
+                "datasource": {"type": "prometheus", "uid": "prometheus"},
+                "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+                "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+                "id": 4,
+                "targets": [{"expr": "sum(http_requests_total{endpoint=\"/store\"})", "refId": "A"}],
+                "title": "Total Store Requests",
+                "type": "stat"
+              }
+            ],
+            "schemaVersion": 39,
+            "title": "SRE Metrics Demo",
+            "uid": "sre-metrics-demo",
+            "version": 1
+          }

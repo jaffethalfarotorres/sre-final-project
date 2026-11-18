@@ -1,42 +1,80 @@
 # SRE Metrics Demo
 
-A small Kubernetes observability project for the SRE Academy final project. It demonstrates an application exposing Prometheus metrics, Prometheus collection and alerting, Grafana visualization, and Alertmanager handling.
+[![CI](https://github.com/jaffethalfarotorres/sre-final-project/actions/workflows/ci.yml/badge.svg)](https://github.com/jaffethalfarotorres/sre-final-project/actions/workflows/ci.yml)
+[![CD](https://github.com/jaffethalfarotorres/sre-final-project/actions/workflows/cd.yml/badge.svg)](https://github.com/jaffethalfarotorres/sre-final-project/actions/workflows/cd.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE.md)
+
+A small Kubernetes observability project for the SRE Academy final project. A Flask application exposes Prometheus metrics. Prometheus scrapes and evaluates alert rules, Alertmanager sends notifications to Slack and email, and Grafana visualizes the data. It can be deployed with plain manifests or with Helm, and it is validated by GitHub Actions.
 
 ## Architecture
 
-```text
-Traffic generator -> Flask application (/store, /metrics)
-                         |
-                         v
-                    Prometheus ----> Alertmanager
-                         |
-                         v
-                      Grafana
+```mermaid
+flowchart LR
+    TG[Traffic generator] -->|GET /store every 2s| APP[Flask app<br/>/store /error /metrics]
+    PROM[Prometheus] -->|scrape /metrics| APP
+    PROM -->|firing alerts| AM[Alertmanager]
+    AM -->|notifications| SLACK[Slack]
+    AM -->|notifications| EMAIL[Email]
+    GRAF[Grafana] -->|PromQL| PROM
 ```
 
-The traffic generator calls `/store` every two seconds. This creates live request and latency metrics without manual browser traffic.
+| Namespace | Components |
+| --- | --- |
+| `application` | `sre-metrics-app` (Gunicorn, 1 worker + 4 threads), `traffic-generator` |
+| `monitoring` | Prometheus, Alertmanager, Grafana (raw manifests) or kube-prometheus-stack (Helm) |
 
 ## Requirements covered
 
 | Requirement | Implementation |
 | --- | --- |
-| Application Development | Flask app exposes `/metrics` with a request counter and latency histogram. |
-| Kubernetes Deployment | Deployments and Services run the app and monitoring stack on Minikube. |
-| Prometheus Integration | Kubernetes pod discovery scrapes the annotated app pod. |
-| Grafana Visualization | A provisioned dashboard displays request rate, p95 latency, and request totals. |
-| Alertmanager Deployment | Prometheus forwards `AlwaysFiringDemoAlert` to Alertmanager. |
-| Professional Documentation | This README, contributing guide, license, manifests, scripts, and screenshot checklist are included. |
+| 1. Application | [`app/app.py`](app/app.py): `http_requests_total` (counter) and `http_request_duration_seconds` (histogram). `/store` fails about 5% of the time and `/error` always fails, so alerts have real signals. |
+| 2. Kubernetes deployment | [`k8s/`](k8s/) manifests for Minikube, with resource limits, probes and a non-root container. |
+| 3. Prometheus | Pod discovery by annotation (raw) or a `ServiceMonitor` (Helm). Rules in [`k8s/prometheus.yaml`](k8s/prometheus.yaml). |
+| 4. Grafana | Provisioned datasource and a 4-panel dashboard (request rate, p95 latency, error rate, total requests). |
+| 5. Alertmanager | Deployed with severity-based routing. |
+| 6. Documentation | This README, [`LICENSE.md`](LICENSE.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), commented code and screenshots. |
+| Bonus: notifications | Slack and email receivers in [`k8s/alertmanager.yaml`](k8s/alertmanager.yaml). |
+| Bonus: IaC | Helm chart [`helm/sre-metrics-app/`](helm/sre-metrics-app/) plus `kube-prometheus-stack` values ([`helm/values-monitoring.yaml`](helm/values-monitoring.yaml)). |
+| Bonus: CI/CD | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) and [`cd.yml`](.github/workflows/cd.yml). |
+
+## Alert rules
+
+| Alert | Condition | Severity |
+| --- | --- | --- |
+| `ServiceDown` | `up == 0` for 1 minute | critical |
+| `HighErrorRate` | 5xx ratio above 5% for 2 minutes | critical |
+| `HighLatency` | p95 latency above 500 ms for 2 minutes | warning |
+| `AlwaysFiringDemoAlert` | `vector(1)`, a smoke test for the alert pipeline | demo |
+
+The built-in 5% error rate on `/store` stays below the 5% threshold on purpose. To trigger `HighErrorRate`, generate load on `/error` (see [Trigger an alert](#trigger-an-alert)).
 
 ## Prerequisites
 
 - Docker Desktop running
 - [Minikube](https://minikube.sigs.k8s.io/docs/start/) with the Docker driver
 - `kubectl`
+- [Helm 3](https://helm.sh/) (only for the Helm path)
 - PowerShell on Windows, or Bash/WSL2
+
+## Configure notifications
+
+Alertmanager reads its credentials from a Kubernetes Secret that is **never committed**.
+
+1. Copy the example and fill in your values:
+   ```bash
+   cp k8s/alertmanager-secret.example.yaml k8s/alertmanager-secret.yaml
+   ```
+   - `slack-webhook-url`: a Slack incoming-webhook URL.
+   - `smtp-auth-password`: an SMTP password or app password (for example a Google App Password).
+2. In [`k8s/alertmanager.yaml`](k8s/alertmanager.yaml) (and [`helm/values-monitoring.yaml`](helm/values-monitoring.yaml) for Helm), set `smtp_from`, `smtp_auth_username` and the `to:` addresses to your own.
+
+All three files are listed in `.gitignore`. The deploy scripts stop with a clear message if a Secret file is missing.
 
 ## Deploy
 
-From the repository root, choose one shell:
+From the repository root, choose one shell and one method.
+
+**Raw manifests**
 
 ```powershell
 ./scripts/deploy.ps1
@@ -47,23 +85,41 @@ chmod +x scripts/deploy.sh
 ./scripts/deploy.sh
 ```
 
-The scripts start Minikube when necessary, build the local application image inside Minikube, apply the manifests, and wait for all main Deployments to be ready.
+**Helm**
+
+```powershell
+./scripts/deploy.ps1 -Helm
+```
+
+```bash
+./scripts/deploy.sh --helm
+```
+
+The scripts start Minikube when necessary, build the image inside Minikube, apply the Secret, deploy the stack and wait for the rollouts. See [`helm/README.md`](helm/README.md) for the Helm details and image overrides.
 
 ## Access the services
 
-Run each command in a separate terminal, then open the shown local URL.
+Run each command in a separate terminal.
+
+| Service | Raw manifests | Helm |
+| --- | --- | --- |
+| Grafana | `kubectl port-forward -n monitoring service/grafana 3000:3000` | `kubectl port-forward -n monitoring service/kube-prometheus-stack-grafana 3000:80` |
+| Prometheus | `kubectl port-forward -n monitoring service/prometheus 9090:9090` | `kubectl port-forward -n monitoring service/kube-prometheus-stack-prometheus 9090:9090` |
+| Alertmanager | `kubectl port-forward -n monitoring service/alertmanager 9093:9093` | `kubectl port-forward -n monitoring service/kube-prometheus-stack-alertmanager 9093:9093` |
+
+- Grafana: <http://localhost:3000>, login `admin` with the password you set in `k8s/grafana-secret.yaml`.
+- Prometheus: <http://localhost:9090>, open **Status > Targets** and confirm the app is `UP`.
+- Alertmanager: <http://localhost:9093>, wait about a minute for `AlwaysFiringDemoAlert`.
+
+## Trigger an alert
 
 ```bash
-kubectl port-forward -n monitoring service/grafana 3000:3000
-kubectl port-forward -n monitoring service/prometheus 9090:9090
-kubectl port-forward -n monitoring service/alertmanager 9093:9093
+kubectl -n application port-forward service/sre-metrics-app 5000:5000
+# in another terminal: send failing requests for a few minutes
+while true; do curl -s -o /dev/null http://localhost:5000/error; sleep 0.2; done
 ```
 
-- Grafana: http://localhost:3000 — initial local-demo login: `admin` / `admin`.
-- Prometheus: http://localhost:9090 — open **Status > Targets** and confirm the application target is `UP`.
-- Alertmanager: http://localhost:9093 — wait about one minute for `AlwaysFiringDemoAlert` to appear.
-
-Grafana opens with a provisioned **SRE Demo / SRE Metrics Demo** dashboard. Allow a minute of traffic before inspecting the latency panel.
+After about two minutes `HighErrorRate` fires, and a notification arrives in Slack and email.
 
 ## Verification
 
@@ -71,27 +127,67 @@ Grafana opens with a provisioned **SRE Demo / SRE Metrics Demo** dashboard. Allo
 kubectl get pods -A
 ```
 
-Successful verification means all application and monitoring pods are Running, the Prometheus target is UP, the Grafana panels contain data, and Alertmanager displays `AlwaysFiringDemoAlert`.
+All application and monitoring pods are Running, the Prometheus target is UP, the Grafana panels contain data, and Alertmanager shows the alerts.
 
-## Screenshots for submission
+## Evidence
 
-Save evidence in `docs/screenshots/`:
+Screenshots of the working deployment are stored in [`docs/screenshots/`](docs/screenshots/).
 
-1. `pods.png`: `kubectl get pods -A` showing all pods running.
-2. `prometheus-targets.png`: Prometheus Targets page showing `sre-metrics-app` as UP.
-3. `grafana-dashboard.png`: provisioned dashboard with live data.
-4. `alertmanager-alert.png`: Alertmanager showing `AlwaysFiringDemoAlert`.
+**All pods running** (`kubectl get pods -A`)
+
+![All pods running](docs/screenshots/pods.png)
+
+**Prometheus target UP** (Status > Targets)
+
+![Prometheus targets](docs/screenshots/prometheus-targets.png)
+
+**Grafana dashboard with live data**
+
+![Grafana dashboard](docs/screenshots/grafana-dashboard.png)
+
+**Prometheus alerts**
+
+![Prometheus alerts](docs/screenshots/prometheus-alerts.png)
+
+**Alertmanager with `AlwaysFiringDemoAlert` and a firing `HighErrorRate`** (triggered by load on `/error`)
+
+![Alertmanager alerts](docs/screenshots/alertmanager-alert.png)
+
+**Helm deployment** (`helm list -A` and the pods of both namespaces)
+
+![Helm deployment](docs/screenshots/helm-deployment.png)
+
+**Prometheus target UP through the Helm `ServiceMonitor`**
+
+![Helm Prometheus targets](docs/screenshots/helm-prometheus-targets.png)
+
+> Slack and email routing is configured, but the committed example uses placeholder credentials. Alertmanager logs show delivery attempts failing with `no_team` (Slack) and `535 BadCredentials` (SMTP) until real credentials are supplied in `k8s/alertmanager-secret.yaml`.
+
+## CI/CD
+
+- **CI** runs on every push and pull request: flake8, pytest, `helm lint`, `kubeconform`, `promtool check rules`, `amtool check-config` and a Docker build.
+- **CD** runs on `v*` tags (for example `git tag v1.0.0 && git push --tags`) and manually from the Actions tab. It pushes the image to Docker Hub and runs a `kind` smoke test. It needs the repository secrets `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN`.
+
+Run the checks locally:
+
+```bash
+pip install -r requirements-dev.txt
+flake8 app tests --max-line-length=120
+pytest tests -q
+helm lint helm/sre-metrics-app
+```
 
 ## Cleanup
 
 ```bash
 kubectl delete namespace application monitoring
+# Helm: helm uninstall sre-metrics-app -n application && helm uninstall kube-prometheus-stack -n monitoring
 ```
-
-## Publish to GitHub
-
-Review the files and screenshots, then create an empty public GitHub repository named `sre-final-project`. From this directory, initialize Git, commit the project, add the GitHub remote, and push the default branch. Do not include credentials, kubeconfig files, or personal data.
 
 ## Notes
 
-This is intentionally a classroom demonstration: data is ephemeral, the Alertmanager receiver discards notifications, and the always-firing rule exists solely to demonstrate the Prometheus-to-Alertmanager integration. Replace the demo receiver and rule before using this pattern beyond a lab.
+This is a classroom demonstration. Data is ephemeral, and the Grafana demo password is for local use only. Keep real webhook URLs and passwords out of Git.
+
+## License
+
+MIT, see [`LICENSE.md`](LICENSE.md). Contributions are welcome, see [`CONTRIBUTING.md`](CONTRIBUTING.md).
