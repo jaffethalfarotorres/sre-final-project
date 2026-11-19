@@ -19,13 +19,21 @@ if ($Helm) {
 }
 
 # Credentials (Alertmanager Slack/SMTP and Grafana admin) live in gitignored Secrets.
+# On a fresh clone they do not exist yet, so create them from the examples:
+#  - Grafana gets a random admin credential, readable later from the file.
+#  - Alertmanager keeps the placeholders: alerts still route, only delivery to
+#    Slack/email fails until real values are pasted into the file.
 $SecretFile = "k8s/alertmanager-secret.yaml"
 $GrafanaSecretFile = "k8s/grafana-secret.yaml"
-foreach ($f in $SecretFile, $GrafanaSecretFile) {
-    if (-not (Test-Path $f)) {
-        $example = $f -replace '\.yaml$', '.example.yaml'
-        throw "$f not found. Copy $example to $f, fill in real values, and retry."
-    }
+if (-not (Test-Path $SecretFile)) {
+    Copy-Item k8s/alertmanager-secret.example.yaml $SecretFile
+    Write-Host "Created $SecretFile with placeholders (edit it to enable Slack/email)."
+}
+if (-not (Test-Path $GrafanaSecretFile)) {
+    $generated = [guid]::NewGuid().ToString('N').Substring(0, 24)
+    $content = (Get-Content k8s/grafana-secret.example.yaml -Raw) -replace 'change-me-before-applying', $generated
+    [System.IO.File]::WriteAllText((Join-Path (Get-Location) $GrafanaSecretFile), $content)
+    Write-Host "Created $GrafanaSecretFile with a random Grafana admin credential."
 }
 
 if ((minikube status -p minikube --format='{{.Host}}' 2>$null) -ne 'Running') {
@@ -82,3 +90,5 @@ else {
     Write-Host "  kubectl port-forward -n monitoring service/prometheus 9090:9090"
     Write-Host "  kubectl port-forward -n monitoring service/alertmanager 9093:9093"
 }
+
+Write-Host "Grafana login: user admin, credential stored in k8s/grafana-secret.yaml (admin-password)."

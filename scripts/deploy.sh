@@ -16,14 +16,21 @@ for command in "${REQUIRED_COMMANDS[@]}"; do
 done
 
 # Credentials (Alertmanager Slack/SMTP and Grafana admin) live in gitignored Secrets.
+# On a fresh clone they do not exist yet, so create them from the examples:
+#  - Grafana gets a random admin credential, readable later from the cluster Secret.
+#  - Alertmanager keeps the placeholders: alerts still route, only delivery to
+#    Slack/email fails until real values are pasted into the file.
 SECRET_FILE="k8s/alertmanager-secret.yaml"
 GRAFANA_SECRET_FILE="k8s/grafana-secret.yaml"
-for f in "$SECRET_FILE" "$GRAFANA_SECRET_FILE"; do
-  if [[ ! -f "$f" ]]; then
-    echo "$f not found. Copy ${f%.yaml}.example.yaml to $f, fill in real values, and retry." >&2
-    exit 1
-  fi
-done
+if [[ ! -f "$SECRET_FILE" ]]; then
+  cp k8s/alertmanager-secret.example.yaml "$SECRET_FILE"
+  echo "Created $SECRET_FILE with placeholders (edit it to enable Slack/email)."
+fi
+if [[ ! -f "$GRAFANA_SECRET_FILE" ]]; then
+  generated="$(od -An -N12 -tx1 /dev/urandom | tr -d ' \n')"
+  sed "s/change-me-before-applying/${generated}/" k8s/grafana-secret.example.yaml > "$GRAFANA_SECRET_FILE"
+  echo "Created $GRAFANA_SECRET_FILE with a random Grafana admin credential."
+fi
 
 
 if [[ "$(minikube status -p minikube --format='{{.Host}}' 2>/dev/null || true)" != "Running" ]]; then
@@ -83,3 +90,5 @@ Deployment complete. Use separate terminals for:
   kubectl port-forward -n monitoring service/alertmanager 9093:9093
 EOF
 fi
+
+echo "Grafana login: user admin, credential stored in k8s/grafana-secret.yaml (admin-password)."
