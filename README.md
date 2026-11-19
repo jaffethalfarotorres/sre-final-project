@@ -15,19 +15,18 @@
 
 ## Quick start
 
-You need Docker, [Minikube](https://minikube.sigs.k8s.io/docs/start/) and `kubectl`. No accounts or credentials are required to run the demo.
+Works on **macOS** (Colima, Apple Silicon or Intel) and **Windows** (WSL2 + Ubuntu), the same toolchain as the SRE Academy course. You need Docker, [Minikube](https://minikube.sigs.k8s.io/docs/start/) and `kubectl`; the [guide](docs/GUIDE.md#2-install-the-tools-one-time) installs them step by step. No accounts or credentials are required to run the demo.
+
+In Terminal (Mac) or the Ubuntu window (Windows):
 
 ```bash
+colima start                   # Mac only
 git clone https://github.com/jaffethalfarotorres/sre-final-project.git
 cd sre-final-project
-./scripts/deploy.sh            # Linux, macOS or WSL2
+./scripts/deploy.sh
 ```
 
-```powershell
-git clone https://github.com/jaffethalfarotorres/sre-final-project.git
-cd sre-final-project
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\deploy.ps1   # Windows
-```
+Using Docker Desktop with PowerShell on Windows instead? Run `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\deploy.ps1`.
 
 The script starts Minikube, builds the image, creates local Secrets from the examples (with a random Grafana admin credential), deploys everything and waits for it to be ready. Then open the services with the port-forward commands in [Access the services](#access-the-services).
 
@@ -75,11 +74,13 @@ The built-in 5% error rate on `/store` stays below the 5% threshold on purpose. 
 
 ## Prerequisites
 
-- Docker Desktop running
+- **macOS:** Homebrew, Colima (`colima start --cpu 4 --memory 6 --disk 60`), `docker` CLI
+- **Windows:** WSL2 with Ubuntu and Docker Engine (or Docker Desktop with PowerShell)
 - [Minikube](https://minikube.sigs.k8s.io/docs/start/) with the Docker driver
 - `kubectl`
 - [Helm 3](https://helm.sh/) (only for the Helm path)
-- PowerShell on Windows, or Bash/WSL2
+
+Step-by-step install commands for both systems are in [`docs/GUIDE.md`](docs/GUIDE.md#2-install-the-tools-one-time).
 
 ## Configure notifications (optional)
 
