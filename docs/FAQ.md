@@ -172,6 +172,8 @@ It is **one trial, not a guarantee**: one run, with Claude Code, and the planted
 
 You need Git, Python 3.10 or newer, and Docker. For part B you also need Minikube and kubectl ([GUIDE step 2](GUIDE.md#2-install-the-tools-one-time)). The times assume the tools are already installed.
 
+**Shortcut:** after `pip install -r requirements-dev.txt`, one read-only script runs part A and, with `--cluster`, a health check of the running lab (pods, targets, alert rules loaded, Alertmanager and Grafana up; it does not fire the drill, see part B step 4): `python3 scripts/smoke_test.py --cluster` (Windows: `python scripts\smoke_test.py --cluster`). Add `--report reports/smoke-test.md` for a Markdown report. In an AI coding agent, paste the repository link and say "I want to check the project" (IBM Bob: `/smoke-test`).
+
 **A. Without a cluster (about 5 minutes).** These are the same checks CI runs ([CONTRIBUTING.md](../CONTRIBUTING.md) has all of them).
 
 Mac and Linux:

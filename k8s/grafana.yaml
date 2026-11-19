@@ -39,13 +39,31 @@ spec:
               value: /var/lib/grafana/dashboards/sre-metrics.json
             - name: GF_ANALYTICS_REPORTING_ENABLED
               value: "false"
+            # Lab only (Grafana is reachable only through a port-forward on this laptop): anyone who opens it sees the
+            # dashboards without logging in, as a Viewer. Viewers may use Explore (logs, traces) but cannot save
+            # changes. Changing dashboards or alert rules still needs the admin login from grafana-admin-credentials.
+            - name: GF_AUTH_ANONYMOUS_ENABLED
+              value: "true"
+            - name: GF_AUTH_ANONYMOUS_ORG_ROLE
+              value: Viewer
+            - name: GF_USERS_VIEWERS_CAN_EDIT
+              value: "true"
           resources:
             requests:
               cpu: 100m
               memory: 128Mi
             limits:
-              cpu: 500m
+              cpu: "1"
               memory: 384Mi
+          # Grafana builds its database on every fresh start (about 400 migrations). On a slow laptop or right after
+          # "minikube start" that takes 1-3 minutes, and the liveness probe would kill it before it is done, in a loop.
+          # The startup probe gives it up to 5 minutes; liveness only starts after the first success.
+          startupProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            periodSeconds: 10
+            failureThreshold: 30
           livenessProbe:
             httpGet:
               path: /api/health

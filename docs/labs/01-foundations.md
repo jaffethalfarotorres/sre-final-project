@@ -91,7 +91,7 @@ Memory is the most common blocker. The core stack uses about 3.2-3.8 GiB. Later 
    ./scripts/dashboards.sh
    ```
    Windows PowerShell: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\dashboards.ps1 -Background` (stop it later with `-Stop`).
-   What you should see: a list of addresses: Grafana `http://localhost:3000` (user `admin`; the script copies the password to your clipboard and never prints it; if it cannot use the clipboard, it tells you where to find the password. Paste it into the login and never into a chat), Prometheus `:9090`, Alertmanager `:9093`, the app `:5000`, Jaeger `:16686`. An `MCP (AI)` line on `:8000` appears only after `scripts/ai_setup.py` has run (Part 7, M17). Grafana opens in your browser.
+   What you should see: a list of addresses: Grafana `http://localhost:3000` (opens view-only without a login; to edit, `admin` / `admin`), Prometheus `:9090`, Alertmanager `:9093`, the app `:5000`, Jaeger `:16686`. An `MCP (AI)` line on `:8000` appears only after `scripts/ai_setup.py` has run (Part 7, M17). Grafana opens in your browser.
 
 8. Look around. In Grafana open **Dashboards > SRE Metrics Demo**. In Prometheus open **Status > Targets**. In Alertmanager wait about a minute.
    What you should see: live charts in Grafana, the app target **UP** in Prometheus, and `AlwaysFiringDemoAlert` in Alertmanager. That alert is always on; it proves the alert pipeline works.
@@ -106,7 +106,7 @@ Memory is the most common blocker. The core stack uses about 3.2-3.8 GiB. Later 
 
 1. Minikube with `--driver=docker` runs the cluster inside a container, so it needs a running container engine. Mac has no Linux kernel, so Colima provides a small Linux VM. WSL2 provides one on Windows.
 2. It tunnels a port on `localhost` to a Service inside the cluster. It is a running process; closing the window stops the tunnel.
-3. In `k8s/grafana-secret.yaml` (created by `deploy.sh` with a random value) and in the cluster Secret `grafana-admin-credentials`. The file is gitignored so credentials never reach the public repo.
+3. In `k8s/grafana-secret.yaml` (created by `deploy.sh` from the example, with the lab login `admin` / `admin`) and in the cluster Secret `grafana-admin-credentials`. The file is gitignored so credentials never reach the public repo.
 4. It tests the whole path (Prometheus rule, Alertmanager, routing) without breaking anything. If it does not show up, the problem is the pipeline, not the app.
 </details>
 

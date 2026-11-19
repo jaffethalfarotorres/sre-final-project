@@ -88,7 +88,7 @@ Port-forward to access services:
 # Flask Application & Metrics:
 kubectl port-forward -n application service/sre-metrics-app 5000:5000
 
-# Grafana Dashboard (admin / the password from k8s/grafana-secret.yaml):
+# Grafana Dashboard (admin / admin, or your own password from k8s/grafana-secret.yaml):
 kubectl port-forward -n monitoring service/kube-prometheus-stack-grafana 3000:80
 
 # Prometheus UI:

@@ -7,6 +7,8 @@
   the same 9 steps (`lab.py journey`), the preflight first, then the setup kit, then a new terminal and a Claude Code
   restart (`claude --continue`) so the new tools are on PATH. Windows: always `python` (never `python3`);
   Mac/Linux: `python3`. The student runs setup, deploy and cluster-changing commands in their own terminal.
+- **Teachers and graders**: run `python scripts/smoke_test.py` (add `--cluster` when the lab runs). It only reads.
+  Never commit, push or create a repository for anyone (AGENTS.md, Writing).
 - Subagents: `sre-triage` (read-only alert triage) and `postmortem-writer` (drafts in docs/postmortems/ only).
 - Skill: `/incident-triage` runs the triage protocol end to end.
 - Enforcement does not depend on these instructions: `.claude/settings.json` denies changing commands and secret

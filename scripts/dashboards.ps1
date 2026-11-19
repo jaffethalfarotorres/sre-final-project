@@ -3,7 +3,7 @@
 #   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\dashboards.ps1              # keep the window open
 #   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\dashboards.ps1 -Background  # start and return (IBM Bob)
 #   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\dashboards.ps1 -Stop        # close background tunnels
-# The Grafana password is copied to the clipboard, never printed, so it does not end up in an AI chat.
+# The lab login is admin / admin. A password you set yourself is copied to the clipboard, never printed.
 param([switch]$Background, [switch]$Stop)
 # "Continue": in Windows PowerShell 5.1 a kubectl check that fails on purpose must not stop the script.
 $ErrorActionPreference = "Continue"
@@ -59,8 +59,9 @@ try {
     $encoded = kubectl get secret grafana-admin-credentials -n monitoring -o jsonpath='{.data.admin-password}' 2>$null
     $passwordNote = "see k8s/grafana-secret.yaml"
     if ($encoded) {
-        [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($encoded)) | Set-Clipboard
-        $passwordNote = "copied to your clipboard: paste it with Ctrl+V"
+        $plain = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($encoded))
+        if ($plain -eq "admin") { $passwordNote = "admin" }
+        else { $plain | Set-Clipboard; $passwordNote = "copied to your clipboard: paste it with Ctrl+V" }
     }
 
     Write-Host ""

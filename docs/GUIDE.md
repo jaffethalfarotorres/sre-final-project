@@ -291,7 +291,7 @@ The pieces run inside Minikube, so your browser reaches them through "tunnels" (
 ```
 Windows PowerShell: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\dashboards.ps1 -Background`
 
-It prints the addresses, opens Grafana in your browser and **copies the Grafana password to your clipboard** (it never prints it). In the Grafana login, type `admin` and paste the password with **Ctrl + V** (Mac: **Cmd + V**). Never paste it into a chat. The tunnels keep running until you stop them:
+It prints the addresses, opens Grafana in your browser and prints the Grafana login. Grafana opens view-only without a login; to change things, sign in with **`admin` / `admin`** (a lab-only login: Grafana is reachable only from your own laptop). The tunnels keep running until you stop them:
 
 ```bash
 ./scripts/dashboards.sh --stop
@@ -300,7 +300,7 @@ Windows PowerShell: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts
 
 | Address | What you see |
 | --- | --- |
-| <http://localhost:3000> | **Grafana**, the charts. Log in as `admin` with the password the script copied to your clipboard. |
+| <http://localhost:3000> | **Grafana**, the charts. Opens without a login (view-only). To edit, sign in with `admin` / `admin`. |
 | <http://localhost:9090> | **Prometheus**, the raw measurements and the alarm rules |
 | <http://localhost:9093> | **Alertmanager**, who gets notified |
 | <http://localhost:16686> | **Jaeger**, the path of each single request (traces) |
@@ -558,7 +558,7 @@ If a command fails, **you are probably not doing anything wrong**. Find the mess
 | `curl` or the browser gets nothing right after starting the tunnels | The tunnels need a few seconds to get ready. Wait 5 seconds and try again. |
 | `address already in use` when opening a tunnel | Old tunnels are still running. Run `./scripts/dashboards.sh --stop` (Windows PowerShell: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\dashboards.ps1 -Stop`), then start them again. |
 | A copied command fails with `No such file or directory` and has `<` `>` in it | Text inside `< >` is a placeholder to replace. The commands in this guide do not need any changes. |
-| Grafana rejects the password | Your clipboard changed since the script copied it. Run the dashboards script with `--stop`, then with `--background` again (Windows: `-Stop`, then `-Background`); it copies the password once more. Paste it straight into Grafana, never into a chat. |
+| Grafana rejects `admin` / `admin` | This lab was deployed before the simple login, or you set your own password in `k8s/grafana-secret.yaml`. The dashboards script copies your own password to the clipboard. To go back to `admin` / `admin`, delete `k8s/grafana-secret.yaml` and run `scripts/lab_up.py --redeploy`. |
 | No Slack or email message | Check the logs: `kubectl logs deployment/alertmanager -n monitoring --tail=30`. `no_team` or `invalid_token` means a wrong Slack URL. `535` means a wrong email address or app password. Fix the file, then repeat step 6e. |
 | Windows: `python` opens the Microsoft Store, or `python3` does nothing | Install Python with `winget install -e --id Python.Python.3.12 --scope user`, refresh PATH (see [Windows step 3](#windows-powershell-used-by-ibm-bob)), and use `python`, never `python3`. |
 | Windows: a tool is "not recognized" right after `winget install` | The open terminal has an old PATH. Run the PATH refresh line from [Windows step 3](#windows-powershell-used-by-ibm-bob), or open a new terminal. |

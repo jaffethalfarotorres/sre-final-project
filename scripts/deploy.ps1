@@ -60,7 +60,7 @@ if (-not (Test-Docker)) {
 
 # Credentials (Alertmanager Slack/SMTP and Grafana admin) live in gitignored Secrets.
 # On a fresh clone they do not exist yet, so create them from the examples:
-#  - Grafana gets a random admin credential, readable later from the file.
+#  - Grafana gets the lab login admin / admin (local only; edit the file for your own password).
 #  - Alertmanager keeps the placeholders: alerts still route, only delivery to
 #    Slack/email fails until real values are pasted into the file.
 $SecretFile = "k8s/alertmanager-secret.yaml"
@@ -70,10 +70,8 @@ if (-not (Test-Path $SecretFile)) {
     Write-Host "Created $SecretFile with placeholders (edit it to enable Slack/email)."
 }
 if (-not (Test-Path $GrafanaSecretFile)) {
-    $generated = [guid]::NewGuid().ToString('N').Substring(0, 24)
-    $content = (Get-Content k8s/grafana-secret.example.yaml -Raw) -replace 'change-me-before-applying', $generated
-    [System.IO.File]::WriteAllText((Join-Path (Get-Location) $GrafanaSecretFile), $content)
-    Write-Host "Created $GrafanaSecretFile with a random Grafana admin credential."
+    Copy-Item k8s/grafana-secret.example.yaml $GrafanaSecretFile
+    Write-Host "Created $GrafanaSecretFile with the lab login admin / admin."
 }
 
 $ErrorActionPreference = "Continue"
@@ -142,5 +140,5 @@ else {
     Write-Host "Deployment complete."
 }
 
-Write-Host "Grafana login: user admin, credential stored in k8s/grafana-secret.yaml (admin-password)."
+Write-Host "Grafana login: admin / admin (unless you changed k8s/grafana-secret.yaml). It also opens view-only without a login."
 Write-Host "Next: run 'powershell -NoProfile -ExecutionPolicy Bypass -File scripts\dashboards.ps1' to open the dashboards."

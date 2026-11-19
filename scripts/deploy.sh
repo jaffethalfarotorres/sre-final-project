@@ -37,7 +37,7 @@ fi
 
 # Credentials (Alertmanager Slack/SMTP and Grafana admin) live in gitignored Secrets.
 # On a fresh clone they do not exist yet, so create them from the examples:
-#  - Grafana gets a random admin credential, readable later from the cluster Secret.
+#  - Grafana gets the lab login admin / admin (local only; edit the file for your own password).
 #  - Alertmanager keeps the placeholders: alerts still route, only delivery to
 #    Slack/email fails until real values are pasted into the file.
 SECRET_FILE="k8s/alertmanager-secret.yaml"
@@ -47,9 +47,8 @@ if [[ ! -f "$SECRET_FILE" ]]; then
   echo "Created $SECRET_FILE with placeholders (edit it to enable Slack/email)."
 fi
 if [[ ! -f "$GRAFANA_SECRET_FILE" ]]; then
-  generated="$(od -An -N12 -tx1 /dev/urandom | tr -d ' \n')"
-  sed "s/change-me-before-applying/${generated}/" k8s/grafana-secret.example.yaml > "$GRAFANA_SECRET_FILE"
-  echo "Created $GRAFANA_SECRET_FILE with a random Grafana admin credential."
+  cp k8s/grafana-secret.example.yaml "$GRAFANA_SECRET_FILE"
+  echo "Created $GRAFANA_SECRET_FILE with the lab login admin / admin."
 fi
 
 

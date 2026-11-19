@@ -124,36 +124,21 @@ More detail: [On an IBM-managed laptop](GUIDE.md#on-an-ibm-managed-laptop) in th
 2. Copy and paste this message exactly. It works in any AI coding agent:
 
 ```text
-Set up the SRE Academy lab for me. I am new to this, so explain each step in simple words and propose one command at a time. Wait for my OK before each command.
-1. Find out if I am on Windows or Mac.
-2. Install git, Python 3.12 and the GitHub command line (gh) if they are missing.
-   Windows: winget install -e --id Git.Git, then Python.Python.3.12 --scope user, then GitHub.cli.
-   After each winget install, refresh PATH in the same PowerShell terminal:
-   $env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User')
-   If winget is not available (common on IBM laptops), tell me, and I will install Git from
-   https://git-scm.com/download/win and Python from https://www.python.org/downloads/windows/
-   ("Install for me only", tick "Add python.exe to PATH") myself. Then refresh PATH the same way.
-   Without winget, skip gh: we use git clone in step 4. The fork is only needed later (mission M09b).
-   On Windows always use "python", never "python3" (python3 opens the Microsoft Store).
-   Mac: xcode-select --install for git; then Homebrew.
-   Apple silicon Mac (M1 to M4): after Homebrew, add it to PATH with two commands:
-   eval "$(/opt/homebrew/bin/brew shellenv)"
-   echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
-   Then brew install python gh, and check python3 --version.
-   It must be 3.10 or newer. If it shows 3.9 (Apple's own Python, too old):
-   brew install python@3.12, and use python3.12 instead of python3.
-3. If gh is installed: ask me to run "gh auth login" myself (GitHub.com, HTTPS, Login with a web browser). That is my step; wait until I say done.
-4. Go to my home folder.
-   If gh is installed, run: gh repo fork jaffethalfarotorres/sre-final-project --clone
-   Without gh, run: git clone https://github.com/jaffethalfarotorres/sre-final-project.git
-5. Tell me how to open the sre-final-project folder in this AI coding agent, then stop.
+Set up the SRE Academy lab on my laptop and show me every tool working. I am not technical:
+you do the work, explain in plain words what is happening, and ask for my OK before each command.
+1. Find out if I am on Windows or Mac. If git or Python 3.10+ is missing, install it
+   (Windows: winget install -e --id Git.Git, then winget install -e --id Python.Python.3.12 --scope user;
+   if winget is missing, tell me which installer to download and click). On Windows always use "python".
+2. Clone https://github.com/jaffethalfarotorres/sre-final-project.git into my home folder.
+3. Read sre-final-project/AGENTS.md, section "First message", and follow it from inside that folder:
+   run scripts/lab_up.py, give me the tour of the tools, then the alert drill.
 ```
 
-3. The agent proposes each command and **waits for you**. Read the one-line explanation, then approve it.
-   - The first time, IBM Bob may show **"I understand the risks"**. That is normal: it means "you will approve each command". Accept it, and keep the rules above. Other agents may ask whether you **trust** the folder; say yes only for this lab folder.
-   - An installer may ask for admin rights or show a Windows pop-up. Click it yourself, then tell the agent "done".
+3. The agent explains each step and **waits for your OK**. You mostly click **Approve** and watch. The big step is one command, `lab_up.py`: it installs what is missing, starts a small Kubernetes on your laptop, deploys the shop and its monitoring, and opens the web pages. It takes 15-40 minutes, mostly downloads.
+   - The first time, IBM Bob may show **"I understand the risks"**. That is normal: it means "you will approve each command". Accept it. Other agents may ask whether you **trust** the folder; say yes only for this lab folder.
+   - An installer may ask for admin rights or show a Windows pop-up. Click it yourself, then tell the agent "done". If IBM blocks something, the agent points you to the [IT request template](IT-REQUEST.md).
 
-**What is the fork for?** `gh repo fork ... --clone` makes **your own copy** of the lab on GitHub (the *fork*) and downloads it to your laptop (the *clone*). Your work and your proof live in your copy, so you can share it later. The `gh auth login` step tells GitHub who you are; only you can do it, in your browser. Without gh, `git clone` only downloads the lab. That is enough for the whole shift; you make your fork later, in the optional mission M09b.
+**What about a fork?** `git clone` downloads the lab to your laptop. That is enough for everything here. Your own copy on GitHub (a *fork*) comes later and only if you want it, in the optional mission M09b.
 
 ## Step 2: open the lab and meet your AI pair
 
@@ -162,10 +147,10 @@ Set up the SRE Academy lab for me. I am new to this, so explain each step in sim
 2. If the agent asks whether you **trust** this folder, say yes. The rules it follows are in `AGENTS.md` (and `.bob/` for Bob, `CLAUDE.md` and `.claude/` for Claude Code), and you can read them.
 3. Start the shift, as in the [table above](#use-any-ai-coding-agent):
    - **IBM Bob:** open Bob's **Permissions** (auto-approve) menu. Tick **Read** and **MCP** only. Leave **Execute** and **Write** off. (MCP is how Bob reads your dashboards. The **grafana** server stays off until step 8 of your shift, M17, when Bob shows you how to switch it on.) In the mode picker, choose **SRE Lab Guide**. Type `/start-lab` and press Enter.
-   - **Claude Code:** type `/lab` and press Enter. Keep the default permission mode, so it asks before every command. The repository's `.claude/settings.json` blocks commands that change the cluster, so for those steps Claude Code shows you the command and **you run it** in your own terminal.
+   - **Claude Code:** type `/lab` and press Enter. Keep the default permission mode, so it asks before every command; you approve, it does the work.
    - **Other agents:** paste `Read AGENTS.md and guide me through the First on-call shift`. Keep its approval setting on, so it asks before every command.
 
-The agent then runs the **setup kit** (`scripts\install-tools.ps1`, Mac `scripts/install-tools.sh`): one approved command that installs only the tools that are missing, even on IBM laptops without winget. (In Claude Code, the agent shows you the kit command and you run it in your own terminal.) **When the kit ends, close the agent's terminal and open a new one** before the next step. Only a new terminal sees the new tools. If they are still "not found", quit the agent completely and start it again. The agent also runs the **preflight** (`python scripts\preflight.py`, Mac `python3 scripts/preflight.py`). It only reads your laptop and tells you what is missing. Then the agent walks you through the 9 steps of your shift: it explains each idea in plain words, proposes one approved command at a time, checks each step on your real laptop, and asks a short quiz.
+If the lab is not running yet, the agent brings it up with **one command**, `lab_up.py` (the same one as in Step 1): it installs only what is missing, even on IBM laptops without winget, starts Kubernetes, deploys everything, opens the web pages and checks that every tool is connected. You do not need to open a new terminal; the script handles that. Then the agent walks you through the 9 steps of your shift: it explains each idea in plain words, does the commands after your OK, checks each step on your real laptop, and asks a short quiz.
 
 ## Step 3: your shift starts with B00
 
@@ -238,6 +223,7 @@ These slash commands are IBM Bob's. In Claude Code, use `/lab` and ask in plain 
 | `/my-cv` | Your skills so far, turned into CV and LinkedIn lines |
 | `/interview` | Practise a junior SRE interview with the agent |
 | `/lab-proof Your Name` | Create your SRE Lab Passport |
+| `/smoke-test` | For teachers and graders: check the whole project in one read-only command (about 2 minutes) and get a report. Works in SRE Lab Guide, Agent or Code mode |
 
 ## If something goes wrong
 

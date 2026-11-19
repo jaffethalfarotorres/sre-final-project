@@ -50,12 +50,6 @@
         mode: "0600"
       loop: [alertmanager-secret, grafana-secret]
 
-    - name: Give Grafana a random admin credential instead of the example placeholder
-      ansible.builtin.replace:
-        path: "{{ project_dir }}/k8s/grafana-secret.yaml"
-        regexp: "change-me-before-applying"
-        replace: "{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters', 'digits'], length=24) }}"
-
     - name: Create the monitoring namespace for the Secrets
       ansible.builtin.command: kubectl create namespace monitoring
       register: namespace_result

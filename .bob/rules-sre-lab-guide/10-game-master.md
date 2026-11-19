@@ -64,7 +64,7 @@ In this file and in the slash commands, `lab.py <x>` is shorthand. Windows: `pyt
 - Some scripts keep running. Never start one in a way that blocks the chat.
 - Dashboards: start them in the background, it returns in a few seconds:
   Windows `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\dashboards.ps1 -Background`, Mac/Linux `./scripts/dashboards.sh --background`. Stop them with `-Stop` / `--stop`.
-- The Grafana password is **copied to the clipboard**, not printed. Tell the student: "Paste it into the Grafana login with Ctrl+V (Cmd+V on Mac)." Never print it, never ask them to paste it into the chat.
+- Grafana opens view-only without a login. To edit, the lab login is **`admin` / `admin`** (local only, on purpose, to keep it simple). If the student set their own password, the dashboards script copies it to the clipboard: never print that one in chat.
 - `scripts\trigger-alert.ps1` / `./scripts/trigger-alert.sh` takes about 4 minutes. Before it starts, say: "This takes about 4 minutes and the terminal looks quiet. It is still working. That is normal."
 - If a command is still running after you expected it to end, explain what it is waiting for. Do not start a second copy.
 
@@ -81,20 +81,19 @@ Before step 1, run the **preflight**: `python scripts\preflight.py` (Mac: `pytho
 4. Run `lab.py check B00`, then `lab.py journey`.
 
 ### 2. M00 "Boot the lab" (60 min, mostly waiting)
-Detect the operating system first (`uname -s` on Mac; on Windows, Bob runs in PowerShell). Install only what the preflight said is missing.
-- **Use the setup kit: one approved command installs only what is missing.** First show what it would do: Windows `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-tools.ps1 -DryRun`, Mac `./scripts/install-tools.sh --dry-run`. Then run it without the dry-run flag. Explain: it checks each tool, installs only the missing ones, and ends with the preflight check.
-- **After the kit, a new terminal (a human step, do not skip it).** The kit saves the new tools on the PATH for **new** terminals only, so in the same terminal `minikube`, `helm` or `gh` are "not found" and the deploy fails. Ask the student: "Please close Bob's terminal and open a new one, then tell me 'done'." Wait for "done". Then run the preflight again before the deploy. If it still says the tools are missing, ask the student to quit Bob completely and open it again (a new terminal inside Bob can keep Bob's old PATH).
+**One command does the whole setup; you run it, the student watches.** Ask for one OK, then run `python scripts\lab_up.py` (Mac `python3 scripts/lab_up.py`). It checks which tools are missing, runs the setup kit for them, reloads PATH inside its own process (no new terminal), deploys (`scripts/deploy.*`), starts the tunnels in the background and checks that every tool is connected, then prints a map of the tools. It skips what is already done, so running it again is safe. Exit code 2 means a human step (see below): say what to click, wait for "done", and run it again.
+- If the student wants to see what the kit would install first: Windows `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-tools.ps1 -DryRun`, Mac `./scripts/install-tools.sh --dry-run`.
 - **Windows:** the kit uses winget when the laptop has it. Many IBM laptops have no winget: then the kit downloads kubectl, minikube, helm and gh as single programs into `%USERPROFILE%\tools\bin` (no admin rights, each checked against its published SHA-256) and prints the official download page for Git, Python or the container engine if those are missing. Container engine: add `-Engine rancher` (Rancher Desktop, free; on first start choose dockerd (moby) and turn Kubernetes off) or `-Engine docker` (Docker Desktop, needs a licence). If the student is unsure which one IBM allows, point to docs/IT-REQUEST.md.
 - **Mac:** the kit uses Homebrew and installs Colima (free) when there is no Docker Desktop. On an 8 GB Mac, start Colima first with `colima start --cpu 2 --memory 4`.
 - Administrator prompts, restarts and the container engine's first start are **human steps**: explain what to click and wait for "done".
-- Then run the deploy script (Windows `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\deploy.ps1`, Mac `./scripts/deploy.sh`), start the dashboards in the background, and run `lab.py check M00`.
+- `lab_up.py` already runs the deploy, the tunnels and `lab.py check M00`. Then give the tour (AGENTS.md "First message" step 4).
 - While things install and deploy, explain the big picture in a few short lines: Kubernetes is a mini data center on the laptop; Nimbus Store runs in it with two copies; the monitoring tools watch it.
 
 ### 3. M01 "Instrument a service" (10 min)
 Teach from docs/labs/01-foundations.md, M01. In two sentences: the app reports its own numbers (metrics) and the path of each request (traces). The student opens Prometheus (http://localhost:9090) and Jaeger (http://localhost:16686) in the browser and looks; you explain what they see. Then `lab.py check M01`.
 
 ### 4. M04 "Dashboards as code" (10 min)
-Teach from docs/labs/02-metrics-dashboards-alerts.md, M04. The student logs in to Grafana (http://localhost:3000, user `admin`, password from the clipboard) and opens the four dashboards in the **SRE Demo** folder. Say why it matters: the dashboards live in Git as files, so nobody loses them. Then `lab.py check M04`.
+Teach from docs/labs/02-metrics-dashboards-alerts.md, M04. The student logs in to Grafana (http://localhost:3000, opens without a login; to edit, `admin` / `admin`) and opens the four dashboards in the **SRE Demo** folder. Say why it matters: the dashboards live in Git as files, so nobody loses them. Then `lab.py check M04`.
 
 ### 5. M05 "First alert" (15 min)
 Teach from docs/labs/02-metrics-dashboards-alerts.md, M05. Propose `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\trigger-alert.ps1` (Mac `./scripts/trigger-alert.sh`) and give the 4-minute warning. While it runs, explain what an alert is and why it should only wake a human when users suffer. The student watches `HighErrorRate` appear in Alertmanager (http://localhost:9093). Then `lab.py check M05`.

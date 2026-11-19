@@ -163,11 +163,8 @@ If you build a dashboard by clicking, it lives only inside that one Grafana. Whe
 
 **Lab steps**
 
-1. Log in. `dashboards.sh` (or `dashboards.ps1`) copies the Grafana password to your clipboard, so it never ends up in a chat with Bob. If the clipboard is empty, read it yourself in your own terminal (do not paste it into Bob):
-   ```bash
-   grep admin-password k8s/grafana-secret.yaml
-   ```
-   What you should see: a line `admin-password: "..."`. Open <http://localhost:3000>, user `admin`. The home page is **SRE Metrics Demo** with four panels.
+1. Log in. Open <http://localhost:3000>: Grafana opens view-only without a login. To change anything, sign in with `admin` / `admin` (the lab login; Grafana is reachable only from your own laptop).
+   What you should see: the home page **SRE Metrics Demo** with four panels.
 
 2. Check the data sources. In Grafana go to **Connections > Data sources**.
    What you should see: Prometheus (default), Loki, Jaeger and Alertmanager. Each is marked as provisioned, so the UI does not let you change it. Click **Test** on Prometheus and Loki; both succeed.

@@ -4,7 +4,7 @@
 #   ./scripts/dashboards.sh               keep this window open; Ctrl+C closes the tunnels
 #   ./scripts/dashboards.sh --background  start the tunnels and return (use this from IBM Bob)
 #   ./scripts/dashboards.sh --stop        close the background tunnels
-# The Grafana password is copied to the clipboard when possible, so it does not end up in an AI chat.
+# The lab login is admin / admin. A password you set yourself is copied to the clipboard, never printed.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 PID_FILE=".lab/tunnels.pid"
@@ -75,7 +75,9 @@ sleep 3
 password="$(kubectl get secret grafana-admin-credentials -n monitoring \
   -o jsonpath='{.data.admin-password}' 2>/dev/null | base64 --decode 2>/dev/null || true)"
 note="see k8s/grafana-secret.yaml"
-if [[ -n "$password" ]]; then
+if [[ "$password" == "admin" ]]; then
+  note="admin"
+elif [[ -n "$password" ]]; then
   for copy in pbcopy clip.exe wl-copy "xclip -selection clipboard"; do
     if command -v "${copy%% *}" >/dev/null 2>&1; then
       # shellcheck disable=SC2086

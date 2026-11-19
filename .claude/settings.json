@@ -51,7 +51,11 @@
       "PowerShell(terraform apply *)",
       "PowerShell(terraform destroy *)",
       "PowerShell(argocd app sync *)",
-      "PowerShell(git push *)"
+      "PowerShell(git push *)",
+      "Bash(gh repo create *)",
+      "Bash(gh pr create *)",
+      "PowerShell(gh repo create *)",
+      "PowerShell(gh pr create *)"
     ],
     "ask": [
       "Bash(pytest *)",
@@ -92,7 +96,9 @@
     ]
   },
   "enableAllProjectMcpServers": false,
-  "enabledMcpjsonServers": ["grafana"],
+  "enabledMcpjsonServers": [
+    "grafana"
+  ],
   "hooks": {
     "PreToolUse": [
       {
