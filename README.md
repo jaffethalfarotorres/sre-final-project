@@ -5,7 +5,11 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE.md)
 [![Python 3.10](https://img.shields.io/badge/Python-3.10-3776AB.svg?logo=python&logoColor=white)](app/app.py)
 
-A small Kubernetes observability project for the SRE Academy final project. A Python 3.10 Flask application (`app/app.py`, instrumented with `prometheus_client` and tested with pytest) exposes Prometheus metrics. Prometheus scrapes and evaluates alert rules, Alertmanager sends notifications to Slack and email, and Grafana visualizes the data. It can be deployed with plain manifests or with Helm, and it is validated by GitHub Actions.
+**In plain words:** this project runs a tiny pretend online shop on your computer, measures how healthy it is, shows those measurements as live charts, and raises an alarm (in Slack and email) when something goes wrong. It is the kind of setup Site Reliability Engineers use to keep real services running.
+
+> **New to this? Start with the [step-by-step guide](docs/GUIDE.md).** It explains every piece in plain language and walks you through installing the tools, running the project, seeing the charts and triggering an alert. No Kubernetes experience needed.
+
+**Technical summary:** a small Kubernetes observability project for the SRE Academy final project. A Python 3.10 Flask application (`app/app.py`, instrumented with `prometheus_client` and tested with pytest) exposes Prometheus metrics. Prometheus scrapes and evaluates alert rules, Alertmanager sends notifications to Slack and email, and Grafana visualizes the data. It can be deployed with plain manifests or with Helm, and it is validated by GitHub Actions.
 
 **Skills shown:** application instrumentation, Kubernetes deployment, Prometheus scraping and alert rules (SLO-style error-rate and latency alerts), Grafana dashboards as code, Alertmanager routing to Slack and email, Helm (IaC), and CI/CD with GitHub Actions.
 
