@@ -1,12 +1,16 @@
+# Deploys the whole stack on Minikube from Windows PowerShell with Docker Desktop.
+# (Windows users on WSL2 + Ubuntu, and Mac users, run scripts/deploy.sh instead.)
+# Usage: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\deploy.ps1 [-Helm]
 param(
     [switch]$Helm
 )
 
 $ErrorActionPreference = "Stop"
+Set-Location (Split-Path $PSScriptRoot -Parent)
 
 function Require-Command([string]$Name) {
     if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
-        throw "$Name is required. Install it and retry."
+        throw "$Name is not installed. See docs/GUIDE.md, step 2 (Install the tools)."
     }
 }
 
@@ -16,6 +20,21 @@ Require-Command docker
 
 if ($Helm) {
     Require-Command helm
+}
+
+# Docker must be running before Minikube can start. Start Docker Desktop if it is installed.
+function Test-Docker { docker info *> $null; return ($LASTEXITCODE -eq 0) }
+if (-not (Test-Docker)) {
+    $desktop = Join-Path $env:ProgramFiles "Docker\Docker\Docker Desktop.exe"
+    if (-not (Test-Path $desktop)) { $desktop = Join-Path $env:LOCALAPPDATA "Programs\DockerDesktop\Docker Desktop.exe" }
+    if (-not (Test-Path $desktop)) { throw "Docker is not running. Open Docker Desktop and wait for 'Engine running', then retry." }
+    Write-Host "Docker is not running. Starting Docker Desktop (up to 3 minutes)..."
+    Start-Process $desktop
+    $deadline = (Get-Date).AddMinutes(3)
+    while (-not (Test-Docker)) {
+        if ((Get-Date) -gt $deadline) { throw "Docker Desktop did not start in time. Open it, wait for 'Engine running', then retry." }
+        Start-Sleep -Seconds 5
+    }
 }
 
 # Credentials (Alertmanager Slack/SMTP and Grafana admin) live in gitignored Secrets.
@@ -92,3 +111,4 @@ else {
 }
 
 Write-Host "Grafana login: user admin, credential stored in k8s/grafana-secret.yaml (admin-password)."
+Write-Host "Next: run 'powershell -NoProfile -ExecutionPolicy Bypass -File scripts\dashboards.ps1' to open the dashboards."

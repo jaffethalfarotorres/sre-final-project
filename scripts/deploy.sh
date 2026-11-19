@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
+# Deploys the whole stack on Minikube. Works on macOS (Colima) and Windows (WSL2 + Ubuntu).
+# Usage: ./scripts/deploy.sh            raw Kubernetes manifests (default)
+#        ./scripts/deploy.sh --helm     Helm chart + kube-prometheus-stack
 set -euo pipefail
+cd "$(dirname "$0")/.."
 
 USE_HELM=false
 if [[ "${1:-}" == "--helm" || "${1:-}" == "helm" ]]; then
@@ -12,8 +16,24 @@ if [[ "$USE_HELM" == true ]]; then
 fi
 
 for command in "${REQUIRED_COMMANDS[@]}"; do
-  command -v "$command" >/dev/null || { echo "$command is required." >&2; exit 1; }
+  command -v "$command" >/dev/null || {
+    echo "$command is not installed. See docs/GUIDE.md, step 2 (Install the tools)." >&2
+    exit 1
+  }
 done
+
+# Docker must be running before Minikube can start.
+if ! docker info >/dev/null 2>&1; then
+  if [[ "$(uname -s)" == "Darwin" ]] && command -v colima >/dev/null; then
+    echo "Docker is not running. Starting Colima (about a minute)..."
+    colima start --cpu 4 --memory 6 --disk 60
+  else
+    echo "Docker is not running." >&2
+    echo "  Mac: run 'colima start'." >&2
+    echo "  Windows (WSL2 + Ubuntu): run 'sudo systemctl start docker', or reopen the Ubuntu window." >&2
+    exit 1
+  fi
+fi
 
 # Credentials (Alertmanager Slack/SMTP and Grafana admin) live in gitignored Secrets.
 # On a fresh clone they do not exist yet, so create them from the examples:
@@ -92,3 +112,4 @@ EOF
 fi
 
 echo "Grafana login: user admin, credential stored in k8s/grafana-secret.yaml (admin-password)."
+echo "Next: run ./scripts/dashboards.sh to open Grafana, Prometheus and Alertmanager in your browser."
