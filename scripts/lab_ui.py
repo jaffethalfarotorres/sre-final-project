@@ -230,6 +230,9 @@ def render(catalog, progress, xp, level, following, next_mission, generated, cle
     badges = "".join(f'<span class="badge{"" if m["id"] in done_ids else " off"}">{_icon("star")}'
                      f'{html.escape(m["achievement"])}</span>' for m in missions if m.get("achievement"))
 
+    current_part = next((z["part"] for z in zones if z["part"] not in set(cleared)), None)
+    caps_html = capabilities(zones, set(cleared), current_part) if zones else ""
+
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SRE Mission Control</title><style>{CSS}{MOUNTAIN_CSS}</style></head>
@@ -244,8 +247,7 @@ updated {html.escape(generated)}</p>
 <section class="story">{_md_bold(catalog.get("story", ""))} Every camp you clear is a level: climb with Bob all the
 way to <strong>On-Call Ready</strong>.</section>
 {mountain(zones, set(cleared)) if zones else ""}
-{capabilities(zones, set(cleared), next((z["part"] for z in zones if z["part"] not in set(cleared)), None))
- if zones else ""}
+{caps_html}
 {next_html}
 {career(catalog, progress, set(cleared)) if zones else ""}
 {"".join(zones_html)}
