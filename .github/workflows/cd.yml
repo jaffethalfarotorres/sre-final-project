@@ -70,7 +70,7 @@ jobs:
       # Tags: 1.2.3, 1.2, sha-abc1234 and latest (latest is added for semver tags by the default
       # flavor latest=auto, and for manual runs on the default branch).
       - id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ steps.names.outputs.images }}
           tags: |
