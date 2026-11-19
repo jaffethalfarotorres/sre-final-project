@@ -356,6 +356,26 @@ def level_of(catalog, xp):
     return current, following
 
 
+def zones_cleared(catalog, progress):
+    """Zones cleared on the climb, in order: a zone counts when every core mission in it is done AND every zone
+    below it is cleared (you cannot reach camp 3 without passing camp 2). Returns the cleared zone parts."""
+    cleared = []
+    for zone in sorted(catalog.get("zones", []), key=lambda z: z["part"]):
+        core = [m for m in catalog["missions"] if m["part"] == zone["part"] and m["kind"] in ("core", "capstone")]
+        if not core or not all(m["id"] in progress["missions"] for m in core):
+            break
+        cleared.append(zone["part"])
+    return cleared
+
+
+def climb(catalog, progress):
+    """Bob's climb to the On-Call Ready summit: (level number, current zone or None at the summit, total camps)."""
+    zones = catalog.get("zones", [])
+    cleared = set(zones_cleared(catalog, progress))
+    current = next((z for z in zones if z["part"] not in cleared), None)
+    return len(cleared), current, len(zones)
+
+
 def next_mission(catalog, progress):
     for mission in catalog["missions"]:
         if mission["id"] not in progress["missions"] and mission["kind"] == "core":
@@ -377,7 +397,11 @@ def cmd_status(args):
     xp = xp_of(catalog, progress)
     level, following = level_of(catalog, xp)
     done, total = len(progress["missions"]), len(catalog["missions"])
-    print(f"Level: {level['name']}   XP: {xp}")
+    camp_level, camp, camps = climb(catalog, progress)
+    where = f"Camp {camp['part']}: {camp['name']}" if camp else "the On-Call Ready summit"
+    print(f"Bob's climb to On-Call Ready: Level {camp_level}/{camps}   [{bar(camp_level, camps, 16)}]   "
+          f"now at {where}")
+    print(f"Rank: {level['name']}   XP: {xp}")
     if following:
         progress_bar = bar(xp - level["xp"], following["xp"] - level["xp"])
         print(f"Next level: {following['name']} at {following['xp']} XP  [{progress_bar}]")
@@ -423,6 +447,7 @@ def cmd_show(args):
 def cmd_check(args):
     catalog, progress = load_catalog(), load_progress()
     missions = catalog["missions"] if args.all else [find(catalog, args.mission)]
+    cleared_before = set(zones_cleared(catalog, progress))
     newly = []
     for mission in missions:
         result = run_check(mission["check"])
@@ -441,8 +466,45 @@ def cmd_check(args):
         print(line)
     if newly:
         xp = xp_of(catalog, progress)
-        print(f"\nTotal XP: {xp}  Level: {level_of(catalog, xp)[0]['name']}")
+        print(f"\nTotal XP: {xp}  Rank: {level_of(catalog, xp)[0]['name']}")
+    zones = sorted(catalog.get("zones", []), key=lambda z: z["part"])
+    cleared_now = zones_cleared(catalog, progress)
+    for part in [p for p in cleared_now if p not in cleared_before]:
+        step = cleared_now.index(part) + 1
+        zone = zones[step - 1]
+        following = zones[step] if step < len(zones) else None
+        print("\n" + "=" * 60)
+        print(f"  LEVEL UP!  Zone {part} cleared: {zone['name']}")
+        print(f"  Bob climbs to level {step}/{len(zones)} on the way to the On-Call Ready summit.")
+        print(f"  Next camp: {following['name']} - {following['story']}" if following else
+              "  SUMMIT REACHED: you are On-Call Ready. Run: lab.py proof --name \"Your Name\"")
+        print("=" * 60)
+    write_mission_control()  # keep the visual dashboard current
     return 0 if all(m["id"] in progress["missions"] for m in missions) else 1
+
+
+def write_mission_control():
+    """Write .lab/mission-control.html (the visual dashboard) and return its path."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import lab_ui
+    catalog, progress = load_catalog(), load_progress()
+    xp = xp_of(catalog, progress)
+    level, following = level_of(catalog, xp)
+    page = lab_ui.render(catalog, progress, xp, level, following, next_mission(catalog, progress),
+                         datetime.now().strftime("%Y-%m-%d %H:%M"), zones_cleared(catalog, progress))
+    out = PROGRESS.parent / "mission-control.html"
+    out.parent.mkdir(exist_ok=True)
+    out.write_text(page, encoding="utf-8")
+    return out
+
+
+def cmd_play(args):
+    path = write_mission_control()
+    print(f"Mission Control: {path}")
+    if not args.no_open:
+        import webbrowser
+        webbrowser.open(path.as_uri())
+    print("In IBM Bob you can also open it with: Command Palette > Simple Browser: Show, then paste the file:/// link.")
 
 
 def cmd_answer(args):
@@ -523,11 +585,13 @@ def main():
     answer.add_argument("choice")
     proof = sub.add_parser("proof")
     proof.add_argument("--name", required=True)
+    play = sub.add_parser("play", help="open Mission Control, the visual dashboard")
+    play.add_argument("--no-open", action="store_true", help="only write the HTML file")
     args = parser.parse_args()
     if args.command == "check" and not (args.mission or args.all):
         parser.error("give a mission id or --all")
     handler = {"status": cmd_status, "missions": cmd_missions, "show": cmd_show, "check": cmd_check,
-               "answer": cmd_answer, "proof": cmd_proof}.get(args.command or "status")
+               "answer": cmd_answer, "proof": cmd_proof, "play": cmd_play}.get(args.command or "status")
     return handler(args) or 0
 
 

@@ -26,7 +26,10 @@ Set up the SRE Academy lab for me. I am new to this, so explain each step in sim
 
 ## Step 2: open the lab and meet your guide
 
-1. Open the `sre-final-project` folder in Bob (Bob tells you how). If Bob asks whether you trust the folder, it is safe to say yes for this lab: the rules Bob will follow are in `AGENTS.md` and the `.bob/` folder, and you can read them.
+1. Open the **`sre-final-project` folder itself** in Bob: **File > Open Folder…**, then choose `sre-final-project`. In the Explorer on the left, the top line must say `SRE-FINAL-PROJECT`, with `AGENTS.md`, `README.md` and the `scripts` folder directly underneath.
+   > **Important:** do not open a parent folder that only *contains* `sre-final-project`. Bob reads its lab rules, the **SRE Lab Guide** mode and the `/start-lab` command from the root of the open folder; from a parent folder they do not appear.
+
+   If Bob asks whether you trust the folder, it is safe to say yes for this lab: the rules Bob will follow are in `AGENTS.md` and the `.bob/` folder, and you can read them.
 2. In the mode picker, choose **SRE Lab Guide**.
 3. Type `/start-lab` and press Enter.
 
@@ -46,12 +49,17 @@ From now on Bob is your tutor. It will:
 | `/hint` | A small hint, without spoiling the answer |
 | `/explain error budget` | Explain any concept in plain words |
 | `/lab-status` | Your level, XP, badges and next mission |
+| `/mission-control` | The visual map: where Bob stands on the mountain and what Nimbus can do now |
 | `/lab-proof Your Name` | Create your shareable SRE Lab Passport |
 
 ## How the game works
 
-- **26 missions** grouped in 8 parts, from "Meet your AI partner" to an AI-assisted **game day**.
-- **Levels:** SRE Intern → Junior SRE (500 XP) → SRE (1,300) → Senior SRE (2,300) → Staff SRE (3,300).
+**The story:** you and Bob are the new SRE team of **Nimbus Store**, a small online shop that went down last week without anyone noticing. Together you climb, camp by camp, to the summit every SRE works toward: **On-Call Ready**, the day the team trusts you to carry the pager.
+
+- **8 camps = 8 levels:** Base Camp → Engine Room → Watchtower → War Room → Detective Agency → Robot Workshop → Proving Grounds → AI Command Center. Clearing a camp is a **LEVEL UP**, and it gives Nimbus a real new capability on your laptop (for example "Nimbus sees its own health and raises an alarm"). Your progress in the game is the maturity of the system you built.
+- **26 missions** across the camps, from "Meet your AI partner" to an AI-assisted **game day**.
+- **Mission Control:** type `/mission-control` and Bob opens a visual map of the mountain with your position, what Nimbus can do now, your next mission and your badges.
+- **Rank by XP:** SRE Intern → Junior SRE (500 XP) → SRE (1,300) → Senior SRE (2,300) → Staff SRE (3,300).
 - **Badges** such as *First Page*, *Budget Keeper*, *Rollback Hero*, *Chaos Survivor*, *Injection Proof*.
 - **No cheating needed, no cheating possible:** a mission only counts when `scripts/lab.py` finds the evidence on your own cluster or repository.
 - **Two modes, two jobs:** *SRE Lab Guide* may run lab commands **you approve**. *SRE Triage (read-only)* is the on-call assistant you use in the incident missions: it investigates but can never change anything. Learning that difference is part of the lab.

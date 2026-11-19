@@ -1,6 +1,65 @@
 {
- "version": 1,
+ "version": 2,
  "salt": "sre-academy-2027",
+ "story": "Welcome to **Nimbus Store**, a small online shop that never sleeps. Last week it went down for an hour and nobody noticed until customers complained. You are the newest member of its Site Reliability team, and your partner is Bob, an AI assistant: brilliant and fast, but never allowed to change anything without your OK. Your goal is the summit every SRE works toward: **On-Call Ready**, the day the team trusts you (and Bob) to carry the pager for Nimbus. Each camp on the way gives Nimbus a new capability it really has on your laptop, so your progress in the game is the maturity of the system you built.",
+ "zones": [
+  {
+   "part": 0,
+   "name": "Base Camp",
+   "icon": "compass",
+   "story": "Meet Bob and learn how you two work together.",
+   "unlock": "You and Bob know the rules: Bob proposes, you approve."
+  },
+  {
+   "part": 1,
+   "name": "The Engine Room",
+   "icon": "engine",
+   "story": "Bring Nimbus Store to life on your own laptop.",
+   "unlock": "Nimbus runs on Kubernetes and updates with zero downtime."
+  },
+  {
+   "part": 2,
+   "name": "The Watchtower",
+   "icon": "tower",
+   "story": "Give the shop eyes: metrics, dashboards and its first alarm.",
+   "unlock": "Nimbus sees its own health and raises an alarm when users suffer."
+  },
+  {
+   "part": 3,
+   "name": "The War Room",
+   "icon": "shield",
+   "story": "Promise reliability with SLOs, and learn to handle incidents calmly.",
+   "unlock": "Nimbus has a reliability promise, an error budget and an incident process."
+  },
+  {
+   "part": 4,
+   "name": "The Detective Agency",
+   "icon": "magnifier",
+   "story": "Follow a single request through logs and traces, even into an AI model.",
+   "unlock": "Any failing request can be traced from the alarm to the exact line of evidence."
+  },
+  {
+   "part": 5,
+   "name": "The Robot Workshop",
+   "icon": "gear",
+   "story": "Automate the boring and dangerous parts: runbooks, infrastructure, pipelines.",
+   "unlock": "Nimbus is rebuilt from code, tested on every change, and diagnoses itself."
+  },
+  {
+   "part": 6,
+   "name": "The Proving Grounds",
+   "icon": "flame",
+   "story": "Break things on purpose and prove Nimbus survives: GitOps, chaos, canaries, policies.",
+   "unlock": "Nimbus survives crashes and bad releases, and refuses unsafe deployments."
+  },
+  {
+   "part": 7,
+   "name": "The AI Command Center",
+   "icon": "robot",
+   "story": "Put Bob on call, keep him safe, and lead the final game day.",
+   "unlock": "On-Call Ready: you lead incidents with an AI teammate you can trust and verify."
+  }
+ ],
  "levels": [
   {
    "name": "SRE Intern",
