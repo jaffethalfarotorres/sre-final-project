@@ -31,13 +31,28 @@ def test_tail_and_last_line():
     assert st.tail("1\n2\n3", lines=2) == "2\n3"
 
 
-def test_pytest_skips_without_module(monkeypatch):
-    monkeypatch.setattr(st, "has_module", lambda name: False)
+def test_pytest_skips_without_dev_python(monkeypatch):
+    monkeypatch.setattr(st, "DEV_PY", None)
     assert st.check_pytest().status == "SKIP"
+    assert st.check_flake8().status == "SKIP"
+
+
+def test_dev_python_prefers_current_then_venv(monkeypatch):
+    monkeypatch.setattr(st, "has_module", lambda name, python=None: python is None)
+    assert st.dev_python(setup=False) == st.sys.executable
+    monkeypatch.setattr(st, "has_module", lambda name, python=None: python == st.VENV_PY)
+    monkeypatch.setattr(st.os.path, "exists", lambda path: path == st.VENV_PY)
+    assert st.dev_python(setup=False) == st.VENV_PY
+
+
+def test_dev_python_without_setup_returns_none(monkeypatch):
+    monkeypatch.setattr(st, "has_module", lambda name, python=None: False)
+    monkeypatch.setattr(st.os.path, "exists", lambda path: False)
+    assert st.dev_python(setup=False) is None
 
 
 def test_pytest_pass_and_fail(monkeypatch):
-    monkeypatch.setattr(st, "has_module", lambda name: True)
+    monkeypatch.setattr(st, "DEV_PY", "python")
     monkeypatch.setattr(st, "run", fake_run({"pytest": (0, "....\n135 passed in 3s\n")}))
     assert st.check_pytest() == st.Result("PASS", "Unit tests (pytest)", "135 passed in 3s", "")
     monkeypatch.setattr(st, "run", fake_run({"pytest": (1, "FAILED tests/x.py\n1 failed\n")}))
@@ -141,6 +156,7 @@ def test_main_exit_code_and_report(monkeypatch, tmp_path):
         monkeypatch.setattr(st, name, lambda: passing)
     monkeypatch.setattr(st, "check_promtool", lambda quick: passing)
     monkeypatch.setattr(st, "run", fake_run({"rev-parse": (0, "abc1234\n")}))
+    monkeypatch.setattr(st, "dev_python", lambda setup=True: None)
     report = tmp_path / "out" / "report.md"
     assert st.main(["--report", str(report)]) == 0
     assert report.read_text(encoding="utf-8").startswith("# Smoke test report")

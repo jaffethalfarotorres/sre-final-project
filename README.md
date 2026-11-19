@@ -7,7 +7,7 @@
 [![Runs on Mac and Windows](https://img.shields.io/badge/runs%20on-macOS%20%7C%20Windows-informational)](docs/GUIDE.md)
 [![Guided by your AI coding agent](https://img.shields.io/badge/guided%20by-your%20AI%20coding%20agent-0f62fe)](docs/BOB-QUICKSTART.md)
 
-**What this is, in plain words:** an ice-breaker for Site Reliability Engineering (SRE: the people who keep online services working), guided by your AI coding agent: [IBM Bob](https://bob.ibm.com) for IBMers, or Claude Code, Codex and others. You open your agent, paste the link to this repository, and in **one sitting of about 2-3 hours once the laptop is ready (estimated)**, most of it waiting for installs, the agent sets up a real SRE toolchain on your laptop and walks you through your **first on-call shift**: live dashboards, an alert that reaches your phone, the trace of one failing request, and an AI teammate that investigates safely without being allowed to break anything.
+**What this is, in plain words:** an ice-breaker for Site Reliability Engineering (SRE: the people who keep online services working), guided by your AI coding agent: [IBM Bob](https://bob.ibm.com) for IBMers, or Claude Code, Codex and others. You open your agent, paste the link to this repository, and in **about 1 hour you see it all running** (most of it waiting for downloads). If you want more, the guided shift takes **2-3 hours in one sitting** (estimated): the agent sets up a real SRE toolchain on your laptop and walks you through your **first on-call shift**: live dashboards, an alert that reaches your phone, the trace of one failing request, and an AI teammate that investigates safely without being allowed to break anything.
 
 You do not need a technical background. Nobody grades it. The agent does the work, you approve and watch, and it explains what you see. New words? See the [glossary](docs/GUIDE.md#glossary) or the [FAQ](docs/FAQ.md).
 
@@ -65,7 +65,7 @@ Plan **about 1 hour** the first time (most of it is waiting for downloads), on a
 | **Claude Code** | [`CLAUDE.md`](CLAUDE.md) (imports `AGENTS.md`), the `/lab` skill in [`.claude/skills/lab/`](.claude/skills/lab/) and the `sre-triage` subagent | Type `/lab` |
 | **Others** (OpenAI Codex, Google Antigravity, Cursor...) | [`AGENTS.md`](AGENTS.md), the shared entry point that many agents read | Paste `Read AGENTS.md and guide me through the First on-call shift` |
 
-**Tested with:** the shift and the AI triage drill were run with Claude Code on the author's laptop. The IBM Bob setup was written for Bob 2.x, but a full shift in Bob has not been timed yet. Other agents follow `AGENTS.md` but were not tested. More in [Use any AI coding agent](docs/BOB-QUICKSTART.md#use-any-ai-coding-agent).
+**Tested with:** the shift and the AI triage drill were run with Claude Code on the author's laptop. A fresh AI agent that got only this link also cloned it, ran `lab_up.py`, fired the drill and got 12/12 PASS from the smoke test (on a laptop with the tools already installed). The IBM Bob setup was written for Bob 2.x, but a full shift in Bob has not been timed yet. Other agents follow `AGENTS.md` but were not tested. More in [Use any AI coding agent](docs/BOB-QUICKSTART.md#use-any-ai-coding-agent).
 
 **→ [Start your first on-call shift](docs/BOB-QUICKSTART.md)**
 
@@ -79,7 +79,7 @@ The pretend shop is **Nimbus Store**. It went down for an hour last week and nob
 | # | Mission | What you do | Minutes |
 | --- | --- | --- | --- |
 | 1 | B00 Meet your AI partner | Learn how you and your agent (Bob for IBMers) work together, including the "Stay in control" rules | 15 |
-| 2 | M00 Boot the lab | Run `scripts/preflight.py`, then the one-command setup kit `scripts/install-tools.*` installs what is missing, and the agent deploys the stack (mostly waiting) | 60 |
+| 2 | M00 Boot the lab | The agent runs one command, `scripts/lab_up.py`: it installs what is missing, deploys the stack and checks that every tool is connected (mostly waiting; 15-40 minutes the first time) | 60 |
 | 3 | M01 Instrument a service | See the numbers, traces and logs the shop sends out | 10 |
 | 4 | M04 Dashboards as code | Open Grafana and read the live charts | 10 |
 | 5 | M05 First alert | Break the shop on purpose (`scripts/trigger-alert.*`) and watch an alert fire | 15 |
@@ -220,17 +220,17 @@ flowchart LR
 
 ## Quick start
 
-On a **Mac** (Homebrew + Colima) or **Windows** (WSL2 + Ubuntu), with Docker, Minikube and kubectl installed ([guide, step 2](docs/GUIDE.md#2-install-the-tools-one-time)):
+One command does everything, on Windows (PowerShell) and Mac, once Git and Python are installed:
 
 ```bash
 git clone https://github.com/jaffethalfarotorres/sre-final-project.git
 cd sre-final-project
-./scripts/deploy.sh          # builds the app and deploys the whole stack (5-10 minutes the first time)
-./scripts/dashboards.sh      # opens Grafana, Prometheus, Alertmanager, Jaeger and the app
-./scripts/trigger-alert.sh   # in another window: makes a real alert fire in about 2.5 minutes
+python scripts/lab_up.py           # Mac: python3. Installs what is missing, deploys, opens the pages, checks the connections
+python scripts/lab_up.py --drill   # break the shop on purpose and follow the alert (about 3 minutes)
+python scripts/lab_up.py --stop    # stop the lab and free the memory; run lab_up.py again to resume
 ```
 
-No accounts or credentials are needed. **On Windows with IBM Bob, use PowerShell and skip WSL:** every script also exists as `scripts\*.ps1` (for example `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\deploy.ps1`), and you type `python`, never `python3`. The tunnels can run in the background: `scripts\dashboards.ps1 -Background` (Mac/Linux: `./scripts/dashboards.sh --background`), stopped with `-Stop` / `--stop`.
+No accounts or credentials are needed (Grafana: view-only without a login, or `admin` / `admin`). For a written check, `python scripts/smoke_test.py --cluster --report reports/smoke-test.md`. The scripts it uses are also there to run one by one: `scripts/install-tools.*`, `scripts/deploy.*`, `scripts/dashboards.*`, `scripts/trigger-alert.*` (`.ps1` in Windows PowerShell, `.sh` on Mac and Linux).
 
 ## The lab path (optional, go deeper)
 
@@ -357,8 +357,9 @@ docs/           Guide, lab parts, SLO, ORR, incident response, runbooks, course 
 ## Clean up
 
 ```bash
-kubectl delete namespace application monitoring opentelemetry
-minikube stop        # or: minikube delete
+python scripts/lab_up.py --stop                                  # pause: stops Minikube, keeps everything (Mac: python3)
+kubectl delete namespace application monitoring opentelemetry    # remove the lab from the cluster
+minikube delete                                                  # remove the whole local cluster (frees the disk)
 ```
 
 ## Notes

@@ -20,6 +20,7 @@ kubectl only: pods, Prometheus targets, loaded alert rules, Alertmanager and Gra
 Options:
     --cluster        also run part B against the current kubectl context (it must be "minikube")
     --quick          skip the promtool check (it pulls a 250 MB Docker image the first time)
+    --no-setup       do not create .venv with pytest and flake8 when they are missing (they are then SKIP)
     --report FILE    also write the results as a Markdown table to FILE (a relative FILE is inside the repository;
                      reports/ is not tracked by Git)
 
@@ -70,9 +71,29 @@ def last_line(text):
     return lines[-1] if lines else ""
 
 
-def has_module(name):
-    code, _ = run([sys.executable, "-c", "import " + name], timeout=60)
+def has_module(name, python=None):
+    code, _ = run([python or sys.executable, "-c", "import " + name], timeout=60)
     return code == 0
+
+
+VENV_PY = os.path.join(ROOT, ".venv", "Scripts" if WINDOWS else "bin", "python.exe" if WINDOWS else "python")
+DEV_PY = None  # the Python that has pytest and flake8; set by main()
+
+
+def dev_python(setup=True):
+    """A Python with pytest and flake8: this one, the repository's .venv, or a new .venv made now (gitignored)."""
+    if has_module("pytest") and has_module("flake8"):
+        return sys.executable
+    if os.path.exists(VENV_PY) and has_module("pytest", VENV_PY) and has_module("flake8", VENV_PY):
+        return VENV_PY
+    if not setup:
+        return None
+    print("Setting up the test tools once, in .venv inside the repository (1-2 minutes; Git ignores it)...",
+          flush=True)
+    if not os.path.exists(VENV_PY) and run([sys.executable, "-m", "venv", ".venv"], timeout=300)[0] != 0:
+        return None
+    code, _ = run([VENV_PY, "-m", "pip", "install", "-q", "-r", "requirements-dev.txt"], timeout=900)
+    return VENV_PY if code == 0 else None
 
 
 DEV_FIX = ("install the dev tools once: {py} -m venv .venv, then .venv{sep}{bin}{sep}python -m pip install "
@@ -91,18 +112,18 @@ def check_python():
 
 
 def check_pytest():
-    if not has_module("pytest"):
+    if not DEV_PY:
         return Result("SKIP", "Unit tests (pytest)", "pytest is not installed for this Python", DEV_FIX)
-    code, out = run([sys.executable, "-m", "pytest", "tests", "-q", "-p", "no:cacheprovider"])
+    code, out = run([DEV_PY, "-m", "pytest", "tests", "-q", "-p", "no:cacheprovider"])
     if code == 0:
         return Result("PASS", "Unit tests (pytest)", last_line(out), "")
     return Result("FAIL", "Unit tests (pytest)", tail(out), "read the failing test above")
 
 
 def check_flake8():
-    if not has_module("flake8"):
+    if not DEV_PY:
         return Result("SKIP", "Code style (flake8)", "flake8 is not installed for this Python", DEV_FIX)
-    code, out = run([sys.executable, "-m", "flake8", "app", "tests", "scripts", ".claude/hooks",
+    code, out = run([DEV_PY, "-m", "flake8", "app", "tests", "scripts", ".claude/hooks",
                      "--max-line-length=120"])
     if code == 0:
         return Result("PASS", "Code style (flake8)", "no findings", "")
@@ -190,12 +211,12 @@ def check_pods():
         ns = pod["metadata"]["namespace"]
         if ns not in LAB_NAMESPACES:
             continue
-        count += 1
         phase = pod.get("status", {}).get("phase", "")
         statuses = pod.get("status", {}).get("containerStatuses", [])
         ready = bool(statuses) and all(s.get("ready") for s in statuses)
         if phase in ("Succeeded", "Failed") and not pod["metadata"].get("ownerReferences"):
             continue  # a finished one-off pod (for example the errload drill), not part of the running lab
+        count += 1
         if phase != "Running" or not ready:
             bad.append("{}/{} ({})".format(ns, pod["metadata"]["name"], phase or "unknown"))
         elif pod["metadata"]["name"].startswith("sre-metrics-app"):
@@ -236,8 +257,11 @@ def check_rules():
     if missing:
         return Result("FAIL", "Alert rules loaded", "missing: " + ", ".join(missing),
                       "re-apply the config: kubectl apply -k k8s (a person runs it)")
-    return Result("PASS", "Alert rules loaded", "{} alert rules; firing now: {}".format(
-        len(names), ", ".join(firing) or "none"), "")
+    real = [name for name in firing if name != "AlwaysFiringDemoAlert"]
+    detail = "{} alert rules; firing now: {}".format(len(names), ", ".join(real) or "none")
+    if "AlwaysFiringDemoAlert" in firing:
+        detail += " (plus AlwaysFiringDemoAlert, the always-on pipeline test: expected)"
+    return Result("PASS", "Alert rules loaded", detail, "")
 
 
 def check_http(name, svc, path, expect):
@@ -277,6 +301,14 @@ def print_results(title, results):
             print("        fix: " + r.fix)
 
 
+def system_name():
+    """Windows 11 still reports release "10"; its build number (22000 and up) tells them apart."""
+    if WINDOWS:
+        build = sys.getwindowsversion().build
+        return "Windows {} (build {})".format("11" if build >= 22000 else "10", build)
+    return "{} {}".format(platform.system(), platform.release())
+
+
 def markdown(results, cluster):
     commit = run(["git", "rev-parse", "--short", "HEAD"], timeout=30)[1].strip() or "unknown"
     lines = [
@@ -284,7 +316,7 @@ def markdown(results, cluster):
         "",
         "- Date: {} (local time)".format(datetime.datetime.now().strftime("%Y-%m-%d %H:%M")),
         "- Commit: `{}`".format(commit),
-        "- System: {} {}, Python {}".format(platform.system(), platform.release(), platform.python_version()),
+        "- System: {}, Python {}".format(system_name(), platform.python_version()),
         "- Part B (running lab): {}".format("included" if cluster else "not run (no --cluster)"),
         "",
         "| Result | Check | Detail |",
@@ -303,9 +335,13 @@ def main(argv=None):
     parser.add_argument("--cluster", action="store_true", help="also check the running Minikube lab")
     parser.add_argument("--quick", action="store_true", help="skip the promtool check (Docker image pull)")
     parser.add_argument("--report", metavar="FILE", help="also write a Markdown report to FILE")
+    parser.add_argument("--no-setup", action="store_true",
+                        help="do not create .venv with pytest and flake8 when they are missing")
     args = parser.parse_args(argv)
 
     print("SRE final project smoke test (read-only). Repository: " + ROOT)
+    global DEV_PY
+    DEV_PY = dev_python(setup=not args.no_setup)
     part_a = [check_python(), check_pytest(), check_flake8(), check_kustomize(), check_helm(),
               check_promtool(args.quick)]
     print_results("Part A: code and config, no cluster needed", part_a)

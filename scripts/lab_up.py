@@ -225,9 +225,26 @@ def drill():
     print("  4. Your phone, if you ran notify_setup.py: a push with [firing] HighErrorRate.")
     code = stream(script("trigger-alert"))
     if code == 0:
-        print("\nThe alert went the whole way: app metrics -> Prometheus rule -> Alertmanager -> receivers.")
+        print("\nThe alert went from the app's metrics to a Prometheus rule to Alertmanager, which routed it.")
+        if phone_alerts_on():
+            print("Out of the laptop: a push goes to your phone through ntfy (it can take a minute).")
+        else:
+            print("Out of the laptop: nothing yet. Phone alerts are off; turn them on with:  "
+                  "{} scripts{}notify_setup.py".format(PY, os.sep))
+        print("Slack, email and the AWX webhook are placeholders in this lab: Alertmanager tries them and they fail,")
+        print("on purpose (no real accounts). Only the phone push (ntfy) leaves the laptop.")
         print("The drill pod stops by itself in about 12 minutes; the alert then resolves.")
     return code
+
+
+def phone_alerts_on():
+    """True when notify_setup.py has set a real ntfy topic. Only the ntfy-url line of the private file is read."""
+    try:
+        import notify_setup
+        url = notify_setup.read_ntfy_url()
+        return bool(url) and url != notify_setup.OFF_URL
+    except Exception:  # noqa: BLE001 - the drill message must never crash
+        return False
 
 
 def stop():
