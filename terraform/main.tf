@@ -12,7 +12,7 @@ terraform {
   required_providers {
     kubernetes = {
       source  = "hashicorp/kubernetes"
-      version = "~> 2.33"
+      version = "~> 3.5"
     }
   }
 }
@@ -33,17 +33,17 @@ locals {
   }
 }
 
-resource "kubernetes_namespace" "app" {
+resource "kubernetes_namespace_v1" "app" {
   metadata {
     name   = local.namespace
     labels = local.labels
   }
 }
 
-resource "kubernetes_config_map" "app" {
+resource "kubernetes_config_map_v1" "app" {
   metadata {
     name      = "${var.app_name}-config"
-    namespace = kubernetes_namespace.app.metadata[0].name
+    namespace = kubernetes_namespace_v1.app.metadata[0].name
     labels    = local.labels
   }
   data = {
@@ -52,10 +52,10 @@ resource "kubernetes_config_map" "app" {
   }
 }
 
-resource "kubernetes_deployment" "app" {
+resource "kubernetes_deployment_v1" "app" {
   metadata {
     name      = var.app_name
-    namespace = kubernetes_namespace.app.metadata[0].name
+    namespace = kubernetes_namespace_v1.app.metadata[0].name
     labels    = local.labels
   }
 
@@ -96,7 +96,7 @@ resource "kubernetes_deployment" "app" {
 
           env_from {
             config_map_ref {
-              name = kubernetes_config_map.app.metadata[0].name
+              name = kubernetes_config_map_v1.app.metadata[0].name
             }
           }
 
@@ -130,10 +130,10 @@ resource "kubernetes_deployment" "app" {
   wait_for_rollout = true
 }
 
-resource "kubernetes_service" "app" {
+resource "kubernetes_service_v1" "app" {
   metadata {
     name      = "${var.app_name}-service"
-    namespace = kubernetes_namespace.app.metadata[0].name
+    namespace = kubernetes_namespace_v1.app.metadata[0].name
     labels    = local.labels
   }
   spec {

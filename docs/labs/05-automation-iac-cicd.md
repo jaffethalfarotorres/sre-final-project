@@ -212,7 +212,7 @@ Infrastructure as code (IaC) means the environment is described in files, review
    terraform state list
    git check-ignore -v terraform.tfstate
    ```
-   What you should see: four addresses (`kubernetes_config_map.app`, `kubernetes_deployment.app`, `kubernetes_namespace.app`, `kubernetes_service.app`) and the `.gitignore` rule that keeps the state out of Git.
+   What you should see: four addresses (`kubernetes_config_map_v1.app`, `kubernetes_deployment_v1.app`, `kubernetes_namespace_v1.app`, `kubernetes_service_v1.app`) and the `.gitignore` rule that keeps the state out of Git.
 
 6. A second environment with a workspace.
    ```bash
