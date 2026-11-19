@@ -1,84 +1,149 @@
 {
- "version": 2,
+ "quiz_attempts": 2,
+ "version": 6,
  "salt": "sre-academy-2027",
- "story": "Welcome to **Nimbus Store**, a small online shop that never sleeps. Last week it went down for an hour and nobody noticed until customers complained. You are the newest member of its Site Reliability team, and your partner is Bob, an AI assistant: brilliant and fast, but never allowed to change anything without your OK. Your goal is the summit every SRE works toward: **On-Call Ready**, the day the team trusts you (and Bob) to carry the pager for Nimbus. Each camp on the way gives Nimbus a new capability it really has on your laptop, so your progress in the game is the maturity of the system you built.",
+ "story": "You work at IBM in a non-technical team and you want to move into tech. Your first assignment as an apprentice: **Nimbus Store**, a small online shop that went down for an hour last week and nobody noticed until customers complained. With **Bob**, your AI pair (fast and helpful, but never allowed to change anything without your OK), you climb from Career Changer to the summit every SRE works toward: **On-Call Ready**, the day a team trusts you with the pager. Each camp gives Nimbus a real new capability on your laptop, and gives you skills you can name on your CV and defend in an interview, with evidence.",
+ "theme": {
+  "name": "Road to Junior SRE",
+  "audience": "IBMers from non-technical teams moving into technical roles",
+  "summit": "On-Call Ready"
+ },
  "zones": [
   {
    "part": 0,
-   "name": "Base Camp",
+   "name": "Orientation Day",
    "icon": "compass",
-   "story": "Meet Bob and learn how you two work together.",
-   "unlock": "You and Bob know the rules: Bob proposes, you approve."
+   "principle": "Humans stay in control: automation and AI propose, people approve.",
+   "story": "Your first day: meet Bob, your AI pair, and learn how you two work together.",
+   "unlock": "You and Bob know the rules: Bob proposes, you approve.",
+   "skills": [
+    "Working safely with an AI coding assistant (IBM Bob)",
+    "Reviewing and approving commands before they run"
+   ],
+   "interview": "How do you make sure an AI assistant does not break production?"
   },
   {
    "part": 1,
    "name": "The Engine Room",
    "icon": "engine",
+   "principle": "Reliability starts with how you run software: small, safe, repeatable changes.",
    "story": "Bring Nimbus Store to life on your own laptop.",
-   "unlock": "Nimbus runs on Kubernetes and updates with zero downtime."
+   "unlock": "Nimbus runs on Kubernetes and updates with zero downtime.",
+   "skills": [
+    "Docker containers",
+    "Kubernetes basics: pods, deployments, services, probes",
+    "Zero-downtime rolling updates"
+   ],
+   "interview": "What is the difference between a container and a pod?"
   },
   {
    "part": 2,
    "name": "The Watchtower",
    "icon": "tower",
+   "principle": "Monitor what users feel, and alert only when a human must act.",
    "story": "Give the shop eyes: metrics, dashboards and its first alarm.",
-   "unlock": "Nimbus sees its own health and raises an alarm when users suffer."
+   "unlock": "Nimbus sees its own health and raises an alarm when users suffer.",
+   "skills": [
+    "Prometheus metrics and PromQL",
+    "Grafana dashboards as code",
+    "Alerting with Alertmanager"
+   ],
+   "interview": "How would you know a service is unhealthy before customers call?"
   },
   {
    "part": 3,
    "name": "The War Room",
    "icon": "shield",
+   "principle": "Embrace risk with SLOs and error budgets, and learn from every incident without blame.",
    "story": "Promise reliability with SLOs, and learn to handle incidents calmly.",
-   "unlock": "Nimbus has a reliability promise, an error budget and an incident process."
+   "unlock": "Nimbus has a reliability promise, an error budget and an incident process.",
+   "skills": [
+    "SLIs, SLOs and error budgets",
+    "Synthetic monitoring",
+    "Incident response and blameless postmortems"
+   ],
+   "interview": "What is an error budget, and how does it change what the team does?"
   },
   {
    "part": 4,
    "name": "The Detective Agency",
    "icon": "magnifier",
+   "principle": "Observability: you can explain any failure from evidence, not guesses.",
    "story": "Follow a single request through logs and traces, even into an AI model.",
-   "unlock": "Any failing request can be traced from the alarm to the exact line of evidence."
+   "unlock": "Any failing request can be traced from the alarm to the exact line of evidence.",
+   "skills": [
+    "Centralized logs (Loki, LogQL)",
+    "Distributed tracing (OpenTelemetry, Jaeger)",
+    "Monitoring AI model calls"
+   ],
+   "interview": "A request is slow. How do you find which step is slow?"
   },
   {
    "part": 5,
    "name": "The Robot Workshop",
    "icon": "gear",
+   "principle": "Eliminate toil: automate repetitive work and keep infrastructure in code.",
    "story": "Automate the boring and dangerous parts: runbooks, infrastructure, pipelines.",
-   "unlock": "Nimbus is rebuilt from code, tested on every change, and diagnoses itself."
+   "unlock": "Nimbus is rebuilt from code, tested on every change, and diagnoses itself.",
+   "skills": [
+    "Automation with Ansible",
+    "Infrastructure as code with Terraform",
+    "CI/CD with GitHub Actions",
+    "DORA delivery metrics"
+   ],
+   "interview": "Why should infrastructure be written as code?"
   },
   {
    "part": 6,
    "name": "The Proving Grounds",
    "icon": "flame",
+   "principle": "Release engineering: changes are gradual, reversible and tested by breaking things on purpose.",
    "story": "Break things on purpose and prove Nimbus survives: GitOps, chaos, canaries, policies.",
-   "unlock": "Nimbus survives crashes and bad releases, and refuses unsafe deployments."
+   "unlock": "Nimbus survives crashes and bad releases, and refuses unsafe deployments.",
+   "skills": [
+    "Rollbacks",
+    "GitOps with ArgoCD",
+    "Chaos engineering",
+    "Canary releases",
+    "Policy as code (Kyverno)"
+   ],
+   "interview": "A release breaks production. What do you do in the first five minutes?"
   },
   {
    "part": 7,
    "name": "The AI Command Center",
    "icon": "robot",
+   "principle": "Trust, but verify: AI helps on call only with least privilege and human judgement.",
    "story": "Put Bob on call, keep him safe, and lead the final game day.",
-   "unlock": "On-Call Ready: you lead incidents with an AI teammate you can trust and verify."
+   "unlock": "On-Call Ready: you lead incidents with an AI teammate you can trust and verify.",
+   "skills": [
+    "AI-assisted incident triage",
+    "Prompt-injection awareness",
+    "Least privilege for AI agents",
+    "Leading a game day"
+   ],
+   "interview": "How would you use AI on call without giving it the keys to production?"
   }
  ],
  "levels": [
   {
-   "name": "SRE Intern",
+   "name": "Career Changer",
    "xp": 0
   },
   {
-   "name": "Junior SRE",
+   "name": "Tech Apprentice",
    "xp": 500
   },
   {
-   "name": "SRE",
+   "name": "SRE Intern",
    "xp": 1300
   },
   {
-   "name": "Senior SRE",
+   "name": "Junior SRE Candidate",
    "xp": 2300
   },
   {
-   "name": "Staff SRE",
+   "name": "Interview-Ready Junior SRE",
    "xp": 3300
   }
  ],
@@ -131,6 +196,15 @@
       "c": "Ask the log for a password"
      },
      "answer": "f38eb689f85a4232"
+    },
+    {
+     "q": "Bob proposes a command you do not understand. What do you do?",
+     "options": {
+      "a": "Approve it, Bob knows best",
+      "b": "Ask Bob to explain it in plain words, and reject it if it is still unclear",
+      "c": "Close Bob"
+     },
+     "answer": "ebb746392bcc5005"
     }
    ]
   },
@@ -312,19 +386,19 @@
    "achievement": "Budget Keeper",
    "quiz": [
     {
-     "q": "With a 90% SLO, the error budget is...",
+     "q": "With a 99% SLO, the error budget is...",
      "options": {
-      "a": "90% of requests",
-      "b": "10% of requests",
-      "c": "0.1% of requests"
+      "a": "99% of requests",
+      "b": "1% of requests",
+      "c": "0.01% of requests"
      },
      "answer": "e76dfed53f088aef"
     },
     {
-     "q": "A burn rate of 6x means the 30-day budget lasts about...",
+     "q": "A burn rate of 14.4x means the 30-day budget would be gone in about...",
      "options": {
-      "a": "5 days",
-      "b": "6 months",
+      "a": "2 days",
+      "b": "14 days",
       "c": "30 days"
      },
      "answer": "2e142b48cf459c23"
@@ -469,6 +543,29 @@
    ]
   },
   {
+   "id": "M09b",
+   "title": "Join the guild (fork the repo)",
+   "part": 5,
+   "kind": "core",
+   "xp": 100,
+   "goal": "Make your own copy (fork) of the repository on GitHub, so your pipeline, releases and proof are yours.",
+   "guide": "docs/labs/05-automation-iac-cicd.md",
+   "check": "fork_origin",
+   "needs": null,
+   "achievement": null,
+   "quiz": [
+    {
+     "q": "Why work on a fork instead of the original repository?",
+     "options": {
+      "a": "You can change and run CI on your copy without touching anyone else's work",
+      "b": "Forks are faster",
+      "c": "GitHub requires it to read code"
+     },
+     "answer": "2d61e0a4c6edbb35"
+    }
+   ]
+  },
+  {
    "id": "M12",
    "title": "Green pipeline",
    "part": 5,
@@ -579,7 +676,7 @@
    "part": 7,
    "kind": "core",
    "xp": 200,
-   "goal": "Let Claude Code or IBM Bob triage a live alert, read-only, and save the report.",
+   "goal": "Let IBM Bob (SRE Triage mode) or Claude Code triage a live alert, read-only, and save the report with /save-triage.",
    "guide": "docs/labs/07-ai-assisted-sre.md",
    "check": "ai_triage_report",
    "needs": null,
@@ -589,7 +686,7 @@
      "q": "Where must every claim in an AI triage come from?",
      "options": {
       "a": "The model's memory",
-      "b": "A query result (PromQL, LogQL, kubectl)",
+      "b": "A query result (PromQL or LogQL)",
       "c": "The dashboard title"
      },
      "answer": "1beec9f9fd207da9"
@@ -721,6 +818,58 @@
    "check": "gameday_postmortem",
    "needs": null,
    "achievement": "Game Day Captain",
+   "quiz": []
+  },
+  {
+   "id": "P-DASH",
+   "title": "Portfolio project: build your own dashboard",
+   "part": 4,
+   "kind": "portfolio",
+   "xp": 250,
+   "goal": "Design a fifth Grafana dashboard of your own (a new JSON in k8s/config/grafana/dashboards/, added to k8s/kustomization.yaml) and deploy it. It becomes a screenshot for your portfolio.",
+   "guide": "docs/labs/02-metrics-dashboards-alerts.md",
+   "check": "dashboards_custom",
+   "needs": null,
+   "achievement": "Dashboard Builder",
+   "quiz": []
+  },
+  {
+   "id": "P-ENV",
+   "title": "Portfolio project: a second environment from code",
+   "part": 5,
+   "kind": "portfolio",
+   "xp": 250,
+   "goal": "Create a separate 'dev' environment with a Terraform workspace (terraform workspace new dev, then apply).",
+   "guide": "docs/labs/05-automation-iac-cicd.md",
+   "check": "terraform_dev_workspace",
+   "needs": null,
+   "achievement": "Environment Builder",
+   "quiz": []
+  },
+  {
+   "id": "P-RUNBOOK",
+   "title": "Portfolio project: write a new runbook",
+   "part": 3,
+   "kind": "portfolio",
+   "xp": 250,
+   "goal": "Write a new runbook in docs/runbooks/ and link it from an alert rule's runbook_url, as an on-call SRE would.",
+   "guide": "docs/labs/03-slos-and-incidents.md",
+   "check": "runbook_custom",
+   "needs": null,
+   "achievement": "Runbook Author",
+   "quiz": []
+  },
+  {
+   "id": "P-POLICY",
+   "title": "Portfolio project: write a new guardrail policy",
+   "part": 6,
+   "kind": "portfolio",
+   "xp": 250,
+   "goal": "Write a new Kyverno ClusterPolicy of your own in policy/ (for example: every pod must have an owner label).",
+   "guide": "docs/labs/06-delivery-resilience-policy.md",
+   "check": "policy_custom",
+   "needs": null,
+   "achievement": "Guardrail Author",
    "quiz": []
   }
  ]

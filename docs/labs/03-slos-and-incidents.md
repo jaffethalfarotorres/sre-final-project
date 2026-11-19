@@ -2,6 +2,8 @@
 
 In this part you decide what "reliable enough" means for the demo app, and you check it from the outside like a user would. Then you practise what happens when an alert fires: who does what, which runbook to follow, how to measure the response and how to write it up without blame. Everything runs on the core stack from [`../GUIDE.md`](../GUIDE.md). No extra add-ons are needed.
 
+> **Road to Junior SRE, camp 3: The War Room.** Nimbus Store gets a reliability promise (an SLO), an error budget and an incident process. **SRE principle:** embrace risk with SLOs and error budgets, and learn from every incident without blame. **Skills for your CV:** SLIs, SLOs and error budgets, synthetic monitoring, incident response and blameless postmortems. M09b, "Join the guild (fork the repo)", has its steps on this page but counts toward camp 5, The Robot Workshop: do it before M12.
+
 | Module | Title | Time |
 | --- | --- | --- |
 | [M06](#m06-slos-error-budgets-and-multi-window-burn-rate-alerts) | SLOs, error budgets and multi-window burn-rate alerts | 90 min |
@@ -14,10 +16,12 @@ In this part you decide what "reliable enough" means for the demo app, and you c
 ```bash
 cd ~/sre-final-project
 kubectl get pods -A          # the core stack is running
-./scripts/dashboards.sh      # keep this window open; open a second window for the lab commands
+./scripts/dashboards.sh --background   # opens the tunnels and gives the window back to you
 ```
 
-`dashboards.sh` opens Grafana (<http://localhost:3000>), Prometheus (<http://localhost:9090>), Alertmanager (<http://localhost:9093>), the app (<http://localhost:5000>) and Jaeger (<http://localhost:16686>). It prints the Grafana password.
+On Windows PowerShell (and from IBM Bob) the same step is `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\dashboards.ps1 -Background`.
+
+The tunnels open Grafana (<http://localhost:3000>), Prometheus (<http://localhost:9090>), Alertmanager (<http://localhost:9093>), the app (<http://localhost:5000>) and Jaeger (<http://localhost:16686>). The Grafana password is copied to your clipboard (it is not printed, so it never lands in a chat): paste it with Ctrl+V or Cmd+V. To close the tunnels later, run the same command with `--stop` (PowerShell: `-Stop`).
 
 ---
 
@@ -34,21 +38,22 @@ kubectl get pods -A          # the core stack is running
 
 **Concepts in 5 minutes**
 
-An **SLI** is a measurement of what users feel, for example "the share of requests that did not return 5xx". An **SLO** is the target for that SLI over a window: here 90% availability over 30 days. An **SLA** is a promise to customers with a penalty; this project has none on purpose. The **error budget** is `1 - SLO`: 10% of requests may fail.
+An **SLI** is a measurement of what users feel, for example "the share of requests that did not return 5xx". An **SLO** is the target for that SLI over a window: here 99% availability over 30 days. An **SLA** is a promise to customers with a penalty; this project has none on purpose. The **error budget** is `1 - SLO`: 1% of requests may fail.
 
-Why 90% and not 99.9%? The app fails about 5% of `/store` calls on purpose, so there is always real data. A 99.9% target would always be broken and would teach nothing. Read the full reasoning in [`../SLO.md`](../SLO.md).
+Why 99% and not 99.9%? The app fails about 0.5% of `/store` calls on purpose (1 in 200), so there is always a little real data. Counted over all requests that is about 0.2%, which is already more than a 99.9% budget (0.1%): that target would always be broken and would teach nothing. With 99%, normal traffic uses about one fifth of the budget. Read the full reasoning in [`../SLO.md`](../SLO.md).
 
-The **burn rate** says how fast you spend the budget. At 1x the budget lasts exactly 30 days. At 6x it lasts 5 days. The rule file [`slo.yml`](../../k8s/config/prometheus/slo.yml) computes `slo:availability:burn_rate5m`, `burn_rate1h` and `burn_rate6h` as `(1 - SLI) / (1 - 0.90)`.
+The **burn rate** says how fast you spend the budget. At 1x the budget lasts exactly 30 days. At 6x it lasts 5 days. At 14.4x it lasts about 2 days. The highest possible burn rate is `1 / (1 - SLO)`: with 99% that is 100x, when every request fails. The rule file [`slo.yml`](../../k8s/config/prometheus/slo.yml) computes `slo:availability:burn_rate5m`, `burn_rate30m`, `burn_rate1h`, `burn_rate6h` and `burn_rate3d` as `(1 - SLI) / (1 - 0.99)`.
 
-A burn-rate alert uses two windows. The long window (1 h) proves the problem is real and not a 10-second blip. The short window (5 m) proves it is still happening, so the alert also clears quickly after the fix.
+A burn-rate alert uses two windows. The long window (1 h) proves the problem is real and not a 10-second blip. The short window (5 m) proves it is still happening, so the alert also clears quickly after the fix. Both must be above the threshold at the same time. The thresholds are the standard ones from the Google SRE Workbook. Where 14.4 comes from: 30 days are 720 hours, and spending 2% of the budget in 1 hour is `0.02 × 720 = 14.4` times faster than "exactly on budget".
 
 | Alert | Condition | Severity |
 | --- | --- | --- |
-| `ErrorBudgetFastBurn` | 5 m burn > 6x **and** 1 h burn > 1x, for 1 m | critical (page) |
-| `ErrorBudgetSlowBurn` | 6 h burn > 1x **and** 1 h burn > 1x, for 15 m | warning (ticket) |
+| `ErrorBudgetFastBurn` | 1 h burn > 14.4x **and** 5 m burn > 14.4x, for 2 m (2% of the budget in 1 hour) | critical (page) |
+| `ErrorBudgetSlowBurn` | 6 h burn > 6x **and** 30 m burn > 6x, for 15 m (5% of the budget in 6 hours) | warning (today) |
+| `ErrorBudgetTicket` | 3 d burn > 1x **and** 6 h burn > 1x, for 30 m, and more than 100,000 requests in 3 days | warning (ticket) |
 | `ErrorBudgetExhausted` | budget left < 0 **and** more than 100,000 requests in 30 days, for 5 m | critical |
 
-Why the 100,000-request guard? Prometheus calls the window "30 days", but on a fresh cluster it only holds a few hours of data. One drill of ~1,000 failing requests would then look like a whole month of failures, and the alert would demand a feature freeze for nothing. `http_requests_total` counts every request to the app, not only the traffic generator. The traffic generator (one `/store` call about every 2 seconds, plus `/ask` now and then), the synthetic probes (two every 10 seconds) and the Kubernetes liveness and readiness probes on `/` (both pods) together send roughly 1.3 requests per second, or about 110,000 a day. So 100,000 requests is about 1 day of history.
+Why the 100,000-request guard? Prometheus calls the window "30 days", but on a fresh cluster it only holds a few hours of data. One drill of ~3,000 failing requests would then look like a whole month of failures, and the alert would demand a feature freeze for nothing. `http_requests_total` counts every request to the app, not only the traffic generator. The traffic generator (one `/store` call about every 2 seconds, plus `/ask` now and then), the synthetic probes (two every 10 seconds) and the Kubernetes liveness and readiness probes on `/` (both pods) together send roughly 1.3 requests per second, or about 110,000 a day. So 100,000 requests is about 1 day of history.
 
 **Lab steps**
 
@@ -56,14 +61,20 @@ Why the 100,000-request guard? Prometheus calls the window "30 days", but on a f
    ```bash
    sed -n '/## Our SLOs/,/## Worked example/p' docs/SLO.md
    ```
-   What you should see: availability 90%, latency 95% (`/store` under 500 ms), and the three budget bands (above 50%, 0-50%, spent).
+   What you should see: availability 99%, latency 95% (`/store` under 500 ms), and the three budget bands (above 50%, 0-50%, spent).
 
 2. Check that the rule files are valid. This uses Docker only, not the cluster.
    ```bash
    docker run --rm -v "$PWD/k8s/config/prometheus:/rules" --entrypoint promtool \
      prom/prometheus:v2.54.1 check rules /rules/alerts.yml /rules/slo.yml
    ```
-   What you should see: `SUCCESS: 5 rules found` for `alerts.yml` and `SUCCESS: 16 rules found` for `slo.yml`. CI runs the same check in [`ci.yml`](../../.github/workflows/ci.yml).
+   What you should see: `SUCCESS: 5 rules found` for `alerts.yml` and `SUCCESS: 21 rules found` for `slo.yml`. CI runs the same check in [`ci.yml`](../../.github/workflows/ci.yml).
+   Then run the unit tests of the alerts. They feed made-up traffic into Prometheus and check which alerts fire, still without a cluster:
+   ```bash
+   docker run --rm -v "$PWD:/repo" -w /repo --entrypoint promtool \
+     prom/prometheus:v2.54.1 test rules tests/rules/slo.test.yml tests/rules/alerts.test.yml
+   ```
+   What you should see: `SUCCESS` for both files. Open [`tests/rules/slo.test.yml`](../../tests/rules/slo.test.yml): one test shows the page firing at 15x and staying silent at 14x.
 
 3. Query the SLO recording rules in Prometheus. Open <http://localhost:9090>, choose **Graph**, and run each query:
    ```promql
@@ -71,7 +82,7 @@ Why the 100,000-request guard? Prometheus calls the window "30 days", but on a f
    slo:availability:error_budget_remaining
    slo:availability:burn_rate5m
    ```
-   What you should see: availability around 0.97-0.98, budget left around 0.7-0.8, and a 5 m burn rate around 0.2-0.3x. Only `/store` fails (5% of its calls). The SLI also counts `/`, `/ask` and the probe calls, which always succeed, so it is higher than 0.95. The exact numbers depend on how long the cluster has run and on earlier drills.
+   What you should see: availability around 0.998, budget left around 0.8, and a 5 m burn rate around 0.2x. Only `/store` fails (0.5% of its calls). The SLI also counts `/`, `/ask` and the probe calls, which always succeed, so it is higher than 0.995. The exact numbers depend on how long the cluster has run and on earlier drills.
 
 4. Open the dashboard. In Grafana go to **Dashboards > SLO and Error Budget**.
    What you should see: the stats *Availability SLI (30 days)* and *Latency SLI (30 days, /store < 500 ms)*, two gauges for budget left, *Error budget burn rate*, *Availability SLI (5 m) vs objective*, and two synthetic-check panels.
@@ -80,10 +91,10 @@ Why the 100,000-request guard? Prometheus calls the window "30 days", but on a f
    ```bash
    ./scripts/trigger-alert.sh
    ```
-   What you should see: `HighErrorRate is FIRING after about 140 seconds` (it took 140-150 s when measured). The drill pod `errload` calls `/error` about 1,000 times in about 4 minutes.
+   What you should see: `HighErrorRate is FIRING after about 180 seconds` (expected 150-200 s; it uses a 5-minute window, then `for: 2m`). The drill pod `errload` calls `/error` 3,000 times, about 4 calls per second, for 12-14 minutes. The script then reminds you that the budget page comes later.
 
 6. Watch the burn. Refresh the *Error budget burn rate* panel and Alertmanager (<http://localhost:9093>).
-   What you should see: the 5 m burn rate climbs to about 7x (7.3x was measured) and `ErrorBudgetFastBurn` fires next to `HighErrorRate`. `ErrorBudgetExhausted` stays silent on a young cluster because of the 100,000-request guard. Check the guard yourself:
+   What you should see: the 5 m burn rate jumps to about 75x within a minute or two (about 75% of the requests fail; 100x would be every request). The 1 h burn rate climbs more slowly, because the hour still holds a lot of normal traffic. When it passes 14.4x and stays there for 2 minutes, `ErrorBudgetFastBurn` fires next to `HighErrorRate`: about 6-10 minutes after the start (sooner on a cluster younger than 1 hour). `ErrorBudgetExhausted` stays silent on a young cluster because of the 100,000-request guard. Check the guard yourself:
    ```promql
    sum(increase(http_requests_total{namespace="application"}[30d]))
    ```
@@ -91,16 +102,16 @@ Why the 100,000-request guard? Prometheus calls the window "30 days", but on a f
 7. Do the arithmetic. Write down the 5 m and 1 h burn rates from the dashboard, and compute how many days the budget would last at the 5 m rate (`30 / burn rate`).
 
 **Self-check**
-1. The SLO is 90%. Over 5 minutes, 20% of requests fail. What is the burn rate?
-2. Why does `ErrorBudgetFastBurn` also need the 1 h burn rate above 1x?
+1. The SLO is 99%. Over 5 minutes, 2% of requests fail. What is the burn rate, and how long would the budget last?
+2. Why does `ErrorBudgetFastBurn` need the 1 h burn rate above 14.4x too, and not only the 5 m one?
 3. Why is there no SLA for this service?
 4. On a cluster that is 3 hours old, the budget gauge shows a negative value after the drill. Why does `ErrorBudgetExhausted` not fire?
 5. Which band of the error budget policy are you in when 30% of the budget is left, and what changes for releases?
 
 <details><summary>Answers (instructors)</summary>
 
-1. `(1 - 0.80) / (1 - 0.90) = 2x`. The budget would last 15 days.
-2. The 1 h window proves the problem is real and lasting. A 5 m spike alone could be noise; requiring both cuts false pages.
+1. `(1 - 0.98) / (1 - 0.99) = 0.02 / 0.01 = 2x`. The budget would last `30 / 2 = 15` days.
+2. The 1 h window proves the problem is real and lasting: 2% of the monthly budget is gone in one hour. A 5 m spike alone could be noise; requiring both cuts false pages. The 5 m window makes the page clear soon after the fix. This is also why the page comes minutes after `HighErrorRate` in the drill.
 3. It is a new internal service. The course says to postpone the SLA until the SLO has been met for a few quarters, and an SLA must be looser than the SLO.
 4. The guard `sum(increase(http_requests_total{namespace="application"}[30d])) > 100000` is false. A few hours of data cannot represent 30 days; about 1 day of traffic is needed.
 5. Between 0 and 50%: releases need a rollback plan and the reliability backlog is reviewed weekly.
@@ -113,19 +124,19 @@ Why the 100,000-request guard? Prometheus calls the window "30 days", but on a f
 | SLO queries return "Empty query result" | The rules evaluate every 30 s and the 1 h / 6 h windows need data. Wait a few minutes after deploy. Check **Status > Rules** in Prometheus for errors. |
 | `trigger-alert.sh` prints "The alert has not fired yet" | Run `kubectl get pods -A`. Pods in `Pending` mean low memory: delete other add-ons, see [`../GUIDE.md`](../GUIDE.md#troubleshooting). Then run the script again. |
 | `permission denied: ./scripts/trigger-alert.sh` | Run `chmod +x scripts/*.sh` once. |
-| Browser says "This site can't be reached" on localhost:9090 | The `dashboards.sh` window was closed. Run it again and keep it open. |
+| Browser says "This site can't be reached" on localhost:9090 | The tunnels are closed (for example after a restart). Run `./scripts/dashboards.sh --background` again (PowerShell: `scripts\dashboards.ps1 -Background`). |
 | You edited `slo.yml` and nothing changed | Apply the stack again with `kubectl apply -k k8s` (or `./scripts/deploy.sh`). Kustomize renames the ConfigMap and rolls out Prometheus. |
 
 **Instructor notes**
 - Spend the first 20 minutes on the arithmetic on a whiteboard (the 99.9% / 43.2 minutes example in [`../SLO.md`](../SLO.md)). Students who understand `30 / burn rate` follow the rest easily.
-- Demo live: start `trigger-alert.sh`, then keep the burn-rate panel on the projector. `ErrorBudgetFastBurn` fires shortly after `HighErrorRate` (about 4 minutes after the start), because the 5 m burn rate must pass 6x and then hold for 1 minute.
-- Discussion: "Should the 5% built-in failure count against the SLO?" There is no single right answer; good answers mention what users feel.
+- Demo live: start `trigger-alert.sh`, then keep the burn-rate panel on the projector. `ErrorBudgetFastBurn` fires a few minutes after `HighErrorRate` (about 6-10 minutes after the start), because the 1 h burn rate must pass 14.4x and then hold for 2 minutes. Use the wait to show how the 5 m line jumps at once while the 1 h line climbs slowly.
+- Discussion: "Should the 0.5% built-in failure count against the SLO?" There is no single right answer; good answers mention what users feel.
 - Grading idea: correct burn-rate calculation (40%), screenshot evidence (30%), a written proposal for the right SLO of a real service they know (30%).
 - Evidence to submit: screenshot of the **SLO and Error Budget** dashboard during the drill; screenshot of Alertmanager with `ErrorBudgetFastBurn` firing; the promtool output; a short note with the days-to-exhaustion calculation.
 
 **Clean up**
 
-The drill pod stops by itself after about 4 minutes. To stop it early:
+The drill pod stops by itself after about 12-14 minutes. To stop it early:
 ```bash
 kubectl delete pod errload -n application --ignore-not-found
 ```
@@ -149,7 +160,7 @@ The app reports its own metrics. But if the app is down, it reports nothing. **S
 
 In this project the blackbox exporter ([`blackbox.yaml`](../../k8s/blackbox.yaml)) runs in the `monitoring` namespace. Prometheus asks it, every 10 seconds, to call two URLs (job `blackbox-http` in [`prometheus.yml`](../../k8s/config/prometheus/prometheus.yml)): `/` and `/store`. Each probe gives `probe_success` (1 or 0) and `probe_duration_seconds`.
 
-The alert `SyntheticProbeFailing` ([`alerts.yml`](../../k8s/config/prometheus/alerts.yml)) only watches `/` (`instance=~".*:5000/"`). The `/store` probe fails about 5% of the time by design, so alerting on it would be noisy. It fires when fewer than 90% of probes succeeded over 2 minutes, for 2 minutes.
+The alert `SyntheticProbeFailing` ([`alerts.yml`](../../k8s/config/prometheus/alerts.yml)) only watches `/` (`instance=~".*:5000/"`). The `/store` probe fails about 1 time in 200 by design (0.5%), so alerting on it would page on normal behaviour. It fires when fewer than 90% of probes succeeded over 2 minutes, for 2 minutes.
 
 **cAdvisor** is built into the kubelet. It measures each container: CPU, memory, network. Prometheus scrapes it with the job `kubernetes-cadvisor` and keeps only the series the dashboards use. Saturation means "how full is the system". Memory close to the limit is the first sign of an OOM kill.
 
@@ -164,7 +175,7 @@ The alert `SyntheticProbeFailing` ([`alerts.yml`](../../k8s/config/prometheus/al
    avg_over_time(probe_success{job="blackbox-http"}[10m])
    probe_duration_seconds{job="blackbox-http"}
    ```
-   What you should see: `/` is always 1. `/store` is 1 most of the time; its 10-minute average is around 0.95. Durations are between about 0.05 and 0.4 s for `/store` (the simulated backend delay).
+   What you should see: `/` is always 1. `/store` is 1 almost all the time (it fails about 1 call in 200); its 10-minute average is usually 1, sometimes a little lower (for example 0.98) when one probe hit a built-in failure. Durations are between about 0.05 and 0.4 s for `/store` (the simulated backend delay).
 
 3. See the probes in Grafana: **SLO and Error Budget** dashboard, panels *Synthetic checks: success (blackbox exporter)* and *Synthetic checks: response time*.
 
@@ -197,7 +208,7 @@ The alert `SyntheticProbeFailing` ([`alerts.yml`](../../k8s/config/prometheus/al
 <details><summary>Answers (instructors)</summary>
 
 1. The blackbox exporter, acting as a user, did not get a 2xx answer (or timed out after 5 s) from that URL.
-2. `/store` fails about 5% of the time on purpose. An alert on it would fire on normal behaviour. It is still useful on the dashboard to see latency from the user side.
+2. `/store` fails about 0.5% of the time on purpose. An alert on it would fire on normal behaviour. It is still useful on the dashboard to see latency from the user side.
 3. `ServiceDown` is `up{namespace="application"} == 0`. Without pods, Kubernetes service discovery finds no target, so there is no `up` series at all, not a 0.
 4. `container_memory_working_set_bytes`, compared with `container_spec_memory_limit_bytes`.
 </details>
@@ -275,7 +286,7 @@ Every alert has a `runbook_url` that points to [`../runbooks/`](../runbooks/). A
    ```bash
    date -u +%H:%M:%S && ./scripts/trigger-alert.sh
    ```
-   What you should see: the start time, then after about 140-150 s `HighErrorRate is FIRING`. `ErrorBudgetFastBurn` fires shortly after it, and the Grafana rule `ErrorLogBurst` (Loki) also reaches Alertmanager.
+   What you should see: the start time, then after about 150-200 s `HighErrorRate is FIRING`. `ErrorBudgetFastBurn` (the error budget page) fires a few minutes later, about 6-10 minutes after the start, and the Grafana rule `ErrorLogBurst` (Loki) also reaches Alertmanager.
 
 4. Read the firing time. The on-call responder runs:
    ```bash
@@ -285,11 +296,11 @@ Every alert has a `runbook_url` that points to [`../runbooks/`](../runbooks/). A
 
 5. Acknowledge. The on-call responder says "Ack, investigating" (in the Slack thread if Slack is set up, otherwise out loud) and the scribe writes the time. **TTA = acknowledgement time minus `startsAt`.** The IC declares the severity (Sev-2 per the runbook).
 
-6. Diagnose with the runbook. In Grafana **SRE Metrics Demo**, the *Error Rate (5xx, all endpoints)* panel shows a large new `/error` series. Under it is the usual small `/store` line: about 5% of `/store` calls fail by design, at roughly the same rate as before the drill. The jump is only on `/error`. In **Explore > Loki** run:
+6. Diagnose with the runbook. In Grafana **SRE Metrics Demo**, the *Error Rate (5xx, all endpoints)* panel shows a large new `/error` series. Under it is the usual tiny `/store` line: about 0.5% of `/store` calls fail by design, at roughly the same rate as before the drill. The jump is only on `/error`. In **Explore > Loki** run:
    ```logql
    {service_name="sre-metrics-app"} | severity_text="ERROR"
    ```
-   What you should see: many lines `simulated critical failure on /error`, plus an occasional `store request failed: payment backend timeout` (the normal 5% `/store` failures, which were there before the drill). To show only the drill errors, add `|= "/error"` to the end of the query. Per the runbook, this is the test endpoint, so the mitigation is to stop the load.
+   What you should see: many lines `simulated critical failure on /error`, plus an occasional `store request failed: payment backend timeout` (the normal 0.5% `/store` failures, which were there before the drill). To show only the drill errors, add `|= "/error"` to the end of the query. Per the runbook, this is the test endpoint, so the mitigation is to stop the load.
 
 7. Mitigate and record the time.
    ```bash
@@ -330,14 +341,15 @@ Every alert has a `runbook_url` that points to [`../runbooks/`](../runbooks/). A
 | Symptom | Fix |
 | --- | --- |
 | `trigger-alert.sh` fails with `pods "errload" already exists` or similar | A previous drill pod is still there. Run `kubectl delete pod errload -n application --ignore-not-found` and start again. |
-| The python one-liner in step 4 fails with `Connection refused` | The Alertmanager tunnel is closed. Run `./scripts/dashboards.sh` again in its own window. |
+| The python one-liner in step 4 fails with `Connection refused` | The Alertmanager tunnel is closed. Run `./scripts/dashboards.sh --background` again (PowerShell: `scripts\dashboards.ps1 -Background`). |
 | No Slack or email message arrives | Slack and email are optional. Check `kubectl logs deployment/alertmanager -n monitoring --tail=30`: `no_team` or `invalid_token` means a wrong Slack URL, `535` a wrong email password. See [`../GUIDE.md`](../GUIDE.md) section 6. |
-| Alerts do not clear after deleting `errload` | Normal for a few minutes: `HighErrorRate` uses a 2-minute window and the fast burn a 5-minute window. Wait 5-7 minutes. |
+| Alerts do not clear after deleting `errload` | Normal for a few minutes: `HighErrorRate` and the fast burn both use a 5-minute window. Wait 5-7 minutes. |
+| `ErrorBudgetSlowBurn` (warning) appears 15-30 minutes after the drill | Normal on a young cluster: its 6 h and 30 m windows still remember the drill. While the fast burn fires, Alertmanager mutes it (inhibition); afterwards it can show up on its own. It clears by itself within about 30 minutes. |
 | `AlwaysFiringDemoAlert` is in the list | It is a demo alert that always fires to prove the pipeline works. Ignore it in the exercise. |
 
 **Instructor notes**
 - Timing: 20 min concepts and roles, 30 min tabletop, 40 min postmortem, 20 min ORR, 10 min debrief.
-- The drill load ends by itself about 4 minutes after the start (about 1.5 minutes after `HighErrorRate` fires). If the team has not deleted `errload` by then, record TTR as "self-resolved" and discuss it, or have the scribe pause and treat the next `trigger-alert.sh` run as part two of the drill.
+- The drill load ends by itself about 12-14 minutes after the start (about 10 minutes after `HighErrorRate` fires). If the team has not deleted `errload` by then, record TTR as "self-resolved" and discuss it, or have the scribe pause and treat the next `trigger-alert.sh` run as part two of the drill.
 - Run the tabletop twice if time allows: the second run usually has a much lower TTA. That is the point of drills.
 - Do not tell the on-call responder when the drill starts. Real TTD/TTA numbers are more interesting than rehearsed ones.
 - If AWX was installed (Part on automation), Alertmanager can launch `collect-diagnostics` about 14 s after a critical alert fires; mention it as the next step of automation, not a requirement here.
@@ -376,7 +388,7 @@ Labels must exist before they are used. Dependabot does not create missing label
 
 **Lab steps**
 
-0. Point the project folder at your fork. [`../GUIDE.md`](../GUIDE.md) section 3 cloned the course repo, so `origin` is the course repo and you cannot push to it.
+0. Point the project folder at your fork. This step is the lab mission **M09b "Join the guild"**. When you are done, check it with `python3 scripts/lab.py check M09b` (Windows PowerShell: `python scripts\lab.py check M09b`). [`../GUIDE.md`](../GUIDE.md) section 3 cloned the course repo, so `origin` is the course repo and you cannot push to it.
    ```bash
    gh repo fork --remote
    gh repo set-default <your-user>/sre-final-project
@@ -466,3 +478,25 @@ Nothing in the cluster. In your fork you may delete the branch. The PR was merge
 git switch main && git pull origin main && git branch -D postmortem/tabletop
 git push origin --delete postmortem/tabletop   # or use the Delete branch button on the merged PR
 ```
+
+---
+
+### Portfolio project P-RUNBOOK: a new runbook
+
+Optional and open to everyone. It is worth 250 XP. A runbook is the page an on-call engineer opens when an alert wakes them up, so writing one shows you think like an on-call SRE.
+
+**What you build:** a new runbook in `docs/runbooks/`, linked from an alert rule's `runbook_url`.
+
+1. Pick an alert in `k8s/config/prometheus/alerts.yml` or `slo.yml` that has no runbook of its own yet, or one you add yourself. Read the existing runbooks first, for example [`docs/runbooks/high-error-rate.md`](../runbooks/high-error-rate.md), and follow the same shape: what the alert means, how bad it is for users, the first checks (read-only), the fix, and how to confirm it is fixed.
+2. Save your runbook under a new name, for example `docs/runbooks/synthetic-probe-failing.md`.
+3. In the alert rule, set `runbook_url` to the new file. Use the same form as the other rules, with your fork's address, for example `https://github.com/<your-user>/sre-final-project/blob/main/docs/runbooks/synthetic-probe-failing.md`. Keep the YAML indentation exactly as in the rules around it.
+4. Apply and check (Windows: `python scripts\lab.py check P-RUNBOOK`):
+   ```bash
+   kubectl apply -k k8s
+   python3 scripts/lab.py check P-RUNBOOK
+   ```
+   What you should see: "new runbook ... is linked from an alert rule".
+
+**For the interview:** be ready to walk someone through your runbook in two minutes, as if they were on call for the first time.
+
+> **Interview corner: The War Room.** A question you can expect: *"What is an error budget, and how does it change what the team does?"* Answer with what you did here: the SLO for Nimbus Store and its error budget (M06), the burn-rate alerts that fire when the budget is spent too fast, and the blameless postmortem you wrote after the drill (M09). Explain the trade-off in plain words: while budget is left, the team can ship new features; when it runs out, the team slows down and fixes reliability first. Rehearse it with Bob: type `/interview`.

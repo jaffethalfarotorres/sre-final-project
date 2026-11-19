@@ -1,6 +1,11 @@
-# Alert drill: calls the failing /error endpoint about 1,000 times (~4 minutes), then stops by itself.
-# Used by scripts/trigger-alert.sh and .ps1. It follows the same baseline as the app (non-root, limits)
-# so the Kyverno policies in policy/ stay green.
+# Alert drill: calls the failing /error endpoint 3,000 times (~4 per second, about 12-14 minutes), then
+# stops by itself. Used by scripts/trigger-alert.sh and .ps1.
+# Why so long: HighErrorRate (5-minute window) fires after ~3 minutes, but the error budget page
+# ErrorBudgetFastBurn needs the 1-HOUR error ratio above 14.4% (burn rate 14.4x with a 99% SLO).
+# Normal traffic is ~1.3 requests per second, so about 3-5 minutes of drill reach that, plus 2 minutes
+# of "for:"; the extra minutes keep the page firing long enough for you to see it.
+# It follows the same baseline as the app (non-root, requests and limits, pinned image) so the Kyverno
+# policies in policy/ stay green.
 apiVersion: v1
 kind: Pod
 metadata:
@@ -10,6 +15,8 @@ metadata:
     app: errload
 spec:
   restartPolicy: Never
+  # Safety net: Kubernetes stops the drill after 20 minutes even if the loop runs slower than planned.
+  activeDeadlineSeconds: 1200
   securityContext:
     runAsNonRoot: true
     runAsUser: 100
@@ -20,7 +27,7 @@ spec:
       image: curlimages/curl:8.10.1
       command: ["/bin/sh", "-c"]
       args:
-        - i=0; while [ $i -lt 1000 ]; do curl -s -o /dev/null http://sre-metrics-app:5000/error; i=$((i+1)); sleep 0.2; done
+        - i=0; while [ $i -lt 3000 ]; do curl -s -o /dev/null http://sre-metrics-app:5000/error; i=$((i+1)); sleep 0.2; done
       resources:
         requests: {cpu: 10m, memory: 16Mi}
         limits: {cpu: 100m, memory: 32Mi}

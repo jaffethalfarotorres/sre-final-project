@@ -1,13 +1,22 @@
 # Step-by-step guide for Mac and Windows (no experience needed)
 
+> **Using IBM Bob on Windows?** Use the [Windows (PowerShell, used by IBM Bob)](#windows-powershell-used-by-ibm-bob) section and skip WSL. Bob's terminal is PowerShell, so every command must work there.
+
 This guide explains the project in plain language and walks you through running it on a **Mac** or a **Windows** computer, one step at a time. You do not need to know Kubernetes or programming. If a word is new, check the [glossary](#glossary) at the end.
 
-The setup follows the same toolchain as the SRE Academy course: **Colima** on Mac, and **WSL2 with Ubuntu** on Windows. If you already set up your computer for the course exercises, skip to [step 3](#3-download-and-start-the-project).
+There are three install paths. Pick **one**:
+- **Mac:** Colima, as in the SRE Academy course.
+- **Windows with IBM Bob:** PowerShell and `winget`. This is the path Bob follows.
+- **Windows by hand (no Bob):** WSL2 with Ubuntu, as in the course.
+
+If you already set up your computer for the course exercises, skip to [step 3](#3-download-and-start-the-project).
 
 - [1. What is this project?](#1-what-is-this-project)
 - [2. Install the tools (one time)](#2-install-the-tools-one-time)
   - [Mac](#mac)
-  - [Windows](#windows)
+  - [Windows (PowerShell, used by IBM Bob)](#windows-powershell-used-by-ibm-bob)
+  - [Windows by hand (WSL2 and Ubuntu)](#windows-by-hand-wsl2-and-ubuntu)
+  - [On an IBM-managed laptop](#on-an-ibm-managed-laptop)
 - [3. Download and start the project](#3-download-and-start-the-project)
 - [4. Look at the dashboards](#4-look-at-the-dashboards)
 - [5. Make an alert fire](#5-make-an-alert-fire)
@@ -43,11 +52,11 @@ The alarm rules are:
 | Alarm | When it goes off |
 | --- | --- |
 | `ServiceDown` | The shop stops answering for 1 minute. |
-| `HighErrorRate` | More than 5% of requests fail for 2 minutes. |
+| `HighErrorRate` | More than 5% of requests fail over 5 minutes, while the shop gets real traffic (more than 0.2 requests per second), for 2 minutes. |
 | `HighLatency` | Pages take longer than half a second for 2 minutes. |
 | `SyntheticProbeFailing` | A robot check (blackbox exporter) cannot open the shop's home page: fewer than 90% of checks succeed over 2 minutes, for 2 minutes. |
-| `ErrorBudgetFastBurn` | The shop is using up its monthly failure allowance more than 6 times faster than planned (see `docs/SLO.md`). This is urgent. |
-| `ErrorBudgetSlowBurn` | The failure allowance has been spent faster than planned for hours (6-hour and 1-hour windows), for 15 minutes. This is a warning. |
+| `ErrorBudgetFastBurn` | The shop is using up its monthly failure allowance more than 14.4 times faster than planned, over both the last hour and the last 5 minutes (see `docs/SLO.md`). At that speed the whole month's allowance is gone in about 2 days. This is urgent: it pages a person. |
+| `ErrorBudgetSlowBurn` | The failure allowance is being spent more than 6 times faster than planned, over both the last 6 hours and the last 30 minutes. This is serious, but it can wait for working hours. A third, gentler rule opens a ticket when the burn stays above 1x for 3 days. |
 | `ErrorBudgetExhausted` | The whole 30-day failure allowance is used up. On a fresh cluster this stays quiet until there are about 100,000 requests of history. |
 | `AlwaysFiringDemoAlert` | Always on. It only proves the alarm system works. |
 
@@ -55,7 +64,7 @@ Grafana adds two more rules of its own, one built on traces (`StoreLatencyFromTr
 
 Everything runs on your computer. Nothing is sent to the internet unless you set up Slack or email in step 6. It works on Apple Silicon (M1 to M4) and Intel Macs, and on any Windows 10 or 11 PC, because the app is built on your own machine instead of downloaded for one type of processor.
 
-**What you need:** about 8 GB of RAM (16 GB is more comfortable; on Windows you must give WSL at least 5 GB, see [Windows step 2](#windows)), 20 GB of free disk space and an internet connection for the first run.
+**What you need:** about 8 GB of RAM (16 GB is more comfortable; with WSL you must give it at least 5 GB, see [WSL step 2](#windows-by-hand-wsl2-and-ubuntu)), 20 GB of free disk space and an internet connection for the first run.
 
 ---
 
@@ -93,9 +102,46 @@ You will type commands in the **Terminal** app. To open it, press **Cmd + Space*
 
 Then log in to GitHub once (needed from lab Part 3): `gh auth login`, choose **GitHub.com**, **HTTPS** and **Login with a web browser**. Go to [step 3](#3-download-and-start-the-project).
 
-### Windows
+### Windows (PowerShell, used by IBM Bob)
 
-The tools run inside **Ubuntu Linux**, which Windows can run in a window through **WSL2**. After this setup you type every command in the **Ubuntu** window, not in PowerShell.
+Use this path if IBM Bob is guiding you. Every command runs in **PowerShell** (Bob's terminal). There is no Ubuntu window and no WSL setup to do by hand.
+
+1. **Install a container engine** (the program that runs containers). This needs administrator rights and maybe one restart; you click through the installer yourself.
+   - **Docker Desktop:** `winget install -e --id Docker.DockerDesktop`, if your company has a licence for it (see [On an IBM-managed laptop](#on-an-ibm-managed-laptop)).
+   - **Rancher Desktop** (free): `winget install -e --id SUSE.RancherDesktop`. On first start choose the **dockerd (moby)** engine and turn **Kubernetes off** (Minikube provides it).
+
+   Start the app once from the **Start** menu and wait until it says it is running.
+2. **Install the tools,** one line at a time:
+   ```powershell
+   winget install -e --id Kubernetes.minikube
+   winget install -e --id Kubernetes.kubectl
+   winget install -e --id Helm.Helm
+   winget install -e --id Git.Git
+   winget install -e --id GitHub.cli
+   winget install -e --id Python.Python.3.12 --scope user
+   ```
+3. **Refresh PATH after each install.** A terminal that was already open does not see a new program. Paste this line (or open a new terminal):
+   ```powershell
+   $env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User')
+   ```
+4. **Use `python`, never `python3`.** On Windows `python3` opens the Microsoft Store instead of Python. Wherever this guide shows `python3 scripts/<name>.py`, run `python scripts\<name>.py` (or `py scripts\<name>.py`).
+5. **Run the `.ps1` scripts.** Wherever this guide shows `./scripts/deploy.sh`, `./scripts/dashboards.sh` or `./scripts/trigger-alert.sh`, run `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\deploy.ps1` (or `scripts\dashboards.ps1`, `scripts\trigger-alert.ps1`). `-ExecutionPolicy Bypass` works for that one script only and changes no setting. The `kubectl` commands are the same.
+6. **Check that everything works.** Each line should print a version, not an error:
+   ```powershell
+   docker version
+   minikube version
+   kubectl version --client
+   git --version
+   gh --version
+   python --version
+   ```
+   Then log in to GitHub once: `gh auth login`, choose **GitHub.com**, **HTTPS** and **Login with a web browser**. This is a human step: you finish it in your browser.
+
+> Docker Desktop with the WSL2 backend takes its memory from `.wslconfig` (see [WSL step 2](#windows-by-hand-wsl2-and-ubuntu)); only the Hyper-V backend has a **Settings > Resources > Memory** slider (set it to at least 5 GB). Rancher Desktop has a memory slider under **Preferences > Virtual Machine**.
+
+### Windows by hand (WSL2 and Ubuntu)
+
+Use this path only if you follow the guide **without** IBM Bob. The tools run inside **Ubuntu Linux**, which Windows can run in a window through **WSL2**. After this setup you type every command in the **Ubuntu** window, not in PowerShell.
 
 1. **Install WSL2 and Ubuntu.** Click **Start**, type `PowerShell`, right-click **Windows PowerShell** and choose **Run as administrator**. Paste this and press **Enter**:
    ```powershell
@@ -157,34 +203,40 @@ The tools run inside **Ubuntu Linux**, which Windows can run in a window through
    ```
    Then log in to GitHub once: `gh auth login`, choose **GitHub.com**, **HTTPS** and **Login with a web browser**.
 
-> Already using **Docker Desktop** on Windows instead of WSL2? That works too: install the tools with `winget install -e --id Kubernetes.minikube` and `winget install -e --id Kubernetes.kubectl`, and use PowerShell from the project folder for every later step. Wherever this guide shows `./scripts/deploy.sh`, `./scripts/dashboards.sh` or `./scripts/trigger-alert.sh`, run `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\deploy.ps1` (or `scripts\dashboards.ps1`, `scripts\trigger-alert.ps1`) instead. Wherever it shows `python3 scripts/<name>.py`, run `python scripts\<name>.py` (or `py scripts\<name>.py`). If `python` opens the Microsoft Store, install Python with `winget install -e --id Python.Python.3.12`. The `kubectl` commands are the same.
->
-> Docker Desktop with the WSL2 backend also takes its memory from `.wslconfig`, so create it as in step 2 above; only the Hyper-V backend has a **Settings > Resources > Memory** slider (set it to at least 5 GB).
+### On an IBM-managed laptop
+
+Company laptops have a few extra locks. Fix them **before** the lab day:
+- **Administrator rights.** The installers need them. Request temporary administrator rights through IBM's usual IT help process.
+- **Which container engine.** Docker Desktop needs a paid licence in large companies ([Docker's licence terms](https://docs.docker.com/subscription/desktop-license/)). Ask your professor which engine is approved. If Docker Desktop is not licensed for you, use [Rancher Desktop](https://rancherdesktop.io/) with the **dockerd (moby)** engine.
+- **VPN.** Downloads can fail or hang on the VPN. Disconnect it during installs and the first deploy (if your IBM policy allows), then reconnect.
+- **Script policy.** If PowerShell says "running scripts is disabled on this system", use the `powershell -NoProfile -ExecutionPolicy Bypass -File ...` form shown in this guide. If that is also blocked, IT has locked the policy: ask your professor.
+- **Data.** Never put client data, w3 credentials or screenshots of internal IBM tools into the lab, into IBM Bob or into your fork.
 
 ### AI assistants (only for lab Part 7)
-Part 7 uses **Claude Code** and/or **IBM Bob**. Install Claude Code by following the official setup page, <https://code.claude.com/docs>, then check it with `claude --version`. It needs a paid Claude plan or an Anthropic Console account; free courses are on Anthropic Academy. IBM Bob is at <https://bob.ibm.com> (IBMers through IBM, others through the trial). Without either, pair with a classmate: every Part 7 exercise can be done with one of the two tools.
+Part 7 uses **IBM Bob** (Claude Code is optional). If you want Claude Code too, install it by following the official setup page, <https://code.claude.com/docs>, then check it with `claude --version`. It needs a paid Claude plan or an Anthropic Console account; free courses are on Anthropic Academy. IBM Bob is at <https://bob.ibm.com> (IBMers through IBM, others through the trial). Without either, pair with a classmate: every Part 7 exercise can be done with one of the two tools.
 
 ---
 
 ## 3. Download and start the project
 
-From here on the steps are the same on Mac and Windows. Use **Terminal** on Mac and the **Ubuntu** window on Windows.
+From here on the steps are the same on Mac and Windows. Use **Terminal** on Mac, **PowerShell** on Windows with IBM Bob, and the **Ubuntu** window on Windows by hand.
 
 1. Mac only: make sure Colima is running (it is fine if it says it already is):
    ```bash
    colima start
    ```
-2. Download the project and go into its folder:
+2. Make your own copy of the project and download it. A **fork** is your own copy on GitHub; `--clone` also downloads it to your laptop. Your work and your lab proof live in your fork (mission M09b checks this). Log in first with `gh auth login` (see step 2).
    ```bash
    cd ~
-   git clone https://github.com/jaffethalfarotorres/sre-final-project.git
+   gh repo fork jaffethalfarotorres/sre-final-project --clone
    cd sre-final-project
    ```
+   Only want to look around, without a GitHub account? `git clone https://github.com/jaffethalfarotorres/sre-final-project.git` works too, but the fork mission will not pass.
 3. Start everything with one command:
    ```bash
    ./scripts/deploy.sh
    ```
-   Docker Desktop/PowerShell: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\deploy.ps1`
+   Windows PowerShell: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\deploy.ps1`
 
    The first run takes 5 to 10 minutes because it downloads everything. You will see a lot of text. It is done when it prints **Deployment complete**.
 
@@ -199,24 +251,29 @@ From here on the steps are the same on Mac and Windows. Use **Terminal** on Mac 
 
 ## 4. Look at the dashboards
 
-The pieces run inside Minikube, so your browser reaches them through "tunnels" (port-forwards). One command opens all of them and shows the Grafana login:
+The pieces run inside Minikube, so your browser reaches them through "tunnels" (port-forwards). One command opens all of them in the background and gives you your terminal back:
 
 ```bash
-./scripts/dashboards.sh
+./scripts/dashboards.sh --background
 ```
-Docker Desktop/PowerShell: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\dashboards.ps1`
+Windows PowerShell: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\dashboards.ps1 -Background`
 
-It prints the addresses and the Grafana password, and opens Grafana in your browser. **Keep this window open** while you use the dashboards; press **Ctrl + C** in it to close the tunnels (on Mac too, it is Ctrl, not Cmd).
+It prints the addresses, opens Grafana in your browser and **copies the Grafana password to your clipboard** (it never prints it). In the Grafana login, type `admin` and paste the password with **Ctrl + V** (Mac: **Cmd + V**). Never paste it into a chat. The tunnels keep running until you stop them:
+
+```bash
+./scripts/dashboards.sh --stop
+```
+Windows PowerShell: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\dashboards.ps1 -Stop`
 
 | Address | What you see |
 | --- | --- |
-| <http://localhost:3000> | **Grafana**, the charts. Log in as `admin` with the password the script shows. |
+| <http://localhost:3000> | **Grafana**, the charts. Log in as `admin` with the password the script copied to your clipboard. |
 | <http://localhost:9090> | **Prometheus**, the raw measurements and the alarm rules |
 | <http://localhost:9093> | **Alertmanager**, who gets notified |
 | <http://localhost:16686> | **Jaeger**, the path of each single request (traces) |
 | <http://localhost:5000> | The app itself |
 
-To run other commands, open another window: on Mac press **Cmd + T** in Terminal; on Windows open **Ubuntu** again from the **Start** menu. Then go to the project folder with `cd ~/sre-final-project`.
+Because the tunnels run in the background, you can keep using the same window. Lost your place? Go back to the project folder with `cd ~/sre-final-project`.
 
 ### Grafana (the charts)
 Click **Dashboards** in the left menu, then the **SRE Demo** folder. There are four dashboards:
@@ -237,15 +294,15 @@ After about a minute you see `AlwaysFiringDemoAlert`. It is always on, to prove 
 
 ## 5. Make an alert fire
 
-The shop fails about 5% of the time on its own, which is just under the alarm limit on purpose. To see a real alarm, send it a burst of bad requests.
+The shop fails about 0.5% of the time on its own, well inside its 99% target (see [SLO.md](SLO.md)), so the alarms stay quiet. To see a real alarm, send it a burst of bad requests.
 
-1. In a second window (keep the dashboards window open), run:
+1. With the tunnels running (step 4), run:
    ```bash
    ./scripts/trigger-alert.sh
    ```
-   Docker Desktop/PowerShell: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\trigger-alert.ps1`
+   Windows PowerShell: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\trigger-alert.ps1`
 
-   It starts a small robot inside the cluster that calls the failing page about 1,000 times (roughly 4 minutes), then waits and tells you when the alarm fires: `HighErrorRate is FIRING after about 150 seconds.`
+   It starts a small robot inside the cluster that calls the failing page about 1,000 times (roughly 4 minutes), then waits and tells you when the alarm fires: `HighErrorRate is FIRING after about 150 seconds.` The window looks busy for a few minutes. That is normal; wait for it to finish.
 2. Look at the Grafana **Error rate** chart: it climbs. In Prometheus (**Alerts**) and Alertmanager, `HighErrorRate` turns red (firing). The **SLO and Error Budget** dashboard shows the error budget being spent, and `ErrorBudgetFastBurn` fires too.
 
 The robot stops by itself. A few minutes later the error rate drops and the alerts clear on their own.
@@ -254,11 +311,13 @@ The robot stops by itself. A few minutes later the error rate drops and the aler
 
 ## 6. Optional: get alerts in Slack and email
 
-Without this step the alarms still work; you just see them in Alertmanager instead of getting a message. Real passwords go in one private file, `k8s/alertmanager-secret.yaml`, which Git never uploads.
+Without this step the alarms still work; you just see them in Alertmanager instead of getting a message.
+
+> **IBMers:** use a **personal** Slack workspace (create a free one at <https://slack.com/get-started>) and a **personal** Gmail. Never connect the lab to IBM Slack or IBM mail. Real passwords go in one private file, `k8s/alertmanager-secret.yaml`, which Git never uploads.
 
 ### 6a. Get a Slack webhook (a private address that posts into a channel)
 
-1. Go to <https://api.slack.com/apps> and sign in to your Slack workspace.
+1. Go to <https://api.slack.com/apps> and sign in to your personal Slack workspace.
 2. Click **Create New App > From scratch**. Name it `SRE Alerts`, pick your workspace, click **Create App**.
 3. In the left menu click **Incoming Webhooks** and switch it **On**.
 4. Click **Add New Webhook to Workspace**, choose the channel that should receive alerts, click **Allow**.
@@ -279,6 +338,7 @@ Using Outlook.com instead? Use the server `smtp-mail.outlook.com:587` and an app
    ```bash
    nano k8s/alertmanager-secret.yaml
    ```
+   Windows PowerShell (IBM Bob): open it yourself with `notepad k8s\alertmanager-secret.yaml`, then save with **Ctrl + S** and close Notepad. Do not ask Bob to open or read this file: it holds your passwords.
 2. Use the arrow keys to move. Replace the text between the quotes on these two lines (paste with **Cmd + V** on Mac, or **right-click** in the Ubuntu window):
    ```yaml
    slack-webhook-url: "your Slack webhook URL"
@@ -292,7 +352,8 @@ Open the settings file the same way:
 ```bash
 nano k8s/alertmanager.yaml
 ```
-Change these lines (keep the quotes), then save with **Ctrl + O**, **Enter**, **Ctrl + X**:
+Windows PowerShell: `notepad k8s\alertmanager.yaml` (save with **Ctrl + S**).
+Change these lines (keep the quotes), then save (nano: **Ctrl + O**, **Enter**, **Ctrl + X**):
 
 | Line | Change to |
 | --- | --- |
@@ -311,7 +372,7 @@ Note: `k8s/alertmanager.yaml` is a normal project file. If you upload your copy 
    ```bash
    ./scripts/deploy.sh
    ```
-   Docker Desktop/PowerShell: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\deploy.ps1`
+   Windows PowerShell: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\deploy.ps1`
 2. Restart Alertmanager so it reads the new settings (Kubernetes does not reload changed settings by itself):
    ```bash
    kubectl rollout restart deployment/alertmanager -n monitoring
@@ -343,13 +404,29 @@ You can also start it by hand: **Actions > CD > Run workflow**.
 
 Everything above is the core of the project. The [lab guide](labs/README.md) continues from here, one topic at a time: logs and traces, SLOs, automation with Ansible and AWX, GitOps with ArgoCD, chaos engineering, policies, canary releases, and AI assistants (Claude Code and IBM Bob) that help investigate incidents without being allowed to change anything ([AI-SRE.md](AI-SRE.md)).
 
-The add-ons are started with a Python script (Python 3 comes with Ubuntu; on Mac run `brew install python@3.12` if `python3 --version` fails or shows 3.9, and use `python3.12` instead of `python3`). Run **one at a time** and remove it before the next, so Minikube does not run out of memory.
+The add-ons are started with a Python script (Python 3 comes with Ubuntu; on Mac run `brew install python@3.12` if `python3 --version` fails or shows 3.9, and use `python3.12` instead of `python3`; on Windows always use `python`, never `python3`). Run **one at a time** and remove it before the next, so Minikube does not run out of memory.
 
 Add-ons need a 6 GB Minikube on a 16 GB laptop (see [labs/01, step 4](labs/01-foundations.md)). On an 8 GB laptop, stay with the core stack. For example:
 ```bash
 python3 scripts/chaos_test.py
 ```
-Docker Desktop/PowerShell: `python scripts\chaos_test.py`
+Windows PowerShell: `python scripts\chaos_test.py`
+
+### The Road to Junior SRE (the lab game, also without Bob)
+
+The lab is one journey: you start as a **Career Changer** and climb 8 camps to **On-Call Ready**, the day a team trusts you with the pager. Each camp gives Nimbus Store (the pretend shop) a real new capability, teaches one SRE principle and lists skills you can name on your CV. You can play it by hand with the same script Bob uses (Mac/Linux shown; on Windows type `python scripts\lab.py ...`):
+
+```bash
+python3 scripts/lab.py status          # your rank, XP and next mission
+python3 scripts/lab.py show M05        # what to do and the quiz questions
+python3 scripts/lab.py check M05       # check the mission on your laptop (read-only)
+python3 scripts/lab.py answer M05 1 b  # answer quiz question 1 (2 attempts: full XP, then half, then locked)
+python3 scripts/lab.py cv              # your skills, principles and interview questions so far
+python3 scripts/lab.py play            # Mission Control, the visual dashboard
+python3 scripts/lab.py proof --name "Your Name"   # your SRE Lab Passport
+```
+
+Ranks by XP: Career Changer (0), Tech Apprentice (500), SRE Intern (1300), Junior SRE Candidate (2300), Interview-Ready Junior SRE (3300). Quizzes are for learning only: they never block a mission and are never graded. The passport is a self-generated record, not a certificate; its fingerprint shows later edits but is not a signature. Your professor confirms it with `lab.py verify` or a short live demo.
 
 ---
 
@@ -367,7 +444,7 @@ Docker Desktop/PowerShell: `python scripts\chaos_test.py`
   cd ~/sre-final-project
   kubectl get pods -A
   ```
-  Then open the tunnels again (step 4).
+  Then open the tunnels again (step 4). Before `minikube stop`, close them with `./scripts/dashboards.sh --stop` (Windows PowerShell: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\dashboards.ps1 -Stop`).
 - **Remove the project** from Minikube:
   ```bash
   kubectl delete namespace application monitoring opentelemetry
@@ -387,18 +464,26 @@ If a command fails, **you are probably not doing anything wrong**. Find the mess
 | What you see | What to do |
 | --- | --- |
 | Mac: `Cannot connect to the Docker daemon` | Run `colima start`, wait for it to finish, try again. |
-| Windows: `Cannot connect to the Docker daemon` or `permission denied ... docker.sock` | Close and reopen the Ubuntu window. If it persists, run `sudo systemctl start docker`. Check step 4 of the Windows install (systemd) was done. |
+| Windows (PowerShell): `Cannot connect to the Docker daemon` or `error during connect` | Start Docker Desktop or Rancher Desktop from the **Start** menu and wait until it says it is running. |
+| Windows (WSL): `Cannot connect to the Docker daemon` or `permission denied ... docker.sock` | Close and reopen the Ubuntu window. If it persists, run `sudo systemctl start docker`. Check step 4 of the Windows install (systemd) was done. |
 | `command not found` for `minikube`, `kubectl` or `helm` | The install step for that tool did not finish. Run it again and reopen the window. |
 | `permission denied: ./scripts/deploy.sh` | Run `chmod +x scripts/deploy.sh` once, then try again. |
 | `No such file or directory` for `scripts/deploy.sh` or `k8s/...` | You are not in the project folder. Run `cd ~/sre-final-project`. |
-| `Docker has only ...MB of memory` (from deploy.sh) or `Docker has only ...MB memory but you specified 4096MB` (from Minikube) | Docker has too little memory. Windows: do step 2 of the Windows install (`.wslconfig`), run `wsl --shutdown` and reopen Ubuntu. Mac: `colima stop` then `colima start --cpu 4 --memory 6`. Then run `minikube delete` and `./scripts/deploy.sh` again. |
+| `Docker has only ...MB of memory` (from deploy.sh) or `Docker has only ...MB memory but you specified 4096MB` (from Minikube) | Docker has too little memory. Windows with IBM Bob: raise the memory in Docker Desktop (**Settings > Resources**) or Rancher Desktop (**Preferences > Virtual Machine**) to at least 5 GB. Windows by hand: do step 2 of the WSL install (`.wslconfig`), run `wsl --shutdown` and reopen Ubuntu. Mac: `colima stop` then `colima start --cpu 4 --memory 6`. Then run `minikube delete` and `./scripts/deploy.sh` again. |
 | Pods stuck in `Pending` or `ContainerCreating` for more than 5 minutes | The computer is short on memory. Mac: `colima stop` then `colima start --cpu 4 --memory 6`. Windows: close other programs. Then run `minikube delete` and `./scripts/deploy.sh` again. |
 | A pod shows `CrashLoopBackOff` | Run `kubectl get pods -A` again in a minute; Kubernetes retries on its own. If it stays, run `./scripts/deploy.sh` again. |
-| Browser says "This site can't be reached" on localhost | The tunnel window was closed or stopped. Run the port-forward command again and keep that window open. |
-| `address already in use` when opening a tunnel | Another tunnel already uses that port. Close the other window, or run `pkill -f "kubectl port-forward"` and open the tunnels again. |
+| Browser says "This site can't be reached" on localhost | The tunnels are not running. Run `./scripts/dashboards.sh --background` again (Windows: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\dashboards.ps1 -Background`). |
+| `curl` or the browser gets nothing right after starting the tunnels | The tunnels need a few seconds to get ready. Wait 5 seconds and try again. |
+| `address already in use` when opening a tunnel | Old tunnels are still running. Run `./scripts/dashboards.sh --stop` (Windows PowerShell: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\dashboards.ps1 -Stop`), then start them again. |
 | A copied command fails with `No such file or directory` and has `<` `>` in it | Text inside `< >` is a placeholder to replace. The commands in this guide do not need any changes. |
-| Grafana rejects the password | Run `grep admin-password k8s/grafana-secret.yaml` again and copy the text between the quotes exactly. |
+| Grafana rejects the password | Your clipboard changed since the script copied it. Run the dashboards script with `--stop`, then with `--background` again (Windows: `-Stop`, then `-Background`); it copies the password once more. Paste it straight into Grafana, never into a chat. |
 | No Slack or email message | Check the logs: `kubectl logs deployment/alertmanager -n monitoring --tail=30`. `no_team` or `invalid_token` means a wrong Slack URL. `535` means a wrong email address or app password. Fix the file, then repeat step 6e. |
+| Windows: `python` opens the Microsoft Store, or `python3` does nothing | Install Python with `winget install -e --id Python.Python.3.12 --scope user`, refresh PATH (see [Windows step 3](#windows-powershell-used-by-ibm-bob)), and use `python`, never `python3`. |
+| Windows: a tool is "not recognized" right after `winget install` | The open terminal has an old PATH. Run the PATH refresh line from [Windows step 3](#windows-powershell-used-by-ibm-bob), or open a new terminal. |
+| Windows: "running scripts is disabled on this system" | Use the full form `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\<name>.ps1`. If that is also blocked, the policy is locked by IT: ask your professor. |
+| `winget` or a download fails, hangs or shows a certificate error | Usually the VPN or a company proxy. Disconnect the VPN during installs (if your policy allows) and try again. |
+| An installer asks for administrator rights you do not have | Request temporary admin rights through IBM's IT help process, then run the install again. See [On an IBM-managed laptop](#on-an-ibm-managed-laptop). |
+| Docker Desktop asks for a subscription | Your company may not have a licence for you. Use Rancher Desktop with the dockerd (moby) engine instead. |
 | You changed a setting and nothing happened | Settings are read at start-up. Run `kubectl rollout restart deployment/alertmanager -n monitoring` (or `prometheus`, `grafana`). |
 
 ---
@@ -408,6 +493,16 @@ If a command fails, **you are probably not doing anything wrong**. Find the mess
 | Term | Meaning |
 | --- | --- |
 | **Alert / alarm** | A rule that turns "on" when a measurement crosses a limit for some time. |
+| **Repository (repo)** | A project folder whose full history is kept online, on GitHub. |
+| **Fork** | Your own copy of someone else's repository, under your GitHub account. |
+| **Clone** | Download a repository to your laptop. |
+| **Terminal** | A window where you type commands. On Windows with IBM Bob it is **PowerShell**. |
+| **winget** | The Windows app installer you use from PowerShell. |
+| **PATH** | The list of folders where the terminal looks for programs. A new install is found only after PATH is refreshed. |
+| **IBM Bob** | IBM's AI assistant. In this lab it is your AI pair: it proposes every command, and you approve each one. |
+| **Mode** | Bob's "job hat": *SRE Lab Guide* runs lab commands you approve; *SRE Triage* only reads. |
+| **Dashboard** | A screen of live charts. |
+| **Runbook** | Step-by-step instructions for fixing one known problem. |
 | **Colima** | A small program that lets a Mac run containers (the Mac equivalent of what Linux has built in). |
 | **Container** | A sealed box that holds one program and everything it needs, so it runs the same anywhere. |
 | **Docker** | The tool that builds and runs containers. |

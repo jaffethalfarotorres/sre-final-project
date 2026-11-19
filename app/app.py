@@ -11,7 +11,7 @@ A lightweight Python Flask web service that emits all three observability signal
 
 Endpoints:
   - GET /        : Service root & health check (HTTP 200)
-  - GET /store   : Business API with realistic latency and ~5% simulated error rate
+  - GET /store   : Business API with realistic latency and ~0.5% simulated error rate
   - GET /error   : Explicit error trigger for testing alerts and SLO degradation (HTTP 500)
   - GET /metrics : Prometheus scrape endpoint exporting telemetry counters and histograms
   - GET /ask     : Simulated generative AI call with gen_ai.* span attributes (LLM observability lab)
@@ -39,7 +39,8 @@ from opentelemetry.trace import Status, StatusCode
 
 SERVICE_NAME = os.getenv("OTEL_SERVICE_NAME", "sre-metrics-app")
 OTLP_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
-STORE_ERROR_RATE = float(os.getenv("STORE_ERROR_RATE", "0.05"))
+# 0.5% of /store calls fail on purpose (1 in 200): real data for the 99% SLO, little budget used.
+STORE_ERROR_RATE = float(os.getenv("STORE_ERROR_RATE", "0.005"))
 RESOURCE = Resource.create({"service.name": SERVICE_NAME, "service.version": os.getenv("APP_VERSION", "1.0.0")})
 
 
@@ -141,13 +142,13 @@ def load_catalog():
 def store():
     """
     Simulated business transaction endpoint.
-    Introduces variable response latency (50ms - 350ms) and an intentional ~5% error rate
+    Introduces variable response latency (50ms - 350ms) and an intentional ~0.5% error rate
     to provide realistic signals for SRE latency and error-budget monitoring.
     """
     started_at = time.perf_counter()
     stores = load_catalog()
 
-    # Inject a low-probability failure (5% by default) to produce real 5xx signals for alert evaluation.
+    # Inject a low-probability failure (0.5% by default) to produce real 5xx signals for alert evaluation.
     # STORE_ERROR_RATE simulates a bad release in the canary lab (for example 0.5 = half the calls fail).
     if random.random() < STORE_ERROR_RATE:
         with tracer.start_as_current_span("store.process_order") as span:

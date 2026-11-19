@@ -2,6 +2,8 @@
 
 This part is about changing a running system safely. You deploy from Git with ArgoCD, ship a broken release and roll it back, kill pods on purpose to test a hypothesis, block unsafe workloads with policies, and let an SLO decide whether a canary release goes on. Every module uses the core stack from [`../../scripts/deploy.sh`](../../scripts/deploy.sh) plus at most one add-on.
 
+> **Road to Junior SRE, camp 6: The Proving Grounds.** You break things on purpose and prove Nimbus Store survives: GitOps, chaos, canaries and policies. **SRE principle:** release engineering: changes are gradual, reversible and tested by breaking things on purpose. **Skills for your CV:** rollbacks, GitOps with ArgoCD, chaos engineering, canary releases, policy as code (Kyverno).
+
 | Module | Topic | Main files |
 | --- | --- | --- |
 | [M13](#m13-gitops-with-argocd) | GitOps with ArgoCD | [`gitops/`](../../gitops), [`scripts/gitops_setup.py`](../../scripts/gitops_setup.py) |
@@ -551,3 +553,26 @@ kubectl delete namespace progressive
 kubectl delete -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/releases/download/v1.8.0/install.yaml
 kubectl delete namespace argo-rollouts --ignore-not-found
 ```
+
+---
+
+### Portfolio project P-POLICY: a new guardrail policy
+
+Optional and open to everyone. It is worth 250 XP. A guardrail policy stops unsafe deployments before they run, so nobody has to remember the rule. It needs Kyverno from M20 (16 GB profile).
+
+**What you build:** a new Kyverno `ClusterPolicy` of your own in `policy/`.
+
+1. Do M20 first, so Kyverno is installed. Read [`policy/workload-baseline.yaml`](../../policy/workload-baseline.yaml) with Bob and ask him to explain each rule in plain words.
+2. Pick one rule a team would want, for example "every pod in `application` must have an `owner` label". Write it as a new file, for example `policy/require-owner-label.yaml`, with `kind: ClusterPolicy` and its own `metadata.name`. Start in `Audit` mode, so it reports but does not block.
+3. Apply it and check (Windows: `python scripts\lab.py check P-POLICY`):
+   ```bash
+   kubectl apply -f policy/require-owner-label.yaml
+   kubectl get clusterpolicy
+   python3 scripts/lab.py check P-POLICY
+   ```
+   What you should see: your policy in the list, and the check says "policy ... is active in the cluster".
+4. Optional, to go further: find a pod that breaks your rule in `kubectl get policyreport -n application`. Keep the policy in `Audit` mode, so the other labs keep working.
+
+**For the interview:** be ready to say what your policy prevents and why a policy is safer than a checklist.
+
+> **Interview corner: The Proving Grounds.** A question you can expect: *"A release breaks production. What do you do in the first five minutes?"* Answer with what you did here: you shipped a broken release and rolled it back with one command (M14), and, if you did the add-ons, ArgoCD restored the state from Git (M13), you killed pods on purpose (M15) and an SLO stopped a bad canary (M21). In plain words: first stop the harm (roll back), tell people, then find the cause. Rehearse it with Bob: type `/interview`.

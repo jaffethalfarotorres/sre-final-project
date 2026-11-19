@@ -6,29 +6,39 @@ groups:
         for: 1m
         labels:
           severity: critical
+          service: sre-metrics-app
         annotations:
           summary: "Service sre-metrics-app is down"
           description: "Target sre-metrics-app on {{ $labels.instance }} is unreachable (up == 0)."
           runbook_url: "https://github.com/jaffethalfarotorres/sre-final-project/blob/main/docs/runbooks/service-down.md"
 
+      # Error ratio over 5 minutes, but only when there is real traffic (more than 0.2 requests per
+      # second, about 60 requests in 5 minutes). Without the floor, 1 failure out of 3 requests on a
+      # quiet service would already page someone.
       - alert: HighErrorRate
-        expr: (sum(rate(http_requests_total{namespace="application", status=~"5.."}[2m])) / sum(rate(http_requests_total{namespace="application"}[2m]))) > 0.05
+        expr: |
+          (sum(rate(http_requests_total{namespace="application", status=~"5.."}[5m])) / sum(rate(http_requests_total{namespace="application"}[5m]))) > 0.05
+          and sum(rate(http_requests_total{namespace="application"}[5m])) > 0.2
         for: 2m
         labels:
           severity: critical
+          service: sre-metrics-app
         annotations:
           summary: "High HTTP error rate (>5%) on sre-metrics-app"
-          description: "HTTP 5xx error rate is {{ $value | humanizePercentage }} (threshold > 5%) over the last 2 minutes."
+          description: "HTTP 5xx error rate is {{ $value | humanizePercentage }} (threshold > 5%) over the last 5 minutes."
           runbook_url: "https://github.com/jaffethalfarotorres/sre-final-project/blob/main/docs/runbooks/high-error-rate.md"
 
+      # Only /store, the user-facing transaction (same scope as the latency SLO). /ask is a slow
+      # simulated model call (0.2-1.2 s) and would push the p95 over 500 ms on normal traffic.
       - alert: HighLatency
-        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{namespace="application"}[2m])) by (le)) > 0.5
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{namespace="application", endpoint="/store"}[2m])) by (le)) > 0.5
         for: 2m
         labels:
           severity: warning
+          service: sre-metrics-app
         annotations:
-          summary: "High p95 latency (>500ms) on sre-metrics-app"
-          description: "p95 response latency is {{ $value | humanizeDuration }} (threshold > 500ms) over the last 2 minutes."
+          summary: "High p95 latency (>500ms) on /store of sre-metrics-app"
+          description: "p95 latency of /store is {{ $value | humanizeDuration }} (threshold > 500ms) over the last 2 minutes."
           runbook_url: "https://github.com/jaffethalfarotorres/sre-final-project/blob/main/docs/runbooks/high-latency.md"
 
       - alert: SyntheticProbeFailing
@@ -36,6 +46,7 @@ groups:
         for: 2m
         labels:
           severity: critical
+          service: sre-metrics-app
         annotations:
           summary: "Synthetic check of sre-metrics-app is failing"
           description: "The blackbox exporter could not reach {{ $labels.instance }} successfully in the last 2 minutes."

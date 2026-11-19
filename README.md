@@ -9,21 +9,51 @@
 
 **In plain words:** this project runs a small pretend online shop on your laptop, measures how healthy it is, shows the measurements as live charts, raises an alarm in Slack or email when something goes wrong, and lets you practise what Site Reliability Engineers do next: investigate, roll back, automate the fix and learn from the incident, now including AI assistants that help without being allowed to break anything.
 
-It started as my SRE Academy 2026 final project and grew into a **complete, reusable lab**. It covers every topic and exercise of the 2026 course on one working stack, adds the topics a 2027 class needs (AI-assisted operations with Claude Code and IBM Bob, MCP safety, supply chain security, policy as code, canary releases, DORA metrics, LLM observability), and comes with a lab guide that professors can teach from.
+It started as my SRE Academy 2026 final project and grew into a **complete, reusable lab**. It covers every topic and exercise of the 2026 course on one working stack, adds the topics a 2027 class needs (AI-assisted operations with IBM Bob, Claude Code optional, MCP safety, supply chain security, policy as code, canary releases, DORA metrics, LLM observability), and comes with a lab guide that professors can teach from.
 
 ## Start here: let IBM Bob guide you
 
-Built for **non-technical students**. Paste one message into [IBM Bob](https://bob.ibm.com) and Bob installs the tools, sets up the lab on your laptop and then guides you through **26 missions**, explaining every idea in plain words. You learn SRE, the tools and how to work with an AI partner at the same time, earn **XP, levels and badges**, and finish with a **verified SRE Lab Passport** you can share.
+Built for **non-technical students**. Paste one message into [IBM Bob](https://bob.ibm.com) and Bob installs the tools, sets up the lab on your laptop and then guides you through the missions, explaining every idea in plain words. You learn SRE, the tools and how to work with an AI partner at the same time, earn **XP, levels and badges**, and finish with a **self-generated SRE Lab Passport** that your professor confirms in a short live check-off.
 
 **→ [Start the lab with IBM Bob](docs/BOB-QUICKSTART.md)** (about 2 hours of setup, then one mission at a time)
 
 | You are... | Start with |
 | --- | --- |
 | A student with IBM Bob | [BOB-QUICKSTART.md](docs/BOB-QUICKSTART.md): open the folder in Bob, choose the **SRE Lab Guide** mode, type `/start-lab` |
-| A student without Bob | The [step-by-step guide for Mac and Windows](docs/GUIDE.md), then `python3 scripts/lab.py status` (or `/lab` in Claude Code) |
-| A professor | The [lab guide](docs/labs/README.md) (objectives, timing, answers, instructor notes) and the [course map](docs/COURSE-MAP.md) |
+| A student without Bob | The [step-by-step guide for Mac and Windows](docs/GUIDE.md), then `python3 scripts/lab.py status` (Windows: `python scripts\lab.py status`; or `/lab` in Claude Code) |
+| A professor | The [lab guide](docs/labs/README.md) (objectives, timing, instructor notes, assessment), the [course map](docs/COURSE-MAP.md) and the [instructor notes on answer keys](docs/instructor/README.md) |
 
-Every mission is checked on the student's own cluster by [`scripts/lab.py`](scripts/lab.py): nothing is self-reported.
+A mission counts only when [`scripts/lab.py`](scripts/lab.py) finds the evidence on the student's own cluster or fork; the professor confirms it live with `lab.py verify`. Quizzes are for learning and never count toward a grade.
+
+### The journey: Road to Junior SRE
+
+The lab is one journey, built for IBMers from non-technical teams who want to move into technical roles such as junior SRE, DevOps, cloud or operations. The student's first assignment as an apprentice is **Nimbus Store** (the demo app), a small online shop that went down for an hour last week and nobody noticed. With **Bob, the student's AI pair** (fast and helpful, never allowed to change anything without the student's OK), the student climbs camp by camp from **Career Changer** to the summit **On-Call Ready**: the day a team trusts them with the pager. Each camp gives Nimbus a real capability, teaches one SRE principle, lists skills the student can name on a CV and adds one interview question to rehearse with Bob (`lab.py cv`, Bob: `/my-cv` and `/interview`). The lab gives hands-on evidence for junior roles; it does not claim to make anyone a senior engineer.
+
+| Camp | SRE principle |
+| --- | --- |
+| 0. Orientation Day | Humans stay in control: automation and AI propose, people approve |
+| 1. The Engine Room | Reliability starts with small, safe, repeatable changes |
+| 2. The Watchtower | Monitor what users feel, and alert only when a human must act |
+| 3. The War Room | Embrace risk with SLOs and error budgets; learn from incidents without blame |
+| 4. The Detective Agency | Observability: explain any failure from evidence, not guesses |
+| 5. The Robot Workshop | Eliminate toil: automate repetitive work and keep infrastructure in code |
+| 6. The Proving Grounds | Release engineering: gradual, reversible changes, tested by breaking things on purpose |
+| 7. The AI Command Center | Trust, but verify: AI helps on call only with least privilege and human judgement |
+
+Ranks by XP: Career Changer (0) → Tech Apprentice (500) → SRE Intern (1300) → Junior SRE Candidate (2300) → Interview-Ready Junior SRE (3300). The missions are B00 (orientation, with the "Stay in control" safety rules), core missions M00-M23 including **M09b** (work in your own fork), six optional add-ons, and the capstone game day **M27**.
+
+**Portfolio projects** (optional, open to everyone, pieces to show in interviews):
+
+| Project | What the student builds | Badge |
+| --- | --- | --- |
+| **P-DASH** | Their own Grafana dashboard | Dashboard Builder |
+| **P-ENV** | A second `dev` environment with a Terraform workspace | Environment Builder |
+| **P-RUNBOOK** | A new runbook linked from an alert's `runbook_url` | Runbook Author |
+| **P-POLICY** | A new Kyverno ClusterPolicy | Guardrail Author |
+
+**Badges** are earned along the way, for example *Paired with AI* (B00), *Hello, Cluster* (M00), *First Page* (M05), *Budget Keeper* (M06), *Storyteller* (M09), *Rollback Hero* (M14), *AI Wrangler* (M17), *Injection Proof* (M18) and *Game Day Captain* (M27), plus one per add-on and portfolio project. `lab.py play` (Bob: `/mission-control`) opens Mission Control, the visual dashboard of the climb, with "Your CV so far" and "Interview practice" panels.
+
+Professors get a class summary with `python3 scripts/cohort_report.py <folder of the students' lab-proof/evidence.json files>` (Windows: `python scripts\cohort_report.py ...`): how many students reached On-Call Ready, the missions most students skipped (topics to reteach) and a fingerprint check of each file. The passport is a self-generated record, not a certificate; its fingerprint is not a signature, so confirm a sample with `lab.py verify` or a short live demo.
 
 ## What you get
 
@@ -42,7 +72,7 @@ flowchart LR
     GRAF --> AM
     AM --> SLACK[Slack / email]
     AM -->|critical| AWX[AWX runbook:<br/>collect diagnostics]
-    AI[Claude Code / IBM Bob] -->|read-only MCP| MCP[Grafana MCP server] --> GRAF
+    AI[IBM Bob / Claude Code] -->|read-only MCP| MCP[Grafana MCP server] --> GRAF
 ```
 
 | Area | What is in the repository |
@@ -53,7 +83,7 @@ flowchart LR
 | **Automation** | Ansible playbooks and AWX, Terraform, Helm, Kustomize |
 | **Delivery** | GitHub Actions CI/CD, ArgoCD GitOps, rolling updates and rollback, Argo Rollouts canary gated by the SLO |
 | **Resilience and guardrails** | LitmusChaos experiments, Kyverno policies, SBOM, image scanning and signing |
-| **AI-assisted SRE** | Shared [`AGENTS.md`](AGENTS.md) for Claude Code and IBM Bob, read-only MCP access, guard hooks, injection drill ([`docs/AI-SRE.md`](docs/AI-SRE.md)) |
+| **AI-assisted SRE** | Shared [`AGENTS.md`](AGENTS.md) for IBM Bob and Claude Code, read-only MCP access, guard hooks, injection drill ([`docs/AI-SRE.md`](docs/AI-SRE.md)) |
 
 ## Quick start
 
@@ -67,7 +97,7 @@ cd sre-final-project
 ./scripts/trigger-alert.sh   # in another window: makes a real alert fire in about 2.5 minutes
 ```
 
-No accounts or credentials are needed. Using Docker Desktop with PowerShell on Windows? Every script also exists as `scripts\*.ps1` (run them with `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\deploy.ps1`).
+No accounts or credentials are needed. **On Windows with IBM Bob, use PowerShell and skip WSL:** every script also exists as `scripts\*.ps1` (for example `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\deploy.ps1`), and you type `python`, never `python3`. The tunnels can run in the background: `scripts\dashboards.ps1 -Background` (Mac/Linux: `./scripts/dashboards.sh --background`), stopped with `-Stop` / `--stop`.
 
 ## The lab path
 
@@ -77,14 +107,14 @@ No accounts or credentials are needed. Using Docker Desktop with PowerShell on W
 | [2. Metrics, dashboards and alerts](docs/labs/02-metrics-dashboards-alerts.md) | Prometheus, Grafana, Alertmanager, Grafana alerting, golden signals | Ex 5-7, 11, 12 |
 | [3. SLOs and incidents](docs/labs/03-slos-and-incidents.md) | SLOs and error budgets, synthetic checks, incident response, ORR, GitHub | Topics 0-6 |
 | [4. Logs, traces and LLM observability](docs/labs/04-logs-traces-llm.md) | OpenTelemetry, Jaeger, Loki, GenAI telemetry | Ex 8-10 + new |
-| [5. Automation, IaC and CI/CD](docs/labs/05-automation-iac-cicd.md) | Ansible, AWX, Terraform, Helm, GitHub Actions, DORA, supply chain | Ex 4.1, 13-16 + new |
+| [5. Automation, IaC and CI/CD](docs/labs/05-automation-iac-cicd.md) | Forking the repo (M09b), Ansible, AWX, Terraform, Helm, GitHub Actions, DORA, supply chain | Ex 4.1, 13-16 + new |
 | [6. GitOps, resilience and guardrails](docs/labs/06-delivery-resilience-policy.md) | ArgoCD, rollbacks, chaos, Kyverno, canary | Ex 17-19 + new |
-| [7. AI-assisted SRE](docs/labs/07-ai-assisted-sre.md) | Claude Code and IBM Bob, MCP safety, injection drill, game day | New in 2027 |
+| [7. AI-assisted SRE](docs/labs/07-ai-assisted-sre.md) | IBM Bob (Claude Code optional), MCP safety, injection drill, game day | New in 2027 |
 
 Every 2026 topic and exercise, and the roadmap.sh DevOps areas, are mapped to files in the [course map](docs/COURSE-MAP.md).
 
 ## Optional add-ons (one at a time)
-The core stack uses about 3.5 GB. `./scripts/deploy.sh` creates a 4 GB Minikube, which is enough for the core stack only. For the add-ons (16 GB laptop), first create a 6 GB cluster with `minikube start --driver=docker --memory=6144` (run `minikube delete` first if a cluster already exists, because `minikube start` cannot change the memory of an existing cluster; on a Mac, run `colima stop && colima start --cpu 4 --memory 8` first), then run `./scripts/deploy.sh`. Run one add-on, then remove it before the next. On an 8 GB laptop, stay with the core stack.
+The core stack uses about 3.5 GB. `./scripts/deploy.sh` creates a 4 GB Minikube, which is enough for the core stack only. For the add-ons (16 GB laptop), first create a 6 GB cluster with `minikube start --driver=docker --memory=6144` (run `minikube delete` first if a cluster already exists, because `minikube start` cannot change the memory of an existing cluster; on a Mac, run `colima stop && colima start --cpu 4 --memory 8` first), then run `./scripts/deploy.sh`. Run one add-on, then remove it before the next. On an 8 GB laptop, stay with the core stack. The commands below are for Mac/Linux; on Windows type `python scripts\<name>.py` instead of `python3 scripts/<name>.py`.
 
 | Add-on | Command | Extra memory | What it proves (verified) |
 | --- | --- | --- | --- |

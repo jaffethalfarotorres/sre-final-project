@@ -45,3 +45,4 @@ CLAUDE.local.md
 
 # Lab game progress (per student; the shareable proof is lab-proof/)
 .lab/
+terraform/terraform.tfstate.d/

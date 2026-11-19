@@ -82,11 +82,11 @@ def main():
 
     print("Deploying the stable version (4 pods) with steady traffic...")
     kubectl("apply", "-f", str(ROOT / "progressive" / "rollout.yaml"))
-    set_env("1.0.0", "0.05")
+    set_env("1.0.0", "0.005")
     wait_for({"Healthy"})
 
-    print("\n1) Releasing a GOOD version 1.1.0 (same 5% background error rate)...")
-    set_env("1.1.0", "0.05")
+    print("\n1) Releasing a GOOD version 1.1.0 (same 0.5% background error rate)...")
+    set_env("1.1.0", "0.005")
     good = wait_for({"Healthy", "Degraded"})
     print(f"   Result: {good}. {last_analysis()}")
 
@@ -97,7 +97,7 @@ def main():
     print(f"   Result: {bad}, aborted={status.get('abort', False)}. {last_analysis()}")
 
     print("\n3) Restoring the stable spec (1.1.0) so the Rollout is Healthy again...")
-    set_env("1.1.0", "0.05")
+    set_env("1.1.0", "0.005")
     wait_for({"Healthy"})
 
     ok = good == "Healthy" and bad == "Degraded" and status.get("abort")

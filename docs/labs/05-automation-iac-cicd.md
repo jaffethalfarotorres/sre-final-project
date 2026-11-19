@@ -2,10 +2,13 @@
 
 This part turns manual work into code. You automate the first minutes of an incident with Ansible and AWX, describe environments with Terraform and Helm, and let GitHub Actions test, build, sign and release every change. Then you measure how well that delivery works (DORA) and prove where your images come from (supply chain security).
 
+> **Road to Junior SRE, camp 5: The Robot Workshop.** Nimbus Store is rebuilt from code, tested on every change, and diagnoses itself. **SRE principle:** eliminate toil: automate repetitive work and keep infrastructure in code. **Skills for your CV:** automation with Ansible, infrastructure as code with Terraform, CI/CD with GitHub Actions, DORA delivery metrics.
+
 | Module | Title | Course mapping |
 | --- | --- | --- |
 | [M10](#m10-runbook-automation-with-ansible-and-awx) | Runbook automation with Ansible and AWX | ex4.1, ex13, topic6 |
 | [M11](#m11-infrastructure-as-code-with-terraform-and-helm) | Infrastructure as code with Terraform and Helm | ex14, ex15 |
+| [M09b](03-slos-and-incidents.md#m09b-github-issues-pull-requests-and-projects-for-sre-work) | Join the guild (fork the repo): core mission, do it before M12; the steps are in Part 3 | topic4 |
 | [M12](#m12-cicd-with-github-actions) | CI/CD with GitHub Actions | ex3, ex16, topic4 |
 | [M16](#m16-dora-metrics) | DORA metrics | New in 2027 |
 | [M19](#m19-software-supply-chain-security) | Software supply chain security | New in 2027 |
@@ -223,7 +226,7 @@ Infrastructure as code (IaC) means the environment is described in files, review
    terraform workspace select default
    terraform workspace delete dev
    ```
-   What you should see: a new namespace `sre-metrics-app-dev` with 2 pods, then `Destroy complete! Resources: 4 destroyed.`
+   What you should see: a new namespace `sre-metrics-app-dev` with 2 pods, then `Destroy complete! Resources: 4 destroyed.` Doing the optional portfolio project [P-ENV](#portfolio-project-p-env-a-second-environment-from-code)? Run its check right after `terraform apply`, before you destroy and delete the `dev` workspace.
 
 7. Destroy staging and go back to the project folder.
    ```bash
@@ -609,3 +612,33 @@ Everything is tied to the image **digest** (`sha256:...`), not a tag, because ta
 **Clean up**
 
 Nothing runs in the cluster. Optional: `unset OWNER DIGEST IMAGE`.
+
+---
+
+### Portfolio project P-ENV: a second environment from code
+
+Optional and open to everyone. It is worth 250 XP. Real teams try a change in a `dev` environment before it reaches users. Here you build one from the same Terraform code, which is a strong example of infrastructure as code for an interview.
+
+**What you build:** a separate `dev` environment, using a Terraform workspace.
+
+1. Do M11 steps 1-3 first, so Terraform is initialized in `terraform/`.
+2. Create the workspace and apply:
+   ```bash
+   cd terraform
+   terraform workspace new dev
+   terraform apply
+   kubectl get pods -n sre-metrics-app-dev
+   cd ..
+   ```
+   What you should see: type `yes`, then `Apply complete!`, and 2 pods in the namespace `sre-metrics-app-dev`.
+3. Check it from the project folder while the workspace still exists (Windows: `python scripts\lab.py check P-ENV`):
+   ```bash
+   python3 scripts/lab.py check P-ENV
+   ```
+   What you should see: "dev workspace state serial ...".
+4. Optional, to go further: explain to Bob, in your own words, how the namespace name comes from the workspace name in `terraform/main.tf`, and what would change for a third workspace called `qa`.
+5. Clean up as in M11 step 6 (`terraform destroy`, `terraform workspace select default`, `terraform workspace delete dev`). The mission stays recorded.
+
+**For the interview:** be ready to explain why the same code can create two environments, and why the state file is never committed.
+
+> **Interview corner: The Robot Workshop.** A question you can expect: *"Why should infrastructure be written as code?"* Answer with what you did here: Terraform created Nimbus Store from `.tf` files and found the drift when you scaled the deployment by hand (M11), the GitHub Actions pipeline in your own fork tested and built every change (M09b, M12), and you measured delivery with DORA metrics (M16). In plain words: code can be reviewed, repeated and rolled back; clicks in a console cannot. Rehearse it with Bob: type `/interview`.

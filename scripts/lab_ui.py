@@ -67,6 +67,12 @@ color:var(--muted)}
 background:var(--panel);font-size:13px}.badge svg{width:18px;height:18px;fill:var(--gold);stroke:none}
 .badge.off{opacity:.45}.badge.off svg{fill:var(--lock)}
 footer{margin-top:34px;color:var(--muted);font-size:13px}
+.principle{margin:4px 0 0;font-size:13px;color:var(--accent2)}
+.cv{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0 0 26px}
+.cv section{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 18px}
+.cv h3{margin:0 0 8px;font-size:16px}.cv ul{margin:0;padding-left:18px}.cv li{margin:3px 0}
+.cv .none{color:var(--muted)}
+@media (max-width:640px){.cv{grid-template-columns:1fr}}
 @media (max-width:640px){.next{grid-template-columns:1fr}.level{min-width:0;max-width:none}}
 """
 
@@ -105,7 +111,8 @@ def mountain(zones, cleared):
         if state == "cleared":
             parts.append(f'<path d="M{x} {y - 11}v-26l18 7-18 7" class="flag"/>')
         label_y = y + 30 if i % 2 == 0 else y + 48  # two depths below the trail: no collisions, flags stay clear
-        parts.append(f'<text x="{x}" y="{label_y}" class="label">{html.escape(zone["name"].replace("The ", ""))}</text>')
+        short = html.escape(zone["name"].replace("The ", ""))  # short names keep the map readable
+        parts.append(f'<text x="{x}" y="{label_y}" class="label">{short}</text>')
     sx, sy = points[-1]
     parts.append(f'<path d="M{sx} {sy - 34}l7 14 15 2-11 10 3 15-14-7-14 7 3-15-11-10 15-2z" '
                  f'class="summit{" reached" if current == n else ""}"/>')
@@ -159,6 +166,22 @@ def capabilities(zones, cleared, current_part):
     return f'<section class="caps"><h3>What Nimbus Store can do now</h3><ul>{"".join(rows)}</ul></section>'
 
 
+def career(catalog, progress, cleared):
+    """Your CV so far: skills of every cleared camp, plus interview questions to rehearse with Bob."""
+    zones = sorted(catalog.get("zones", []), key=lambda z: z["part"])
+    won = [z for z in zones if z["part"] in cleared]
+    skills = "".join(f"<li>{html.escape(skill)}</li>" for z in won for skill in z.get("skills", []))
+    ahead = next((z for z in zones if z["part"] not in cleared), None)
+    teaser = (f'<p class="sub">Next camp adds: {html.escape("; ".join(ahead.get("skills", [])))}</p>'
+              if ahead and ahead.get("skills") else "")
+    questions = "".join(f"<li>{html.escape(z['interview'])}</li>" for z in won if z.get("interview"))
+    return (f'<div class="cv"><section><h3>Your CV so far</h3>'
+            f'{"<ul>" + skills + "</ul>" if skills else "<p class=none>Clear Orientation Day first.</p>"}'
+            f'{teaser}</section><section><h3>Interview practice</h3>'
+            f'{"<ul>" + questions + "</ul>" if questions else "<p class=none>Questions appear as you clear camps.</p>"}'
+            f'<p class="sub">Type to Bob: <code>/interview</code> and Bob plays the interviewer.</p></section></div>')
+
+
 def render(catalog, progress, xp, level, following, next_mission, generated, cleared=()):
     done_ids = set(progress["missions"])
     zones = catalog.get("zones", [])
@@ -171,7 +194,8 @@ def render(catalog, progress, xp, level, following, next_mission, generated, cle
     if next_mission:
         n = next_mission
         next_html = (f'<section class="next"><div><div class="id">NEXT MISSION · {html.escape(n["id"])} · '
-                     f'+{n["xp"]} XP</div><h2>{html.escape(n["title"])}</h2><div>{html.escape(n["goal"])}</div></div>'
+                     f'+{n["xp"]} XP</div><h2>{html.escape(n["title"])}</h2>'
+                     f'<div>{html.escape(n["goal"])}</div></div>'
                      f'<div>Type to Bob: <code>/next-mission</code></div></section>')
     else:
         next_html = ('<section class="next"><div><h2>Every mission complete!</h2><div>Create your passport.</div></div>'
@@ -187,15 +211,20 @@ def render(catalog, progress, xp, level, following, next_mission, generated, cle
             unlocked = m["part"] <= (next_mission["part"] if next_mission else 99) or m["id"] in done_ids
             state = "done" if m["id"] in done_ids else ("next" if next_mission and m["id"] == next_mission["id"]
                                                         else ("open" if unlocked else "locked"))
-            tag = f'<span class="tag">add-on: {html.escape(m["needs"])}</span>' if m.get("needs") else ""
+            tag = f'<span class="tag">add-on: {html.escape(m["needs"])}</span>' if m["kind"] == "addon" else ""
+            if m["kind"] == "portfolio":
+                tag = '<span class="tag">portfolio project (optional)</span>'
             reward = f'<span class="tag">badge: {html.escape(m["achievement"])}</span>' if m.get("achievement") else ""
             cards.append(f'<article class="card {state}"><div class="id">{html.escape(m["id"])}</div>'
-                         f'<span class="xp">+{m["xp"]} XP</span><h4>{html.escape(m["title"])}</h4>'
+                         f'<span class="xp">+{m["xp"]} XP</span>'
+                         f'<h4>{html.escape(m["title"])}</h4>'
                          f'<p>{html.escape(m["goal"])}</p>{tag} {reward}</article>')
         count = sum(1 for m in zm if m["id"] in done_ids)
         zones_html.append(
-            f'<div class="zone">{_icon(zone["icon"])}<div><h3>Zone {zone["part"]}: {html.escape(zone["name"])}</h3>'
-            f'<p>{html.escape(zone["story"])}</p></div><span class="count">{count}/{len(zm)} done</span></div>'
+            f'<div class="zone">{_icon(zone["icon"])}<div><h3>Camp {zone["part"]}: {html.escape(zone["name"])}</h3>'
+            f'<p>{html.escape(zone["story"])}</p>'
+            f'<p class="principle">SRE principle: {html.escape(zone.get("principle", ""))}</p></div>'
+            f'<span class="count">{count}/{len(zm)} done</span></div>'
             f'<div class="grid">{"".join(cards)}</div>')
 
     badges = "".join(f'<span class="badge{"" if m["id"] in done_ids else " off"}">{_icon("star")}'
@@ -206,19 +235,23 @@ def render(catalog, progress, xp, level, following, next_mission, generated, cle
 <title>SRE Mission Control</title><style>{CSS}{MOUNTAIN_CSS}</style></head>
 <body><div class="wrap">
 <header><div><h1>SRE <span>Mission Control</span></h1>
-<p class="sub">SRE Academy lab · {len(done_ids)}/{len(missions)} missions · updated {html.escape(generated)}</p></div>
+<p class="sub">Road to Junior SRE · {sum(1 for m in missions if m["id"] in done_ids)}/{len(missions)} missions ·
+updated {html.escape(generated)}</p>
+</div>
 <div class="level" style="--pct:{pct}%"><div class="emblem"><div>L{climb_level}</div></div>
 <div style="flex:1"><strong>Level {climb_level}/{len(zones)}</strong> · {html.escape(level["name"])} · {xp} XP
 <div class="bar"><i style="width:{pct}%"></i></div><div class="sub">{to_next}</div></div></div></header>
-<section class="story">{_md_bold(catalog.get("story", ""))} Every zone you clear is a level: help Bob climb all the
+<section class="story">{_md_bold(catalog.get("story", ""))} Every camp you clear is a level: climb with Bob all the
 way to <strong>On-Call Ready</strong>.</section>
 {mountain(zones, set(cleared)) if zones else ""}
 {capabilities(zones, set(cleared), next((z["part"] for z in zones if z["part"] not in set(cleared)), None))
  if zones else ""}
 {next_html}
+{career(catalog, progress, set(cleared)) if zones else ""}
 {"".join(zones_html)}
 <h3 style="margin-top:30px">Achievements</h3><div class="badges">{badges}</div>
-<footer>Every mission is verified on your own cluster by <span class="cmd">scripts/lab.py check</span>.
+<footer>A mission is marked done only when <span class="cmd">scripts/lab.py check</span> finds the evidence on
+your own cluster or repository.
 Refresh this page after each mission (Bob does it for you).</footer>
 </div></body></html>
 """

@@ -129,6 +129,9 @@ jobs:
       - name: Check Prometheus rules and config
         run: |
           "$PROMTOOL" check rules k8s/config/prometheus/alerts.yml k8s/config/prometheus/slo.yml
+          # Unit tests: alerts stay silent on normal traffic and fire at the documented thresholds
+          # (for example the error budget page at a 14.4x burn rate).
+          "$PROMTOOL" test rules tests/rules/*.test.yml
           # --syntax-only skips the checks of referenced files (rule_files, the in-cluster service account
           # token and CA), which only exist inside the Prometheus pod.
           "$PROMTOOL" check config --syntax-only k8s/config/prometheus/prometheus.yml

@@ -23,7 +23,7 @@ def test_catalog_ids_are_unique_and_checks_exist(catalog):
     assert len(ids) == len(set(ids))
     for mission in catalog["missions"]:
         assert mission["check"].split(":")[0] in lab.CHECKS, mission["id"]
-        assert mission["kind"] in ("core", "addon", "capstone")
+        assert mission["kind"] in ("core", "addon", "capstone", "portfolio")
         assert os.path.exists(os.path.join(ROOT, mission["guide"])), mission["guide"]
 
 
@@ -35,7 +35,7 @@ def test_quiz_answers_are_hashed_not_plain(catalog):
 
 
 def test_levels_and_xp(catalog):
-    assert lab.level_of(catalog, 0)[0]["name"] == "SRE Intern"
+    assert lab.level_of(catalog, 0)[0]["name"] == "Career Changer"
     progress = {"missions": {"M00": {}, "M05": {}}, "quiz": {"M00:1": True}}
     assert lab.xp_of(catalog, progress) == 100 + 150 + catalog["quiz_xp"]
     top = max(level["xp"] for level in catalog["levels"])
@@ -68,3 +68,44 @@ def test_proof_writes_passport_badge_and_hash(tmp_path, monkeypatch):
     assert "Test Student" in passport and "M00" in passport
     assert (tmp_path / "proof" / "badge.svg").read_text(encoding="utf-8").startswith("<svg")
     assert len(json.loads((tmp_path / "proof" / "evidence.json").read_text())["sha256"]) == 64
+
+
+def test_one_journey_every_camp_teaches_a_principle(catalog):
+    assert "tracks" not in catalog
+    for zone in catalog["zones"]:
+        assert zone["principle"] and zone["skills"] and zone["interview"]
+    portfolio = [m for m in catalog["missions"] if m["kind"] == "portfolio"]
+    assert len(portfolio) == 4 and all(m["needs"] is None for m in portfolio)
+
+
+def test_quiz_attempts_are_limited(tmp_path, monkeypatch):
+    monkeypatch.setattr(lab, "PROGRESS", tmp_path / "progress.json")
+    args = type("Args", (), {"mission": "B00", "number": 1, "choice": "z"})()
+    assert lab.cmd_answer(args) == 1
+    assert lab.cmd_answer(args) == 1
+    args.choice = "b"  # the right answer is refused once the question is locked
+    assert lab.cmd_answer(args) == 1
+    progress = lab.load_progress()
+    assert not progress["quiz"] and lab.quiz_settled(lab.load_catalog(), progress, "B00:1")
+
+
+def test_second_try_gives_half_xp(tmp_path, monkeypatch):
+    monkeypatch.setattr(lab, "PROGRESS", tmp_path / "progress.json")
+    catalog = lab.load_catalog()
+    args = type("Args", (), {"mission": "B00", "number": 1, "choice": "a"})()
+    lab.cmd_answer(args)
+    args.choice = "b"
+    assert lab.cmd_answer(args) == 0
+    assert lab.xp_of(catalog, lab.load_progress()) == catalog["quiz_xp"] // 2
+
+
+def test_cohort_report_summarizes_the_class(tmp_path, monkeypatch):
+    import cohort_report
+    monkeypatch.setattr(lab, "PROGRESS", tmp_path / "progress.json")
+    monkeypatch.setattr(lab, "PROOF_DIR", tmp_path / "proof")
+    monkeypatch.setattr(lab, "_origin_repo", lambda: "student/sre-final-project")
+    lab.save_progress({"missions": {"M00": {"completed": "2027-01-10T10:00:00+00:00", "evidence": "ok"}},
+                       "quiz": {}})
+    lab.cmd_proof(type("Args", (), {"name": "Student A"})())
+    text = cohort_report.report(cohort_report.load(tmp_path / "proof"), lab.load_catalog())
+    assert "1 students" in text and "| ok |" in text

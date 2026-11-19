@@ -2,6 +2,8 @@
 
 In Part 2 you look inside the monitoring stack that `./scripts/deploy.sh` started. You learn how Prometheus finds and stores measurements, how Grafana dashboards and data sources are kept as code, and how an alert travels from a rule to Slack, email or an automation job. Every lab uses the same running stack, so there is nothing new to install.
 
+> **Road to Junior SRE, camp 2: The Watchtower.** Nimbus Store went down for an hour and nobody noticed. In this camp you give the shop eyes: metrics, dashboards and its first alarm. **SRE principle:** monitor what users feel, and alert only when a human must act. **Skills for your CV:** Prometheus metrics and PromQL, Grafana dashboards as code, alerting with Alertmanager.
+
 | Module | Topic | Time |
 | --- | --- | --- |
 | [M03](#m03-prometheus-and-promql) | Prometheus and PromQL | 75 min |
@@ -14,11 +16,13 @@ In Part 2 you look inside the monitoring stack that `./scripts/deploy.sh` starte
 kubectl get pods -A
 ```
 
-Open the tunnels in a second window and keep it open (Grafana 3000, Prometheus 9090, Alertmanager 9093, app 5000, Jaeger 16686):
+Open the tunnels (Grafana 3000, Prometheus 9090, Alertmanager 9093, app 5000, Jaeger 16686). They run in the background and give the window back to you:
 
 ```bash
-./scripts/dashboards.sh
+./scripts/dashboards.sh --background
 ```
+
+On Windows PowerShell (and from IBM Bob) the same step is `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\dashboards.ps1 -Background`. Close the tunnels later with `--stop` (Windows: `-Stop`).
 
 All commands are the same in Terminal (Mac) and the Ubuntu window (Windows). If you use Docker Desktop with PowerShell instead, the same scripts exist as `scripts\*.ps1` (for example `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\trigger-alert.ps1`). Setup help: [GUIDE.md](../GUIDE.md).
 
@@ -70,9 +74,9 @@ Why it matters: every dashboard and alert in M04 and M05 is just a PromQL query.
 
 4. Error ratio. This is the exact expression behind the `HighErrorRate` alert in [alerts.yml](../../k8s/config/prometheus/alerts.yml):
    ```promql
-   sum(rate(http_requests_total{namespace="application", status=~"5.."}[2m])) / sum(rate(http_requests_total{namespace="application"}[2m]))
+   sum(rate(http_requests_total{namespace="application", status=~"5.."}[5m])) / sum(rate(http_requests_total{namespace="application"}[5m]))
    ```
-   What you should see: a value around `0.02` to `0.03`. The app fails about 5% of `/store` calls on purpose, but the ratio divides by all requests, and the health-check probes on `/` never fail. So the normal ratio stays well below the 5% alert threshold. During the M05 drill it jumps to about 0.8.
+   What you should see: a value around `0.002` (0.2%), sometimes `0` for a while. The app fails about 0.5% of `/store` calls on purpose (1 in 200), but the ratio divides by all requests, and the health-check probes on `/` never fail. So the normal ratio stays far below the 5% alert threshold. During the M05 drill it jumps to about 0.75. The real alert adds one more condition: `and sum(rate(http_requests_total{namespace="application"}[5m])) > 0.2`, a traffic floor, so 1 failure out of 3 requests on a quiet service does not page anyone.
 
 5. p95 latency of `/store`:
    ```promql
@@ -116,14 +120,14 @@ Why it matters: every dashboard and alert in M04 and M05 is just a PromQL query.
 | Symptom | Fix |
 | --- | --- |
 | Browser says "This site can't be reached" on localhost:9090 | The tunnel window was closed. Run `./scripts/dashboards.sh` again and keep it open. |
-| `curl` right after starting the tunnels returns nothing | The tunnel is not ready yet (course Pattern S). Wait a few seconds and run it again. |
+| `curl` right after starting the tunnels returns nothing | The tunnel is not ready yet: a port-forward needs a few seconds to connect. Wait a few seconds and run it again. |
 | A query returns "Empty query result" | Check the label spelling (`endpoint="/store"`, `namespace="application"`). Try the metric name alone first, then add labels. |
 | `kubernetes-cadvisor` target is down with 403 | The RBAC in `k8s/rbac.yaml` is missing. Run `kubectl apply -k k8s`. |
-| You edited `prometheus.yml` and nothing changed | Run `kubectl apply -k k8s`. Kustomize adds a hash to the ConfigMap name, so Prometheus restarts with the new file. Editing the ConfigMap by hand does not reload it (course Pattern C). |
+| You edited `prometheus.yml` and nothing changed | Run `kubectl apply -k k8s`. Kustomize adds a hash to the ConfigMap name, so Prometheus restarts with the new file. Editing the ConfigMap by hand does not reload it. |
 
 **Instructor notes**
 
-- Demo live: step 3 and step 4 side by side, then explain why `[2m]` is used in the alert and `[1m]` on the dashboard (smoother versus faster).
+- Demo live: step 3 and step 4 side by side, then explain why `[5m]` is used in the alert and `[1m]` on the dashboard (smoother and fewer false pages versus faster).
 - Show `/metrics` raw text before any PromQL. Students understand `rate()` much faster after seeing a counter that only grows.
 - Common confusion: `histogram_quantile` needs `sum by (le)`. Ask students to remove `by (le)` and see the query fail.
 - Grading idea: give three questions in plain English ("p99 of all endpoints", "error requests per minute", "memory of the monitoring namespace") and check the PromQL.
@@ -159,7 +163,7 @@ If you build a dashboard by clicking, it lives only inside that one Grafana. Whe
 
 **Lab steps**
 
-1. Log in. The password is printed by `./scripts/dashboards.sh`. You can also read it again:
+1. Log in. `dashboards.sh` (or `dashboards.ps1`) copies the Grafana password to your clipboard, so it never ends up in a chat with Bob. If the clipboard is empty, read it yourself in your own terminal (do not paste it into Bob):
    ```bash
    grep admin-password k8s/grafana-secret.yaml
    ```
@@ -262,7 +266,7 @@ The routing tree in `alertmanager.yaml` checks routes from top to bottom. The fi
 | `severity = "demo"` | `demo-receiver` (Slack) | Only `AlwaysFiringDemoAlert`. Repeats every 12 h. |
 | `severity = "critical"` | `awx-collect-diagnostics` (webhook) | `continue: true`, so the next route also runs. Launches the read-only AWX `collect-diagnostics` job (exercise 13 add-on). Without AWX the webhook just fails and is logged. |
 | `severity = "critical"` | `critical-notifications` (Slack + email) | `ServiceDown`, `HighErrorRate`, `SyntheticProbeFailing`, `ErrorBudgetFastBurn`. `group_wait: 10s`. |
-| `severity = "warning"` | `warning-notifications` (Slack + email) | `HighLatency`, `ErrorBudgetSlowBurn` and the Grafana rules. |
+| `severity = "warning"` | `warning-notifications` (Slack + email) | `HighLatency`, `ErrorBudgetSlowBurn`, `ErrorBudgetTicket` and the Grafana rules. |
 | anything else | `default-notifications` (Slack) | The top-level `receiver`. |
 
 Secrets are never in this file. Slack and SMTP settings use `api_url_file` and `smtp_auth_password_file`, which read files mounted from the Secret `alertmanager-secret` (made from [alertmanager-secret.example.yaml](../../k8s/alertmanager-secret.example.yaml); the real file is gitignored). Alertmanager does not expand environment variables, which is why files are used.
@@ -295,15 +299,15 @@ Both carry `severity: warning` and `source: grafana`, so they follow the warning
 4. Check the Grafana rules. In Grafana open **Alerting > Alert rules**, folder **SRE Demo**, group **golden-signals**.
    What you should see: `StoreLatencyFromTraces` and `ErrorLogBurst`, both **Normal** and marked as provisioned. Under **Alerting > Contact points** there is `alertmanager`.
 
-5. Run the alert drill. It starts the `errload` pod from [errload-pod.yaml](../../k8s/drills/errload-pod.yaml) (about 1,000 calls to `/error`) and waits for the alert:
+5. Run the alert drill. It starts the `errload` pod from [errload-pod.yaml](../../k8s/drills/errload-pod.yaml) (3,000 calls to `/error`, about 12-14 minutes) and waits for the alert:
    ```bash
    ./scripts/trigger-alert.sh
    ```
-   What you should see: a line such as `HighErrorRate is FIRING after about 140 seconds.` (140-150 s was measured on this project). Write down the time; you need it for the self-check.
+   What you should see: a line such as `HighErrorRate is FIRING after about 180 seconds.` (expect 150-200 s). Write down the time; you need it for the self-check. The script then reminds you that the error budget page comes later.
 
-6. Watch the other alerts arrive. Refresh Alertmanager (<http://localhost:9093>) for 2-3 more minutes.
+6. Watch the other alerts arrive. Refresh Alertmanager (<http://localhost:9093>) for 5-8 more minutes.
    What you should see:
-   - `ErrorBudgetFastBurn` (critical). Its description shows a 5-minute burn rate of about 7x (7.3x was measured). See [SLO.md](../SLO.md) for why.
+   - `ErrorBudgetFastBurn` (critical), about 6-10 minutes after the start. It waits until the 1-hour burn rate is above 14.4x (14.4% of the last hour's requests failed, with a 99% SLO). Its description shows the 1-hour burn rate, typically 20-35x. See [SLO.md](../SLO.md) for the arithmetic.
    - `ErrorLogBurst` with label `source="grafana"`. This proves the Grafana rule reached Alertmanager.
    - In Grafana, the **Error ratio** panel on Golden Signals and the **Error budget burn rate** panel on SLO and Error Budget both jump.
 
@@ -321,16 +325,16 @@ Both carry `severity: warning` and `source: grafana`, so they follow the warning
    ```
    What you should see: a `[FIRING] CRITICAL HighErrorRate` message in Slack and in the inbox within about 3 minutes, and a `[RESOLVED]` message some minutes after the drill ends.
 
-9. Watch the alerts resolve. The `errload` pod stops by itself after about 4 minutes. Check it:
+9. Watch the alerts resolve. The `errload` pod stops by itself after about 12-14 minutes. Check it:
    ```bash
    kubectl get pod errload -n application
    ```
-   What you should see: `Completed`. Over the next few minutes the alerts resolve. `HighErrorRate` goes first (2-minute window). `ErrorBudgetFastBurn` goes next: it needs the 5-minute burn rate above 6x **and** the 1-hour rate above 1x, so it ends once the 5-minute rate drops. `ErrorLogBurst` goes last, because its Loki query counts ERROR lines over 5 minutes.
+   What you should see: `Completed`. Over the next few minutes the alerts resolve. `HighErrorRate` and `ErrorBudgetFastBurn` both use a 5-minute window: the fast burn needs the 1-hour **and** the 5-minute burn rate above 14.4x, so it ends once the 5-minute rate drops. `ErrorLogBurst` also counts ERROR lines over 5 minutes. On a young cluster, `ErrorBudgetSlowBurn` (warning) can appear later and clear by itself: its 6-hour window still remembers the drill.
 
 **Self-check**
 
 1. An alert has `severity="critical"`. Which receivers get it, and why more than one?
-2. `HighErrorRate` has `for: 2m` and uses a `[2m]` window. Why did it take about 140-150 s to fire and not exactly 120 s?
+2. `HighErrorRate` has `for: 2m` and uses a `[5m]` window. Why did it take about 150-200 s to fire and not exactly 120 s?
 3. Why does `ErrorLogBurst` live in Grafana and not in [alerts.yml](../../k8s/config/prometheus/alerts.yml)?
 4. Where is the Slack webhook URL stored, and why is it not in `alertmanager.yaml`?
 5. You change `alertmanager.yaml`, run `kubectl apply -k k8s`, and the old routing is still used. Why?
@@ -338,7 +342,7 @@ Both carry `severity: warning` and `source: grafana`, so they follow the warning
 <details><summary>Answers (instructors)</summary>
 
 1. `awx-collect-diagnostics` and `critical-notifications`. The first critical route has `continue: true`, so matching continues to the next critical route. Automation collects diagnostics while humans are notified.
-2. The error ratio must first rise above 5% (the 2-minute rate window needs time to fill with errors), then stay above for 2 minutes. Add the 10 s scrape and evaluation interval and the script's 10 s polling.
+2. The error ratio must first rise above 5% (the 5-minute rate window needs some errors in it, and at least two scrapes), then stay above for 2 minutes. Add the 10 s scrape and evaluation interval and the script's 10 s polling.
 3. Prometheus cannot query Loki logs. Grafana can run LogQL and forward the result to the same Alertmanager, so routing stays in one place.
 4. In the Secret `alertmanager-secret` (from the gitignored `k8s/alertmanager-secret.yaml`), mounted as a file under `/etc/alertmanager-secrets/` and read with `api_url_file`. The repo is public; a webhook URL is a password.
 5. `alertmanager-config` is a plain ConfigMap in `alertmanager.yaml`, not one generated by Kustomize with a hash, so the pod is not replaced. Run `kubectl rollout restart deployment/alertmanager -n monitoring`.
@@ -349,16 +353,16 @@ Both carry `severity: warning` and `source: grafana`, so they follow the warning
 
 | Symptom | Fix |
 | --- | --- |
-| `The alert has not fired yet` after 6 minutes | Check `kubectl get pods -A`. The app or Prometheus may not be `Running`. Delete the old drill pod with `kubectl delete pod errload -n application` and run `./scripts/trigger-alert.sh` again. |
+| `HighErrorRate has not fired after 8 minutes` | Check `kubectl get pods -A`. The app or Prometheus may not be `Running`. Delete the old drill pod with `kubectl delete pod errload -n application` and run `./scripts/trigger-alert.sh` again. |
 | Alertmanager pod stuck in `ContainerCreating` | The Secret `alertmanager-secret` is missing. Run `./scripts/deploy.sh` (it creates it from the example) or `kubectl apply -f k8s/alertmanager-secret.yaml`. |
 | No Slack or email message | `kubectl logs deployment/alertmanager -n monitoring --tail=30`. `no_team` or `invalid_token` means a wrong Slack URL. `535` means a wrong email address or app password. Fix the file and repeat GUIDE step 6e. |
-| Changed `alertmanager.yaml` but nothing happened | `kubectl rollout restart deployment/alertmanager -n monitoring` (course Pattern C). |
-| Grafana pod crash-loops after editing `alerting.yaml` | Read the error with `kubectl logs deployment/grafana -n monitoring --previous \| grep -i error`. (A local YAML check needs PyYAML first: `python3 -m pip install --user pyyaml`, or a venv on Homebrew Python.) The `receiver` under `policies:` must be the name of a contact point defined under `contactPoints` (here `alertmanager`) (course Pattern D). |
+| Changed `alertmanager.yaml` but nothing happened | `kubectl rollout restart deployment/alertmanager -n monitoring`. The ConfigMap changed, but the running pod only reads it at start. |
+| Grafana pod crash-loops after editing `alerting.yaml` | Read the error with `kubectl logs deployment/grafana -n monitoring --previous \| grep -i error`. (A local YAML check needs PyYAML first: `python3 -m pip install --user pyyaml`, or a venv on Homebrew Python.) The `receiver` under `policies:` must be the name of a contact point defined under `contactPoints` (here `alertmanager`). |
 | `awx-collect-diagnostics` errors in the logs | Expected without AWX. The webhook fails and Alertmanager logs it; human notifications still go out. |
 
 **Instructor notes**
 
-- Timing: start `./scripts/trigger-alert.sh` before explaining the routing table. The 2-3 minute wait is your teaching time.
+- Timing: start `./scripts/trigger-alert.sh` before explaining the routing table. The 3-minute wait for `HighErrorRate` and the 6-10 minutes for the budget page are your teaching time.
 - Demo live: `amtool config routes test` with a few label sets. Then ask the class to predict the receiver before you press Enter.
 - Discuss why remediation (restart) is never in the routing tree: the AWX route only collects diagnostics; a person launches `restart-app`. Link this to topic6 (incident management).
 - Do not ask every student to set up Gmail in class. One shared Slack channel and one instructor webhook is enough; email can be homework.
@@ -378,3 +382,26 @@ If you put real addresses in `k8s/alertmanager.yaml`, do not commit them (the re
 ```bash
 git checkout -- k8s/alertmanager.yaml
 ```
+
+---
+
+### Portfolio project P-DASH: your own dashboard
+
+Optional and open to everyone. It is worth 250 XP and gives you a screenshot for your portfolio. In `lab.py` it is listed with camp 4, The Detective Agency, but you can do it any time after M04.
+
+**What you build:** a fifth Grafana dashboard that you design yourself, kept as code like the other four.
+
+1. Pick one question a team would ask about Nimbus Store, for example "Are customers able to buy right now?". Write it down in one sentence. That sentence is your dashboard's title.
+2. Copy one of the existing dashboards as a starting point, for example `k8s/config/grafana/dashboards/golden-signals.json`, and save it under a new name such as `k8s/config/grafana/dashboards/nimbus-checkout.json`. Give it a new `title` and a new `uid` inside the file.
+3. Change the panels so they answer your question. Two to four panels are enough. Ask Bob to explain any PromQL you do not understand.
+4. Add the new file to the `grafana-dashboards` list in `k8s/kustomization.yaml`, next to the four existing ones, with the same indentation.
+5. Deploy it and check it (Windows: `python scripts\lab.py check P-DASH`):
+   ```bash
+   kubectl apply -k k8s && kubectl rollout status deployment/grafana -n monitoring
+   python3 scripts/lab.py check P-DASH
+   ```
+   What you should see: your dashboard in Grafana, and the check says "your own dashboard(s) in Grafana". If the browser shows "connection refused", restart the dashboard tunnels (see the M04 common problems).
+
+**For the interview:** take a screenshot and be ready to explain, in two sentences, what question the dashboard answers and why you chose those panels.
+
+> **Interview corner: The Watchtower.** A question you can expect: *"How would you know a service is unhealthy before customers call?"* Answer with what you did here: Prometheus scrapes the app's metrics (M03), the dashboards show traffic, errors and latency (M04), and the `HighErrorRate` alert fired and reached Alertmanager during the drill, so a human was told before a customer complained (M05). Mention that the alert has a traffic floor, so it does not page anyone for one failed request. Rehearse it with Bob: type `/interview`.

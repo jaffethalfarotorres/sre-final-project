@@ -1,9 +1,28 @@
-# Opens Grafana, Prometheus, Alertmanager and the app in your browser with one command (Windows PowerShell).
-# Keep this window open; press Ctrl+C to close the tunnels.
-# Usage: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\dashboards.ps1
+# Opens Grafana, Prometheus, Alertmanager, the app and Jaeger in your browser with one command (Windows PowerShell).
+# Usage:
+#   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\dashboards.ps1              # keep the window open
+#   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\dashboards.ps1 -Background  # start and return (IBM Bob)
+#   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\dashboards.ps1 -Stop        # close background tunnels
+# The Grafana password is copied to the clipboard, never printed, so it does not end up in an AI chat.
+param([switch]$Background, [switch]$Stop)
 # "Continue": in Windows PowerShell 5.1 a kubectl check that fails on purpose must not stop the script.
 $ErrorActionPreference = "Continue"
 Set-Location (Split-Path $PSScriptRoot -Parent)
+$pidFile = Join-Path (Get-Location) ".lab\tunnels.pid"
+
+function Stop-Tunnels {
+    if (-not (Test-Path $pidFile)) { Write-Host "No background tunnels are recorded."; return }
+    foreach ($id in Get-Content $pidFile) {
+        $p = Get-Process -Id $id -ErrorAction SilentlyContinue
+        # Only stop the kubectl processes this script started.
+        if ($p -and $p.ProcessName -eq "kubectl") { Stop-Process -Id $id -Force -ErrorAction SilentlyContinue }
+    }
+    Remove-Item $pidFile -ErrorAction SilentlyContinue
+    Write-Host "Background tunnels closed."
+}
+
+if ($Stop) { Stop-Tunnels; exit 0 }
+if (Test-Path $pidFile) { Stop-Tunnels }  # never leave two sets of tunnels fighting for the same ports
 
 # Raw manifests and Helm use different Service names; detect which one is installed.
 kubectl get service kube-prometheus-stack-grafana -n monitoring *> $null
@@ -30,25 +49,39 @@ if ($hasMcp) { $forwards += , @("monitoring", "service/mcp-grafana", "8000:8000"
 $processes = @()
 try {
     foreach ($f in $forwards) {
-        $processes += Start-Process kubectl -ArgumentList "port-forward", "-n", $f[0], $f[1], $f[2] -NoNewWindow -PassThru `
-            -RedirectStandardOutput ([System.IO.Path]::GetTempFileName()) -RedirectStandardError ([System.IO.Path]::GetTempFileName())
+        $common = @{ FilePath = "kubectl"; ArgumentList = @("port-forward", "-n", $f[0], $f[1], $f[2]); PassThru = $true
+            RedirectStandardOutput = [System.IO.Path]::GetTempFileName(); RedirectStandardError = [System.IO.Path]::GetTempFileName() }
+        if ($Background) { $processes += Start-Process @common -WindowStyle Hidden }
+        else { $processes += Start-Process @common -NoNewWindow }
     }
     Start-Sleep -Seconds 3
 
     $encoded = kubectl get secret grafana-admin-credentials -n monitoring -o jsonpath='{.data.admin-password}' 2>$null
-    $password = if ($encoded) { [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($encoded)) } else { "see k8s/grafana-secret.yaml" }
+    $passwordNote = "see k8s/grafana-secret.yaml"
+    if ($encoded) {
+        [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($encoded)) | Set-Clipboard
+        $passwordNote = "copied to your clipboard: paste it with Ctrl+V"
+    }
 
     Write-Host ""
-    Write-Host "  Grafana       http://localhost:3000   (user: admin, password: $password)"
+    Write-Host "  Grafana       http://localhost:3000   (user: admin, password $passwordNote)"
     Write-Host "  Prometheus    http://localhost:9090"
     Write-Host "  Alertmanager  http://localhost:9093"
     Write-Host "  The app       http://localhost:5000"
     Write-Host "  Jaeger        http://localhost:16686"
-    if ($hasMcp) { Write-Host "  MCP (AI)      http://localhost:8000/mcp  (Claude Code and IBM Bob, see docs/AI-SRE.md)" }
+    if ($hasMcp) { Write-Host "  MCP (AI)      http://localhost:8000/mcp  (IBM Bob and Claude Code, see docs/AI-SRE.md)" }
     Write-Host ""
-    Write-Host "Keep this window open while you use them. Press Ctrl+C to close the tunnels."
     Start-Process "http://localhost:3000"
 
+    if ($Background) {
+        New-Item -ItemType Directory -Force (Split-Path $pidFile) | Out-Null
+        $processes | ForEach-Object { $_.Id } | Set-Content $pidFile
+        $processes = @()  # keep them running after this script returns
+        Write-Host "The tunnels run in the background. Close them with:"
+        Write-Host "  powershell -NoProfile -ExecutionPolicy Bypass -File scripts\dashboards.ps1 -Stop"
+        exit 0
+    }
+    Write-Host "Keep this window open while you use them. Press Ctrl+C to close the tunnels."
     while ($true) { Start-Sleep -Seconds 1 }
 }
 finally {

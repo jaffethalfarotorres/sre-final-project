@@ -2,25 +2,33 @@
 """
 SRE Academy Lab Game: missions, XP, levels, achievements and a shareable proof.
 
-Every mission is verified against your real cluster or repository by a read-only check: nothing is
-self-reported. IBM Bob (mode "SRE Lab Guide") and Claude Code (/lab) use this script as the game engine,
-and you can run it yourself:
+Theme: the Road to Junior SRE. With Bob, your AI pair, you climb camp by camp from "Career Changer" to On-Call
+Ready. Each camp teaches one SRE principle and lists the skills you can name on your CV.
+A mission is only marked done when a
+read-only check finds the evidence on your cluster or repository. The progress file and the passport stay on
+your own laptop, so professors confirm them with "lab.py verify" or a short live demo. IBM Bob (mode "SRE Lab
+Guide") and Claude Code (/lab) use this script as the game engine, and you can run it yourself:
 
     python3 scripts/lab.py status              # level, XP, next mission
     python3 scripts/lab.py missions            # every mission and whether it is done
     python3 scripts/lab.py show M05            # what to do, where the guide is, the quiz questions
-    python3 scripts/lab.py check M05           # verify a mission on your cluster (read-only)
-    python3 scripts/lab.py check --all         # verify everything that can be verified now
-    python3 scripts/lab.py answer M05 1 b      # answer quiz question 1 of M05
+    python3 scripts/lab.py check M05           # check a mission on your cluster (read-only)
+    python3 scripts/lab.py check --all         # check everything that can be checked now
+    python3 scripts/lab.py answer M05 1 b      # answer quiz question 1 of M05 (2 attempts)
+    python3 scripts/lab.py cv                  # the skills you have earned, ready for your CV
+    python3 scripts/lab.py play                # open Mission Control, the visual dashboard
+    python3 scripts/lab.py verify              # re-run the checks of every recorded mission (professors)
     python3 scripts/lab.py proof --name "Ada"  # write lab-proof/: passport, badge and evidence
 
-On Windows PowerShell use "python" instead of "python3". Progress is kept in .lab/progress.json.
+On Windows use "python" instead of "python3" ("python3" opens the Microsoft Store there).
+Progress is kept in .lab/progress.json.
 """
 
 import argparse
 import glob
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -32,6 +40,11 @@ ROOT = Path(__file__).resolve().parent.parent
 CATALOG = ROOT / "lab" / "missions.json"
 PROGRESS = ROOT / ".lab" / "progress.json"
 PROOF_DIR = ROOT / "lab-proof"
+PY = "python" if os.name == "nt" else "python3"
+COURSE_REPO = "jaffethalfarotorres/sre-final-project"
+ORIGINAL_DASHBOARDS = {"golden-signals.json", "llm-observability.json", "slo.json", "sre-metrics.json"}
+ORIGINAL_RUNBOOKS = {"error-budget-burn.md", "high-error-rate.md", "high-latency.md", "service-down.md"}
+ORIGINAL_POLICIES = {"workload-baseline.yaml"}
 
 
 # ---------------------------------------------------------------------------------------------- helpers
@@ -122,15 +135,27 @@ def check_targets_up():
     return evidence(total_n >= 6 and down_n == 0, f"{total_n - down_n}/{total_n} scrape targets up")
 
 
-def check_dashboards_provisioned():
+def _provisioned_dashboards():
+    """Dashboard files in the ConfigMap Grafana actually mounts (Kustomize keeps old hashed copies around)."""
     grafana = kubectl_json("get", "deployment", "grafana", "-n", "monitoring") or {}
-    # Kustomize keeps old hashed ConfigMaps around: read the one Grafana actually mounts.
     mounted = [v["configMap"]["name"] for v in grafana.get("spec", {}).get("template", {}).get("spec", {})
                .get("volumes", []) if v.get("name") == "dashboards" and "configMap" in v]
     cm = kubectl_json("get", "configmap", mounted[0], "-n", "monitoring") if mounted else None
-    names = sorted((cm or {}).get("data", {}).keys())
-    ok = len(names) >= 4 and grafana.get("status", {}).get("availableReplicas", 0) >= 1
-    return evidence(ok, f"{len(names)} dashboards provisioned: {', '.join(names)}")
+    running = grafana.get("status", {}).get("availableReplicas", 0) >= 1
+    return sorted((cm or {}).get("data", {}).keys()), running
+
+
+def check_dashboards_provisioned():
+    names, running = _provisioned_dashboards()
+    return evidence(len(names) >= 4 and running, f"{len(names)} dashboards provisioned: {', '.join(names)}")
+
+
+def check_dashboards_custom():
+    names, running = _provisioned_dashboards()
+    own = [n for n in names if n not in ORIGINAL_DASHBOARDS]
+    return evidence(bool(own) and running, f"your own dashboard(s) in Grafana: {', '.join(own)}" if own else
+                    "no new dashboard yet: add a JSON to k8s/config/grafana/dashboards/ and to k8s/kustomization.yaml, "
+                    "then redeploy")
 
 
 def check_alert_fired(alertname):
@@ -181,7 +206,7 @@ def check_awx_configured():
     code, _ = run("kubectl", "get", "secret", "awx-webhook-token", "-n", "monitoring")
     web = kubectl_json("get", "deployment", "awx-web", "-n", "awx") or {}
     ok = code == 0 and web.get("status", {}).get("availableReplicas", 0) >= 1
-    return evidence(ok, "AWX running and wired to Alertmanager" if ok else "run python3 scripts/awx_setup.py first")
+    return evidence(ok, "AWX running and wired to Alertmanager" if ok else f"run {PY} scripts/awx_setup.py first")
 
 
 def check_terraform_applied():
@@ -196,18 +221,66 @@ def check_terraform_applied():
     return evidence(False, "no Terraform state yet: run terraform apply in terraform/")
 
 
+def check_terraform_dev_workspace():
+    state = ROOT / "terraform" / "terraform.tfstate.d" / "dev" / "terraform.tfstate"
+    try:
+        serial = json.loads(state.read_text(encoding="utf-8")).get("serial", 0) if state.exists() else 0
+    except ValueError:
+        serial = 0
+    return evidence(serial > 0, f"dev workspace state serial {serial} (apply was run in workspace dev)" if serial
+                    else "run in terraform/: terraform workspace new dev, then terraform apply")
+
+
+def check_runbook_custom():
+    rules = "".join(Path(p).read_text(encoding="utf-8", errors="replace")
+                    for p in glob.glob(str(ROOT / "k8s" / "config" / "prometheus" / "*.yml")))
+    new = [Path(p).name for p in glob.glob(str(ROOT / "docs" / "runbooks" / "*.md"))
+           if Path(p).name not in ORIGINAL_RUNBOOKS and Path(p).name.lower() != "readme.md"]
+    linked = [name for name in new if re.search(r"runbook_url:.*" + re.escape(name), rules)]
+    if linked:
+        return evidence(True, f"new runbook {linked[0]} is linked from an alert rule")
+    if new:
+        return evidence(False, f"{new[0]} exists but no alert rule links it in runbook_url yet")
+    return evidence(False, "no new runbook in docs/runbooks/ yet")
+
+
+def check_policy_custom():
+    for path in sorted(glob.glob(str(ROOT / "policy" / "*.y*ml"))):
+        name = Path(path).name
+        text = Path(path).read_text(encoding="utf-8", errors="replace")
+        if name in ORIGINAL_POLICIES or not re.search(r"kind:\s*ClusterPolicy", text):
+            continue
+        policy = re.search(r"metadata:\s*\n\s+name:\s*([\w.-]+)", text)
+        live = kubectl_json("get", "clusterpolicy", policy.group(1)) if policy else None
+        state = "active in the cluster" if live else "written but not applied yet"
+        return evidence(bool(live), f"policy {name} is {state}")
+    return evidence(False, "no new ClusterPolicy in policy/ yet")
+
+
 def _origin_repo():
     code, url = run("git", "-C", str(ROOT), "remote", "get-url", "origin")
     match = re.search(r"github\.com[:/](.+?)(?:\.git)?$", url) if code == 0 else None
     return match.group(1) if match else None
 
 
+def check_fork_origin():
+    repo = _origin_repo()
+    if not repo:
+        return evidence(False, "no GitHub origin remote yet")
+    if repo.lower() == COURSE_REPO:
+        return evidence(False, "origin is still the course repository: run gh repo fork --remote (mission M09b)")
+    code, parent = run("gh", "repo", "view", repo, "--json", "parent", "--jq", ".parent.nameWithOwner")
+    if code == 0 and parent.strip().lower() == COURSE_REPO:
+        return evidence(True, f"origin is your fork {repo}")
+    return evidence(False, f"{repo} is not a fork of {COURSE_REPO} (or gh is not logged in: gh auth login)")
+
+
 def check_fork_ci_green():
     repo = _origin_repo()
     if not repo:
-        return evidence(False, "no GitHub origin remote (fork the repo first, see Part 3 M09b)")
-    if repo.lower() == "jaffethalfarotorres/sre-final-project":
-        return evidence(False, "origin is the course repository: fork it and set origin to your fork")
+        return evidence(False, "no GitHub origin remote (fork the repo first, mission M09b)")
+    if repo.lower() == COURSE_REPO:
+        return evidence(False, "origin is the course repository: fork it first (mission M09b)")
     code, out = run("gh", "run", "list", "--repo", repo, "--workflow", "ci.yml", "--status", "success",
                     "--limit", "1", "--json", "databaseId")
     ok = code == 0 and out not in ("", "[]")
@@ -229,7 +302,7 @@ def check_rollback_done():
     d = kubectl_json("get", "deployment", "sre-metrics-app", "-n", "application") or {}
     healthy = "broken" not in json.dumps(d.get("spec", {})) and d.get("status", {}).get("availableReplicas", 0) >= 2
     return evidence(broken and healthy, "a broken release was rolled back and the app is healthy" if broken and healthy
-                    else "run python3 scripts/rollout_demo.py")
+                    else f"run {PY} scripts/rollout_demo.py")
 
 
 def check_chaos_passed():
@@ -242,7 +315,7 @@ def check_dora_report():
     path = ROOT / "reports" / "dora.md"
     ok = path.exists() and "Deployment frequency" in path.read_text(encoding="utf-8", errors="replace")
     return evidence(ok, "reports/dora.md found" if ok
-                    else "run: python3 scripts/dora_metrics.py <you>/sre-final-project > reports/dora.md")
+                    else f"run: {PY} scripts/dora_metrics.py <you>/sre-final-project > reports/dora.md")
 
 
 def _ai_reports():
@@ -266,7 +339,7 @@ def check_injection_flagged():
 
 def check_release_attested():
     repo = _origin_repo()
-    if not repo or repo.lower() == "jaffethalfarotorres/sre-final-project":
+    if not repo or repo.lower() == COURSE_REPO:
         return evidence(False, "needs your own fork as origin")
     code, tag = run("gh", "release", "view", "--repo", repo, "--json", "tagName", "--jq", ".tagName")
     if code != 0 or not tag:
@@ -281,7 +354,7 @@ def check_policy_active():
     ready = any(c.get("type") == "Ready" and c.get("status") == "True"
                 for c in policy.get("status", {}).get("conditions", []))
     return evidence(ready, "Kyverno policy sre-workload-baseline is ready" if ready
-                    else "run python3 scripts/policy_setup.py")
+                    else f"run {PY} scripts/policy_setup.py")
 
 
 def check_canary_gated():
@@ -289,7 +362,7 @@ def check_canary_gated():
     phases = {r.get("status", {}).get("phase") for r in runs}
     ok = {"Successful", "Failed"} <= phases
     return evidence(ok, f"analysis runs: {sorted(p for p in phases if p)}" if runs
-                    else "run python3 scripts/canary_demo.py")
+                    else f"run {PY} scripts/canary_demo.py")
 
 
 def check_genai_metrics():
@@ -308,8 +381,9 @@ def check_gameday_postmortem():
 def check_quiz_complete(mission_id):
     catalog, progress = load_catalog(), load_progress()
     mission = next(m for m in catalog["missions"] if m["id"] == mission_id)
-    correct = sum(1 for n in range(1, len(mission["quiz"]) + 1) if progress["quiz"].get(f"{mission_id}:{n}"))
-    return evidence(correct == len(mission["quiz"]), f"{correct}/{len(mission['quiz'])} quiz answers correct")
+    keys = [f"{mission_id}:{n}" for n in range(1, len(mission["quiz"]) + 1)]
+    settled = sum(1 for key in keys if quiz_settled(catalog, progress, key))
+    return evidence(settled == len(keys), f"{settled}/{len(keys)} quiz questions answered")
 
 
 CHECKS = {name[len("check_"):]: fn for name, fn in globals().items() if name.startswith("check_")}
@@ -332,7 +406,7 @@ def load_catalog():
 def load_progress():
     if PROGRESS.exists():
         return json.loads(PROGRESS.read_text(encoding="utf-8"))
-    return {"missions": {}, "quiz": {}}
+    return {"missions": {}, "quiz": {}, "attempts": {}}
 
 
 def save_progress(progress):
@@ -340,10 +414,34 @@ def save_progress(progress):
     PROGRESS.write_text(json.dumps(progress, indent=2), encoding="utf-8")
 
 
+def quiz_points(catalog, value):
+    """A quiz entry is True (old format, full XP) or the XP it earned (full first try, half second try)."""
+    if value is True:
+        return catalog["quiz_xp"]
+    return int(value) if isinstance(value, (int, float)) else 0
+
+
+def quiz_settled(catalog, progress, key):
+    """A question is settled when it was answered correctly or every attempt was used."""
+    used = progress.get("attempts", {}).get(key, 0)
+    return bool(progress["quiz"].get(key)) or used >= catalog.get("quiz_attempts", 2)
+
+
+def mission_xp(catalog, progress, mission):
+    return mission["xp"]
+
+
 def xp_of(catalog, progress):
     by_id = {m["id"]: m for m in catalog["missions"]}
-    mission_xp = sum(by_id[mid]["xp"] for mid in progress["missions"] if mid in by_id)
-    return mission_xp + catalog["quiz_xp"] * sum(1 for v in progress["quiz"].values() if v)
+    earned = sum(mission_xp(catalog, progress, by_id[mid]) for mid in progress["missions"] if mid in by_id)
+    return earned + sum(quiz_points(catalog, v) for v in progress["quiz"].values())
+
+
+def skills_earned(catalog, progress):
+    """CV skills: every skill of each cleared camp, in climb order."""
+    cleared = set(zones_cleared(catalog, progress))
+    return [(z, z.get("skills", [])) for z in sorted(catalog.get("zones", []), key=lambda z: z["part"])
+            if z["part"] in cleared]
 
 
 def level_of(catalog, xp):
@@ -377,12 +475,11 @@ def climb(catalog, progress):
 
 
 def next_mission(catalog, progress):
-    for mission in catalog["missions"]:
-        if mission["id"] not in progress["missions"] and mission["kind"] == "core":
-            return mission
-    for mission in catalog["missions"]:
-        if mission["id"] not in progress["missions"]:
-            return mission
+    missions = catalog["missions"]
+    for kinds in (("core",), ("capstone", "portfolio"), ("addon",)):
+        for mission in missions:
+            if mission["id"] not in progress["missions"] and mission["kind"] in kinds:
+                return mission
     return None
 
 
@@ -396,10 +493,12 @@ def cmd_status(args):
     catalog, progress = load_catalog(), load_progress()
     xp = xp_of(catalog, progress)
     level, following = level_of(catalog, xp)
-    done, total = len(progress["missions"]), len(catalog["missions"])
+    missions = catalog["missions"]
+    done, total = sum(1 for m in missions if m["id"] in progress["missions"]), len(missions)
     camp_level, camp, camps = climb(catalog, progress)
+    print(catalog.get("theme", {}).get("name", "SRE Academy lab"))
     where = f"Camp {camp['part']}: {camp['name']}" if camp else "the On-Call Ready summit"
-    print(f"Bob's climb to On-Call Ready: Level {camp_level}/{camps}   [{bar(camp_level, camps, 16)}]   "
+    print(f"Your climb to On-Call Ready: Level {camp_level}/{camps}   [{bar(camp_level, camps, 16)}]   "
           f"now at {where}")
     print(f"Rank: {level['name']}   XP: {xp}")
     if following:
@@ -410,38 +509,46 @@ def cmd_status(args):
     print("Achievements: " + (", ".join(badges) if badges else "none yet"))
     mission = next_mission(catalog, progress)
     if mission:
-        print(f"\nNext mission: {mission['id']} {mission['title']} (+{mission['xp']} XP)\n  {mission['goal']}")
-        print(f"  Guide: {mission['guide']}   Check: python3 scripts/lab.py check {mission['id']}")
+        xp_next = mission_xp(catalog, progress, mission)
+        print(f"\nNext mission: {mission['id']} {mission['title']} (+{xp_next} XP)\n  {mission['goal']}")
+        print(f"  Guide: {mission['guide']}   Check: {PY} scripts/lab.py check {mission['id']}")
     else:
-        print("\nEvery mission is complete. Run: python3 scripts/lab.py proof --name \"Your Name\"")
+        print(f"\nEvery mission is complete. Run: {PY} scripts/lab.py proof --name \"Your Name\"")
 
 
 def cmd_missions(args):
     catalog, progress = load_catalog(), load_progress()
     for mission in catalog["missions"]:
         mark = "x" if mission["id"] in progress["missions"] else " "
-        extra = f" [add-on: {mission['needs']}]" if mission["needs"] else ""
-        print(f"[{mark}] {mission['id']:<5} Part {mission['part']}  +{mission['xp']:<4} {mission['title']}{extra}")
+        extra = f" [add-on: {mission['needs']}]" if mission["kind"] == "addon" else ""
+        extra += " [portfolio project, optional]" if mission["kind"] == "portfolio" else ""
+        xp = mission_xp(catalog, progress, mission)
+        print(f"[{mark}] {mission['id']:<9} Camp {mission['part']}  +{xp:<4} {mission['title']}{extra}")
 
 
 def find(catalog, mission_id):
     for mission in catalog["missions"]:
         if mission["id"].lower() == mission_id.lower():
             return mission
-    sys.exit(f"Unknown mission {mission_id}. See: python3 scripts/lab.py missions")
+    sys.exit(f"Unknown mission {mission_id}. See: {PY} scripts/lab.py missions")
 
 
 def cmd_show(args):
     catalog, progress = load_catalog(), load_progress()
     mission = find(catalog, args.mission)
-    print(f"{mission['id']} {mission['title']}  (+{mission['xp']} XP, Part {mission['part']}, {mission['kind']})")
+    xp = mission_xp(catalog, progress, mission)
+    print(f"{mission['id']} {mission['title']}  (+{xp} XP, Camp {mission['part']}, {mission['kind']})")
     print(f"Goal: {mission['goal']}\nGuide: {mission['guide']}")
-    if mission["needs"]:
+    if mission["kind"] == "addon":
         print(f"Add-on: {mission['needs']} (run one add-on at a time; remove it after the check)")
+    limit = catalog.get("quiz_attempts", 2)
     for n, q in enumerate(mission["quiz"], 1):
-        answered = progress["quiz"].get(f"{mission['id']}:{n}")
+        key = f"{mission['id']}:{n}"
+        used = progress.get("attempts", {}).get(key, 0)
+        state = " (correct)" if progress["quiz"].get(key) else " (locked)" if used >= limit else \
+            f" ({limit - used} attempt(s) left)"
         options = "  ".join(f"{k}) {v}" for k, v in q["options"].items())
-        print(f"Quiz {n}{' (correct)' if answered else ''}: {q['q']}\n   {options}")
+        print(f"Quiz {n}{state}: {q['q']}\n   {options}")
 
 
 def cmd_check(args):
@@ -452,7 +559,7 @@ def cmd_check(args):
     for mission in missions:
         result = run_check(mission["check"])
         mark = "PASS" if result["ok"] else "----"
-        print(f"{mark} {mission['id']:<5} {mission['title']}: {result['detail']}")
+        print(f"{mark} {mission['id']:<9} {mission['title']}: {result['detail']}")
         if result["ok"] and mission["id"] not in progress["missions"]:
             progress["missions"][mission["id"]] = {
                 "completed": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -474,10 +581,16 @@ def cmd_check(args):
         zone = zones[step - 1]
         following = zones[step] if step < len(zones) else None
         print("\n" + "=" * 60)
-        print(f"  LEVEL UP!  Zone {part} cleared: {zone['name']}")
-        print(f"  Bob climbs to level {step}/{len(zones)} on the way to the On-Call Ready summit.")
+        print(f"  LEVEL UP!  Camp {part} cleared: {zone['name']}")
+        print(f"  You and Bob reach level {step}/{len(zones)} on the way to the On-Call Ready summit.")
+        if zone.get("principle"):
+            print(f"  SRE principle you practised: {zone['principle']}")
+        if zone.get("skills"):
+            print("  New skills for your CV: " + "; ".join(zone["skills"]))
+        if zone.get("interview"):
+            print(f"  Interview practice: \"{zone['interview']}\" (type /interview to Bob to rehearse it)")
         print(f"  Next camp: {following['name']} - {following['story']}" if following else
-              "  SUMMIT REACHED: you are On-Call Ready. Run: lab.py proof --name \"Your Name\"")
+              f"  SUMMIT REACHED: you are On-Call Ready. Run: {PY} scripts/lab.py proof --name \"Your Name\"")
         print("=" * 60)
     write_mission_control()  # keep the visual dashboard current
     return 0 if all(m["id"] in progress["missions"] for m in missions) else 1
@@ -513,18 +626,74 @@ def cmd_answer(args):
     if not 1 <= args.number <= len(mission["quiz"]):
         sys.exit(f"{mission['id']} has {len(mission['quiz'])} quiz question(s)")
     key = f"{mission['id']}:{args.number}"
+    if progress["quiz"].get(key):
+        print("Already answered correctly.")
+        return 0
+    progress.setdefault("attempts", {})
+    limit, used = catalog.get("quiz_attempts", 2), progress["attempts"].get(key, 0)
+    if used >= limit:
+        print("This question is locked (no attempts left). Ask Bob to explain the idea; it does not block your "
+              "missions. Quizzes are for learning, not for grades.")
+        return 1
+    progress["attempts"][key] = used + 1
     expected = mission["quiz"][args.number - 1]["answer"]
     given = hashlib.sha256(f"{catalog['salt']}:{mission['id']}:{args.number}:{args.choice.lower()}".encode())
     if given.hexdigest()[:16] == expected:
-        if not progress["quiz"].get(key):
-            progress["quiz"][key] = True
-            save_progress(progress)
-            print(f"Correct! +{catalog['quiz_xp']} XP")
-        else:
-            print("Correct (already counted).")
+        points = catalog["quiz_xp"] if used == 0 else catalog["quiz_xp"] // 2
+        progress["quiz"][key] = points
+        save_progress(progress)
+        print(f"Correct! +{points} XP" + ("" if used == 0 else " (second try)"))
         return 0
-    print("Not quite. Re-read the guide section and try again.")
+    save_progress(progress)
+    left = limit - used - 1
+    hint = (f"Re-read the guide section and try once more ({left} attempt left)." if left
+            else "That question is now locked; ask Bob to explain the right idea.")
+    print("Not quite. " + hint)
     return 1
+
+
+def cmd_cv(args):
+    """The skills earned so far, written so a student can paste them into a CV or a LinkedIn profile."""
+    catalog, progress = load_catalog(), load_progress()
+    earned = skills_earned(catalog, progress)
+    if not earned:
+        print("No camp cleared yet. Clear Orientation Day (mission B00) to earn your first skills.")
+        return 0
+    print("Skills you practised hands-on in the SRE Academy lab (each one backed by a checked mission):\n")
+    for zone, skills in earned:
+        for skill in skills:
+            print(f"- {skill}")
+    done = [m for m in catalog["missions"] if m["id"] in progress["missions"] and m["kind"] == "portfolio"]
+    for mission in done:
+        print(f"Portfolio project: {mission['title']} ({mission['goal']})")
+    print("\nSRE principles you can explain with your own examples:")
+    for zone, _ in earned:
+        if zone.get("principle"):
+            print(f"- {zone['principle']}")
+    print("\nInterview practice for the camps you cleared (ask Bob to play the interviewer):")
+    for zone, _ in earned:
+        if zone.get("interview"):
+            print(f"- {zone['name']}: {zone['interview']}")
+    return 0
+
+
+def cmd_verify(args):
+    """Re-run the check of every recorded mission now (for professors). It never removes progress."""
+    catalog, progress = load_catalog(), load_progress()
+    by_id = {m["id"]: m for m in catalog["missions"]}
+    still = gone = 0
+    print("Live re-check of recorded missions. Some evidence is time-limited (alerts: 24 hours), so an older mission "
+          "can show 'not visible now' and still be genuine: ask for a live demo of those.\n")
+    for mid, record in progress["missions"].items():
+        mission = by_id.get(mid)
+        if not mission:
+            continue
+        result = run_check(mission["check"])
+        still, gone = still + result["ok"], gone + (not result["ok"])
+        print(f"{'OK  ' if result['ok'] else 'GONE'} {mid:<9} recorded {record.get('completed', '?')[:10]}: "
+              f"{result['detail']}")
+    print(f"\n{still} confirmed now, {gone} not visible now.")
+    return 0
 
 
 BADGE = """<svg xmlns="http://www.w3.org/2000/svg" width="320" height="64" role="img" aria-label="{label}">
@@ -542,12 +711,15 @@ def cmd_proof(args):
     xp = xp_of(catalog, progress)
     level = level_of(catalog, xp)[0]["name"]
     done = [m for m in catalog["missions"] if m["id"] in progress["missions"]]
+    skills = [skill for _, zone_skills in skills_earned(catalog, progress) for skill in zone_skills]
     badges = [m["achievement"] for m in done if m["achievement"]]
     PROOF_DIR.mkdir(exist_ok=True)
     generated = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    record = {"name": args.name, "level": level, "xp": xp, "generated": generated,
+    record = {"name": args.name, "level": level, "xp": xp,
+              "generated": generated, "skills": skills,
               "repository": _origin_repo(), "missions": {m["id"]: progress["missions"][m["id"]] for m in done},
-              "quiz_correct": sum(1 for v in progress["quiz"].values() if v)}
+              "quiz_correct": sum(1 for v in progress["quiz"].values() if v),
+              "summit": len(zones_cleared(catalog, progress)) == len(catalog.get("zones", []))}
     record["sha256"] = hashlib.sha256(json.dumps(record, sort_keys=True).encode()).hexdigest()
     (PROOF_DIR / "evidence.json").write_text(json.dumps(record, indent=2), encoding="utf-8")
     badge = BADGE.format(label=f"{level}, {xp} XP", level=level, xp=xp, done=len(done),
@@ -560,9 +732,14 @@ def cmd_proof(args):
         f"**Level:** {level} · **XP:** {xp} · **Missions:** {len(done)}/{len(catalog['missions'])} · "
         f"**Quiz answers correct:** {record['quiz_correct']}\n\n"
         f"**Achievements:** {', '.join(badges) or 'none yet'}\n\n"
-        "Every mission below was verified automatically against a live Kubernetes cluster or repository by "
-        "`scripts/lab.py` (SRE Academy lab).\n\n| Mission | Title | Date | Evidence |\n| --- | --- | --- | --- |\n"
-        f"{rows}\n\nEvidence hash (SHA-256 of evidence.json without this field): `{record['sha256']}`\n",
+        "## Skills practised hands-on\n\n" + ("".join(f"- {skill}\n" for skill in skills) or "- none yet\n") +
+        "\n## Missions and evidence\n\n"
+        "Each mission below was marked done only when a read-only check in `scripts/lab.py` found the evidence on "
+        "the student's own Kubernetes cluster or repository (SRE Academy lab). This passport is generated on the "
+        "student's laptop, so it is a record, not a certificate: a professor or interviewer confirms it with "
+        "`lab.py verify` or a short live demo.\n\n| Mission | Title | Date | Evidence |\n| --- | --- | --- | --- |\n"
+        f"{rows}\n\nFingerprint (SHA-256 of evidence.json without this field; it shows accidental edits, it is not a "
+        f"signature): `{record['sha256']}`\n",
         encoding="utf-8")
     print(f"Wrote {PROOF_DIR / 'PASSPORT.md'}, badge.svg and evidence.json ({level}, {xp} XP).")
     print("Share it: commit lab-proof/ to your fork and link PASSPORT.md, or add the badge to your profile README.")
@@ -585,13 +762,16 @@ def main():
     answer.add_argument("choice")
     proof = sub.add_parser("proof")
     proof.add_argument("--name", required=True)
+    sub.add_parser("cv", help="the skills you have earned, ready for your CV")
+    sub.add_parser("verify", help="re-run the checks of every recorded mission (professors)")
     play = sub.add_parser("play", help="open Mission Control, the visual dashboard")
     play.add_argument("--no-open", action="store_true", help="only write the HTML file")
     args = parser.parse_args()
     if args.command == "check" and not (args.mission or args.all):
         parser.error("give a mission id or --all")
     handler = {"status": cmd_status, "missions": cmd_missions, "show": cmd_show, "check": cmd_check,
-               "answer": cmd_answer, "proof": cmd_proof, "play": cmd_play}.get(args.command or "status")
+               "answer": cmd_answer, "proof": cmd_proof, "play": cmd_play,
+               "cv": cmd_cv, "verify": cmd_verify}.get(args.command or "status")
     return handler(args) or 0
 
 

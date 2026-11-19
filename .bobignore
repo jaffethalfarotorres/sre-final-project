@@ -1,0 +1,12 @@
+# Files IBM Bob must not read (gitignore syntax). This keeps secrets out of Bob's context.
+# It is a convenience, not a sandbox: a command Bob runs in the terminal can still read these files,
+# so you still approve every command yourself.
+k8s/*secret*.yaml
+!k8s/*secret*.example.yaml
+helm/*secret*.yaml
+terraform/*.tfstate*
+**/.env*
+.lab/
+secrets/
+# Professors only: quiz answer keys and instructor notes.
+docs/instructor/

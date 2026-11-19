@@ -2,6 +2,10 @@
 description: Show the next lab mission and start teaching it
 argument-hint: optional mission id, for example M05
 ---
-Run `python3 scripts/lab.py status` (Windows: `python scripts\lab.py status`). If an id was given ($ARGUMENTS), use `python3 scripts/lab.py show <id>` for that mission instead.
+**Mode guard:** if the active mode is not **SRE Lab Guide**, stop here. Tell the student: "Please pick SRE Lab Guide in the mode picker (Ctrl+. on Windows, Cmd+. on Mac), then type this command again." Do nothing else.
 
-Tell the student the mission title, the XP, and the goal in one friendly sentence. Open the guide file it points to, find the matching module, and teach it with the loop in .bob/rules-sre-lab-guide/10-game-master.md: explain the idea simply, then one approved command at a time. If the mission is an add-on, check memory first and remind them to clean up after the check.
+Windows: `python scripts\lab.py ...` (never `python3`). Mac/Linux: `python3 scripts/lab.py ...`.
+
+If the student typed a mission id after the command name, run `lab.py show <ID>` for that mission. Otherwise run `lab.py status` and use the next mission it names.
+
+Tell the student the mission title, the camp it belongs to, the XP, and the goal in one friendly sentence. Add one line on why it matters at work (for example: "On-call SREs do this every week."). If it is a portfolio project (P-DASH, P-ENV, P-RUNBOOK, P-POLICY), say it is optional and a good piece to show in interviews. Open the guide file it points to, find the matching module, and teach it with the loop in .bob/rules-sre-lab-guide/10-game-master.md: explain the idea simply, then one approved command at a time. If the mission is an add-on, check memory first and remind them to clean up after the check. For M17 and M18, follow the game-master section on switching to SRE Triage.

@@ -56,6 +56,28 @@ data:
           receiver: 'warning-notifications'
           repeat_interval: 3h
 
+    # Inhibition: when a bigger alert explains smaller ones, only the bigger one notifies people.
+    # The muted alerts still show in the Alertmanager UI (marked "inhibited"), so nothing is hidden.
+    # "equal: [service]" means: only for the same service (every rule in alerts.yml and slo.yml has it).
+    inhibit_rules:
+      # The app is down: errors, failed probes and budget burn are symptoms of the same outage.
+      - source_matchers:
+          - alertname = "ServiceDown"
+        target_matchers:
+          - alertname =~ "HighErrorRate|HighLatency|SyntheticProbeFailing|ErrorBudgetFastBurn|ErrorBudgetSlowBurn|ErrorBudgetTicket"
+        equal: ['service']
+      # A fast burn is already paging someone: the slower budget alerts would only repeat it.
+      - source_matchers:
+          - alertname = "ErrorBudgetFastBurn"
+        target_matchers:
+          - alertname =~ "ErrorBudgetSlowBurn|ErrorBudgetTicket"
+        equal: ['service']
+      - source_matchers:
+          - alertname = "ErrorBudgetSlowBurn"
+        target_matchers:
+          - alertname = "ErrorBudgetTicket"
+        equal: ['service']
+
     receivers:
       - name: 'awx-collect-diagnostics'
         webhook_configs:

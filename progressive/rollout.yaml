@@ -24,7 +24,10 @@ spec:
       interval: 20s
       count: 6
       failureLimit: 1
-      successCondition: len(result) == 0 || result[0] >= 0.90
+      # No data is a FAILURE, never a pass: a canary that serves nothing (or is not scraped) must not
+      # be promoted. The good release fails ~0.5% of calls and passes easily; the bad one fails 50%.
+      successCondition: len(result) > 0 && result[0] >= 0.90
+      failureCondition: len(result) == 0 || result[0] < 0.90
       provider:
         prometheus:
           address: http://prometheus.monitoring.svc.cluster.local:9090
@@ -85,7 +88,7 @@ spec:
             - name: APP_VERSION
               value: "1.0.0"
             - name: STORE_ERROR_RATE
-              value: "0.05"
+              value: "0.005"
           resources:
             requests: {cpu: 25m, memory: 64Mi}
             limits: {cpu: 200m, memory: 192Mi}

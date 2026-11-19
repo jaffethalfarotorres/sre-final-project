@@ -1,0 +1,141 @@
+# Unit tests for the SLO burn-rate alerts (k8s/config/prometheus/slo.yml).
+# Run without a cluster (Docker only), from the repository root:
+#   docker run --rm -v "$PWD:/repo" -w /repo --entrypoint promtool prom/prometheus:v2.54.1 \
+#     test rules tests/rules/slo.test.yml tests/rules/alerts.test.yml
+# Each test feeds made-up counters into Prometheus and checks which alerts fire.
+# SLO 99%: error budget 1%, so a burn rate of 14.4x means 14.4% of requests fail.
+rule_files:
+  - ../../k8s/config/prometheus/slo.yml
+
+evaluation_interval: 1m
+
+tests:
+  # 1) Normal day: ~1.3 requests per second, 0.5% of /store calls fail (burn rate ~0.2x). Nothing fires.
+  - interval: 1m
+    input_series:
+      - series: 'http_requests_total{namespace="application", endpoint="/", status="200"}'
+        values: '0+50x240'
+      - series: 'http_requests_total{namespace="application", endpoint="/store", status="200"}'
+        values: '0+27.86x240'
+      - series: 'http_requests_total{namespace="application", endpoint="/store", status="500"}'
+        values: '0+0.14x240'
+    alert_rule_test:
+      - eval_time: 4h
+        alertname: ErrorBudgetFastBurn
+        exp_alerts: []
+      - eval_time: 4h
+        alertname: ErrorBudgetSlowBurn
+        exp_alerts: []
+      - eval_time: 4h
+        alertname: ErrorBudgetTicket
+        exp_alerts: []
+    promql_expr_test:
+      - expr: round(slo:availability:burn_rate1h, 0.01)
+        eval_time: 4h
+        exp_samples:
+          - labels: '{}'
+            value: 0.18
+
+  # 2) Just ABOVE the page threshold: 15% of requests fail for 2 hours (burn rate 15x). The page fires.
+  - interval: 1m
+    input_series:
+      - series: 'http_requests_total{namespace="application", endpoint="/store", status="200"}'
+        values: '0+85x120'
+      - series: 'http_requests_total{namespace="application", endpoint="/store", status="500"}'
+        values: '0+15x120'
+    alert_rule_test:
+      - eval_time: 2h
+        alertname: ErrorBudgetFastBurn
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              service: sre-metrics-app
+            exp_annotations:
+              summary: "sre-metrics-app is burning its error budget fast"
+              description: "1-hour burn rate is 15.0x (page above 14.4x). At this pace the 30-day budget is gone in 30 / 15 days, so in about 2 days or less."
+              runbook_url: "https://github.com/jaffethalfarotorres/sre-final-project/blob/main/docs/runbooks/error-budget-burn.md"
+
+  # 3) Just BELOW the page threshold: 14% fail (burn rate 14x). No page, but the slow burn (> 6x) fires.
+  - interval: 1m
+    input_series:
+      - series: 'http_requests_total{namespace="application", endpoint="/store", status="200"}'
+        values: '0+86x120'
+      - series: 'http_requests_total{namespace="application", endpoint="/store", status="500"}'
+        values: '0+14x120'
+    alert_rule_test:
+      - eval_time: 2h
+        alertname: ErrorBudgetFastBurn
+        exp_alerts: []
+      - eval_time: 2h
+        alertname: ErrorBudgetSlowBurn
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              service: sre-metrics-app
+            exp_annotations:
+              summary: "sre-metrics-app error budget is being spent quickly"
+              description: "6-hour burn rate is 14.0x (above 6x): 5% of the 30-day budget is gone in 6 hours. Look at it today."
+              runbook_url: "https://github.com/jaffethalfarotorres/sre-final-project/blob/main/docs/runbooks/error-budget-burn.md"
+
+  # 4) The classroom drill (k8s/drills/errload-pod.yaml): 2 hours of normal traffic, then ~4.2 failing
+  #    calls per second to /error. 2 minutes in, the 1-hour ratio is still too low: no page yet.
+  #    10 minutes in, the 1-hour burn rate is about 35x (far above 14.4x): the page fires.
+  - interval: 1m
+    input_series:
+      - series: 'http_requests_total{namespace="application", endpoint="/", status="200"}'
+        values: '0+50x140'
+      - series: 'http_requests_total{namespace="application", endpoint="/store", status="200"}'
+        values: '0+27.86x140'
+      - series: 'http_requests_total{namespace="application", endpoint="/store", status="500"}'
+        values: '0+0.14x140'
+      - series: 'http_requests_total{namespace="application", endpoint="/error", status="500"}'
+        values: '0x120 252+252x12 3276x7'
+    alert_rule_test:
+      - eval_time: 122m
+        alertname: ErrorBudgetFastBurn
+        exp_alerts: []
+      - eval_time: 130m
+        alertname: ErrorBudgetFastBurn
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              service: sre-metrics-app
+            exp_annotations:
+              summary: "sre-metrics-app is burning its error budget fast"
+              description: "1-hour burn rate is 35.1x (page above 14.4x). At this pace the 30-day budget is gone in 30 / 35 days, so in about 2 days or less."
+              runbook_url: "https://github.com/jaffethalfarotorres/sre-final-project/blob/main/docs/runbooks/error-budget-burn.md"
+
+  # 5) Ticket: 2% of requests fail for 2 days (burn rate 2x, too slow for a page). The ticket fires.
+  - interval: 5m
+    input_series:
+      - series: 'http_requests_total{namespace="application", endpoint="/store", status="200"}'
+        values: '0+490x576'
+      - series: 'http_requests_total{namespace="application", endpoint="/store", status="500"}'
+        values: '0+10x576'
+    alert_rule_test:
+      - eval_time: 2d
+        alertname: ErrorBudgetFastBurn
+        exp_alerts: []
+      - eval_time: 2d
+        alertname: ErrorBudgetTicket
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              service: sre-metrics-app
+            exp_annotations:
+              summary: "sre-metrics-app is on track to miss its 30-day SLO"
+              description: "3-day burn rate is 2.00x (above 1x). Open a ticket for this sprint."
+              runbook_url: "https://github.com/jaffethalfarotorres/sre-final-project/blob/main/docs/runbooks/error-budget-burn.md"
+
+  # 6) Same 2% failures on a young cluster (6 hours, ~36,000 requests): the 100,000-request guard keeps
+  #    the ticket quiet, because a few hours cannot stand for 3 days.
+  - interval: 5m
+    input_series:
+      - series: 'http_requests_total{namespace="application", endpoint="/store", status="200"}'
+        values: '0+490x72'
+      - series: 'http_requests_total{namespace="application", endpoint="/store", status="500"}'
+        values: '0+10x72'
+    alert_rule_test:
+      - eval_time: 6h
+        alertname: ErrorBudgetTicket
+        exp_alerts: []
