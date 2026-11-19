@@ -1,8 +1,8 @@
 {
  "quiz_attempts": 2,
- "version": 6,
+ "version": 7,
  "salt": "sre-academy-2027",
- "story": "You work at IBM in a non-technical team and you want to move into tech. Your first assignment as an apprentice: **Nimbus Store**, a small online shop that went down for an hour last week and nobody noticed until customers complained. With **Bob**, your AI pair (fast and helpful, but never allowed to change anything without your OK), you climb from Career Changer to the summit every SRE works toward: **On-Call Ready**, the day a team trusts you with the pager. Each camp gives Nimbus a real new capability on your laptop, and gives you skills you can name on your CV and defend in an interview, with evidence.",
+ "story": "You work at IBM in a non-technical team and you want to move into tech. Your first assignment as an apprentice: **Nimbus Store**, a small online shop that went down for an hour last week and nobody noticed until customers complained. With **Bob**, your AI pair (fast and helpful, but never allowed to change anything without your OK), you climb from Career Changer to the last camp of this lab: **On-Call Ready**. Reaching it means you completed the lab's on-call missions; it is practice, not a job certification. Each camp gives Nimbus a real new capability on your laptop. Each skill appears on your CV list only when the mission that proves it is done, so you can defend it in an interview with evidence.",
  "theme": {
   "name": "Road to Junior SRE",
   "audience": "IBMers from non-technical teams moving into technical roles",
@@ -17,10 +17,36 @@
    "story": "Your first day: meet Bob, your AI pair, and learn how you two work together.",
    "unlock": "You and Bob know the rules: Bob proposes, you approve.",
    "skills": [
-    "Working safely with an AI coding assistant (IBM Bob)",
-    "Reviewing and approving commands before they run"
+    {
+     "skill": "Working safely with an AI coding assistant (IBM Bob)",
+     "proof": [
+      "B00"
+     ]
+    },
+    {
+     "skill": "Reviewing and approving commands before they run",
+     "proof": [
+      "B00"
+     ]
+    }
    ],
-   "interview": "How do you make sure an AI assistant does not break production?"
+   "interview": [
+    {
+     "kind": "concept",
+     "question": "What does 'human in the loop' mean when you work with an AI coding assistant?"
+    },
+    {
+     "kind": "judgement",
+     "question": "An AI assistant saves time, but it can be wrong. When do you approve its command, and when do you reject it?"
+    },
+    {
+     "kind": "behavioural",
+     "question": "Tell me about a time an AI tool proposed something you did not understand. What did you do?",
+     "evidence": [
+      "B00"
+     ]
+    }
+   ]
   },
   {
    "part": 1,
@@ -30,11 +56,49 @@
    "story": "Bring Nimbus Store to life on your own laptop.",
    "unlock": "Nimbus runs on Kubernetes and updates with zero downtime.",
    "skills": [
-    "Docker containers",
-    "Kubernetes basics: pods, deployments, services, probes",
-    "Zero-downtime rolling updates"
+    {
+     "skill": "Docker containers",
+     "proof": [
+      "M00"
+     ]
+    },
+    {
+     "skill": "Kubernetes basics: pods, deployments, services, probes",
+     "proof": [
+      "M00",
+      "M02"
+     ]
+    },
+    {
+     "skill": "Instrumenting an app with metrics and traces (OpenTelemetry)",
+     "proof": [
+      "M01"
+     ]
+    },
+    {
+     "skill": "Zero-downtime rolling updates",
+     "proof": [
+      "M02"
+     ]
+    }
    ],
-   "interview": "What is the difference between a container and a pod?"
+   "interview": [
+    {
+     "kind": "concept",
+     "question": "What is the difference between a container and a pod?"
+    },
+    {
+     "kind": "judgement",
+     "question": "Why run two small replicas with readiness probes instead of one big pod? What does it cost you?"
+    },
+    {
+     "kind": "behavioural",
+     "question": "Tell me about a time you shipped a change without downtime. How did you check that users were not affected?",
+     "evidence": [
+      "M02"
+     ]
+    }
+   ]
   },
   {
    "part": 2,
@@ -44,11 +108,42 @@
    "story": "Give the shop eyes: metrics, dashboards and its first alarm.",
    "unlock": "Nimbus sees its own health and raises an alarm when users suffer.",
    "skills": [
-    "Prometheus metrics and PromQL",
-    "Grafana dashboards as code",
-    "Alerting with Alertmanager"
+    {
+     "skill": "Prometheus metrics and PromQL",
+     "proof": [
+      "M03"
+     ]
+    },
+    {
+     "skill": "Grafana dashboards as code",
+     "proof": [
+      "M04"
+     ]
+    },
+    {
+     "skill": "Alerting with Alertmanager",
+     "proof": [
+      "M05"
+     ]
+    }
    ],
-   "interview": "How would you know a service is unhealthy before customers call?"
+   "interview": [
+    {
+     "kind": "concept",
+     "question": "What is the difference between a counter and a gauge, and why do you use rate() on a counter?"
+    },
+    {
+     "kind": "judgement",
+     "question": "Too many alerts wake people up for nothing. How do you decide what deserves an alert?"
+    },
+    {
+     "kind": "behavioural",
+     "question": "Tell me about a time you tested an alert from start to end. How did you check that it really fired and reached Alertmanager?",
+     "evidence": [
+      "M05"
+     ]
+    }
+   ]
   },
   {
    "part": 3,
@@ -58,11 +153,43 @@
    "story": "Promise reliability with SLOs, and learn to handle incidents calmly.",
    "unlock": "Nimbus has a reliability promise, an error budget and an incident process.",
    "skills": [
-    "SLIs, SLOs and error budgets",
-    "Synthetic monitoring",
-    "Incident response and blameless postmortems"
+    {
+     "skill": "SLIs, SLOs and error budgets",
+     "proof": [
+      "M06"
+     ]
+    },
+    {
+     "skill": "Synthetic monitoring",
+     "proof": [
+      "M08"
+     ]
+    },
+    {
+     "skill": "Incident response and blameless postmortems",
+     "proof": [
+      "M09"
+     ]
+    }
    ],
-   "interview": "What is an error budget, and how does it change what the team does?"
+   "interview": [
+    {
+     "kind": "concept",
+     "question": "What is an error budget, and how does it change what the team does?"
+    },
+    {
+     "kind": "judgement",
+     "question": "The error budget is almost spent, but the business wants a new feature this week. What do you recommend, and why?"
+    },
+    {
+     "kind": "behavioural",
+     "question": "Tell me about an incident you handled or practised. What did you measure, and what did you learn without blaming anyone?",
+     "evidence": [
+      "M06",
+      "M09"
+     ]
+    }
+   ]
   },
   {
    "part": 4,
@@ -72,11 +199,43 @@
    "story": "Follow a single request through logs and traces, even into an AI model.",
    "unlock": "Any failing request can be traced from the alarm to the exact line of evidence.",
    "skills": [
-    "Centralized logs (Loki, LogQL)",
-    "Distributed tracing (OpenTelemetry, Jaeger)",
-    "Monitoring AI model calls"
+    {
+     "skill": "Centralized logs (Loki, LogQL)",
+     "proof": [
+      "M07"
+     ]
+    },
+    {
+     "skill": "Distributed tracing (OpenTelemetry, Jaeger)",
+     "proof": [
+      "M01",
+      "M07"
+     ]
+    },
+    {
+     "skill": "Monitoring AI model calls",
+     "proof": [
+      "M23"
+     ]
+    }
    ],
-   "interview": "A request is slow. How do you find which step is slow?"
+   "interview": [
+    {
+     "kind": "concept",
+     "question": "A request is slow. How do you find which step is slow?"
+    },
+    {
+     "kind": "judgement",
+     "question": "Logs and traces cost storage and money. How do you decide what to keep, and for how long?"
+    },
+    {
+     "kind": "behavioural",
+     "question": "Tell me about a time you followed one failed request from the alert to the cause.",
+     "evidence": [
+      "M07"
+     ]
+    }
+   ]
   },
   {
    "part": 5,
@@ -86,12 +245,62 @@
    "story": "Automate the boring and dangerous parts: runbooks, infrastructure, pipelines.",
    "unlock": "Nimbus is rebuilt from code, tested on every change, and diagnoses itself.",
    "skills": [
-    "Automation with Ansible",
-    "Infrastructure as code with Terraform",
-    "CI/CD with GitHub Actions",
-    "DORA delivery metrics"
+    {
+     "skill": "Automation with Ansible",
+     "proof": [
+      "M10"
+     ]
+    },
+    {
+     "skill": "Event-driven automation with AWX",
+     "proof": [
+      "M10X"
+     ]
+    },
+    {
+     "skill": "Infrastructure as code with Terraform",
+     "proof": [
+      "M11"
+     ]
+    },
+    {
+     "skill": "CI/CD with GitHub Actions",
+     "proof": [
+      "M09b",
+      "M12"
+     ]
+    },
+    {
+     "skill": "Signed container images and build provenance",
+     "proof": [
+      "M19"
+     ]
+    },
+    {
+     "skill": "DORA delivery metrics",
+     "proof": [
+      "M16"
+     ]
+    }
    ],
-   "interview": "Why should infrastructure be written as code?"
+   "interview": [
+    {
+     "kind": "concept",
+     "question": "Why should infrastructure be written as code?"
+    },
+    {
+     "kind": "judgement",
+     "question": "You cannot automate everything at once. Which task do you automate first, and which do you keep manual for now?"
+    },
+    {
+     "kind": "behavioural",
+     "question": "Tell me about a time you automated a boring or risky manual task. What changed?",
+     "evidence": [
+      "M10",
+      "M11"
+     ]
+    }
+   ]
   },
   {
    "part": 6,
@@ -101,13 +310,54 @@
    "story": "Break things on purpose and prove Nimbus survives: GitOps, chaos, canaries, policies.",
    "unlock": "Nimbus survives crashes and bad releases, and refuses unsafe deployments.",
    "skills": [
-    "Rollbacks",
-    "GitOps with ArgoCD",
-    "Chaos engineering",
-    "Canary releases",
-    "Policy as code (Kyverno)"
+    {
+     "skill": "Rollbacks",
+     "proof": [
+      "M14"
+     ]
+    },
+    {
+     "skill": "GitOps with ArgoCD",
+     "proof": [
+      "M13"
+     ]
+    },
+    {
+     "skill": "Chaos engineering",
+     "proof": [
+      "M15"
+     ]
+    },
+    {
+     "skill": "Canary releases",
+     "proof": [
+      "M21"
+     ]
+    },
+    {
+     "skill": "Policy as code (Kyverno)",
+     "proof": [
+      "M20"
+     ]
+    }
    ],
-   "interview": "A release breaks production. What do you do in the first five minutes?"
+   "interview": [
+    {
+     "kind": "concept",
+     "question": "What is a rollback, and why should every release have one ready?"
+    },
+    {
+     "kind": "judgement",
+     "question": "A release breaks production. Do you roll back at once, or try to fix forward? What decides it?"
+    },
+    {
+     "kind": "behavioural",
+     "question": "Tell me about a time a release went wrong. How did you keep users served?",
+     "evidence": [
+      "M14"
+     ]
+    }
+   ]
   },
   {
    "part": 7,
@@ -115,14 +365,51 @@
    "icon": "robot",
    "principle": "Trust, but verify: AI helps on call only with least privilege and human judgement.",
    "story": "Put Bob on call, keep him safe, and lead the final game day.",
-   "unlock": "On-Call Ready: you lead incidents with an AI teammate you can trust and verify.",
+   "unlock": "On-Call Ready (lab summit): you completed the lab's on-call missions and led a practice game day with an AI teammate you can verify.",
    "skills": [
-    "AI-assisted incident triage",
-    "Prompt-injection awareness",
-    "Least privilege for AI agents",
-    "Leading a game day"
+    {
+     "skill": "AI-assisted incident triage",
+     "proof": [
+      "M17"
+     ]
+    },
+    {
+     "skill": "Prompt-injection awareness",
+     "proof": [
+      "M18"
+     ]
+    },
+    {
+     "skill": "Least privilege for AI agents",
+     "proof": [
+      "M18"
+     ]
+    },
+    {
+     "skill": "Leading a game day",
+     "proof": [
+      "M27"
+     ]
+    }
    ],
-   "interview": "How would you use AI on call without giving it the keys to production?"
+   "interview": [
+    {
+     "kind": "concept",
+     "question": "What is a prompt injection, and why does it matter for an AI agent on call?"
+    },
+    {
+     "kind": "judgement",
+     "question": "How would you use AI on call without giving it the keys to production?"
+    },
+    {
+     "kind": "behavioural",
+     "question": "Tell me about a time an AI tool helped you in an incident. What did you check before you trusted it?",
+     "evidence": [
+      "M17",
+      "M27"
+     ]
+    }
+   ]
   }
  ],
  "levels": [
@@ -143,7 +430,7 @@
    "xp": 2300
   },
   {
-   "name": "Interview-Ready Junior SRE",
+   "name": "Junior SRE Lab Graduate",
    "xp": 3300
   }
  ],

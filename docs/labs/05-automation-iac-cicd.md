@@ -13,6 +13,8 @@ This part turns manual work into code. You automate the first minutes of an inci
 | [M16](#m16-dora-metrics) | DORA metrics | New in 2027 |
 | [M19](#m19-software-supply-chain-security) | Software supply chain security | New in 2027 |
 
+**Core path:** M10 (the Ansible part), M11, M09b, M12 and M16. Optional add-ons: AWX in M10 (mission M10X, needs a 16 GB laptop) and M19. See the [core path](README.md#official-core-path-about-35-hours). On Windows, Ansible does not run in PowerShell: do M10 in the Ubuntu window (WSL2).
+
 All commands run from the project folder (`cd ~/sre-final-project`) in **Terminal** (Mac) or the **Ubuntu** window (Windows). If you use Docker Desktop and PowerShell on Windows instead, use `scripts\*.ps1` and `python` where this page says `./scripts/*.sh` and `python3`. The core stack must be running first: [`./scripts/deploy.sh`](../../scripts/deploy.sh) (see [GUIDE.md](../GUIDE.md)).
 
 ---
@@ -114,7 +116,7 @@ The AWX account follows least privilege. [`awx/rbac.yaml`](../../awx/rbac.yaml) 
 4. Why do the runbooks use `kubernetes.core` modules instead of calling `kubectl`?
 5. What lesson does the `kube-rbac-proxy` redirect teach?
 
-<details><summary>Answers (instructors)</summary>
+<details><summary>Answers (try first)</summary>
 
 1. Reading is safe to repeat and cannot make the outage worse. A restart changes production, so a person approves it after reading the evidence.
 2. The `severity = "critical"` route in `k8s/alertmanager.yaml` sends to the `awx-collect-diagnostics` webhook receiver. `continue: true` makes Alertmanager also evaluate the next route, so Slack and email still get the alert.
@@ -267,7 +269,7 @@ Infrastructure as code (IaC) means the environment is described in files, review
 4. Why did step 9 delete the namespaces before `deploy.sh --helm`?
 5. What is the difference between a Helm chart version and a release revision?
 
-<details><summary>Answers (instructors)</summary>
+<details><summary>Answers (try first)</summary>
 
 1. From surprises. It shows exactly what will be added, changed or destroyed before anything happens, so a reviewer can stop a bad change.
 2. `sre-metrics-app-qa`. `main.tf` sets `environment` to the workspace name (or `staging` for `default`) and builds the namespace from it.
@@ -382,7 +384,7 @@ The security job found real problems: the course pinned Flask 3.0.3 and OpenTele
 3. Why does the CD smoke test run the container without `OTEL_EXPORTER_OTLP_ENDPOINT`?
 4. Docker Hub secrets are not set. Does CD fail?
 
-<details><summary>Answers (instructors)</summary>
+<details><summary>Answers (try first)</summary>
 
 1. Validate manifests, Helm chart and configs (`promtool check rules`).
 2. Students on Apple Silicon Macs need an arm64 image; without it they get `exec format error` (course Pattern A).
@@ -467,7 +469,7 @@ The script uses only the GitHub API and the Python standard library. The heurist
 2. Why are change fail rate and recovery time based on issues, not on CI failures?
 3. Name one way this script could be gamed, and how a team would notice.
 
-<details><summary>Answers (instructors)</summary>
+<details><summary>Answers (try first)</summary>
 
 1. Deployment frequency and deployment rework rate (within 24 h and, with a `.1` tag, a patch).
 2. A failed CI run never reached users. DORA counts changes that caused a problem in production, and the incident issue is our record of that.
@@ -581,7 +583,7 @@ Everything is tied to the image **digest** (`sha256:...`), not a tag, because ta
 4. What is the difference between the SBOM attestation and the SLSA provenance?
 5. How would you protect the lab from another `kube-rbac-proxy` style removal?
 
-<details><summary>Answers (instructors)</summary>
+<details><summary>Answers (try first)</summary>
 
 1. A tag can be moved to other content; a digest is the content. Signing the digest means the signature cannot be reused for a different image.
 2. No long-lived key is stored. The job's GitHub OIDC token proves its identity, Sigstore's Fulcio issues a short-lived certificate, and the signature is recorded in the Rekor transparency log.

@@ -167,16 +167,24 @@ def capabilities(zones, cleared, current_part):
 
 
 def career(catalog, progress, cleared):
-    """Your CV so far: skills of every cleared camp, plus interview questions to rehearse with Bob."""
+    """Your CV so far: each skill whose proof missions are all done (shown with those mission ids), plus the
+    interview questions of every cleared camp to rehearse with Bob."""
+    import lab  # the same rules as "lab.py cv", so the page and the terminal never disagree
     zones = sorted(catalog.get("zones", []), key=lambda z: z["part"])
-    won = [z for z in zones if z["part"] in cleared]
-    skills = "".join(f"<li>{html.escape(skill)}</li>" for z in won for skill in z.get("skills", []))
+    earned = lab.skills_earned(catalog, progress)
+    skills = "".join(
+        f"<li>{html.escape(s['skill'])}"
+        + (f' <span class="sub">({html.escape(lab.proof_label(catalog, s["proof"]))})</span>' if s["proof"] else "")
+        + "</li>" for _, won in earned for s in won)
+    got = {s["skill"] for _, won in earned for s in won}
     ahead = next((z for z in zones if z["part"] not in cleared), None)
-    teaser = (f'<p class="sub">Next camp adds: {html.escape("; ".join(ahead.get("skills", [])))}</p>'
-              if ahead and ahead.get("skills") else "")
-    questions = "".join(f"<li>{html.escape(z['interview'])}</li>" for z in won if z.get("interview"))
+    pending = [s["skill"] for s in lab.zone_skills(ahead) if s["skill"] not in got] if ahead else []
+    teaser = f'<p class="sub">Next camp adds: {html.escape("; ".join(pending))}</p>' if pending else ""
+    questions = "".join(f"<li>{html.escape(q['question'])} <span class=\"sub\">({html.escape(q['kind'])})</span></li>"
+                        for z in zones if z["part"] in cleared for q in lab.zone_questions(z))
     return (f'<div class="cv"><section><h3>Your CV so far</h3>'
-            f'{"<ul>" + skills + "</ul>" if skills else "<p class=none>Clear Orientation Day first.</p>"}'
+            '<p class="sub">A skill appears when the mission in brackets is done.</p>'
+            f'{"<ul>" + skills + "</ul>" if skills else "<p class=none>Finish mission B00 first.</p>"}'
             f'{teaser}</section><section><h3>Interview practice</h3>'
             f'{"<ul>" + questions + "</ul>" if questions else "<p class=none>Questions appear as you clear camps.</p>"}'
             f'<p class="sub">Type to Bob: <code>/interview</code> and Bob plays the interviewer.</p></section></div>')

@@ -2,6 +2,8 @@
 
 > **Using IBM Bob on Windows?** Use the [Windows (PowerShell, used by IBM Bob)](#windows-powershell-used-by-ibm-bob) section and skip WSL. Bob's terminal is PowerShell, so every command must work there.
 
+> **Start with the preflight.** Run `python scripts\preflight.py` (Windows) or `python3 scripts/preflight.py` (Mac). It only reads your laptop and tells you what is missing. On an IBM-managed laptop, send [IT-REQUEST.md](IT-REQUEST.md) to IT before the course.
+
 This guide explains the project in plain language and walks you through running it on a **Mac** or a **Windows** computer, one step at a time. You do not need to know Kubernetes or programming. If a word is new, check the [glossary](#glossary) at the end.
 
 There are three install paths. Pick **one**:

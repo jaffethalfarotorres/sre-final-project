@@ -140,7 +140,14 @@ Do steps 1-5 in the **SRE Lab Guide** mode. Bob proposes each command; you read 
 4. Why do `.mcp.json` and `.bob/mcp.json` not contain a Grafana token?
 5. The agent says "error rate is 40%". What must be next to that claim for it to count?
 
-*Answers: in the instructor answer key, which professors keep in a private repository (see [docs/instructor/README.md](../instructor/README.md)).*
+<details><summary>Answers (try first)</summary>
+
+1. One file means one set of rules. If each tool had its own copy, the copies would drift apart, and one assistant could follow an older rule. Bob reads `AGENTS.md` by default, and Claude Code imports it.
+2. The first line, `@AGENTS.md`. It imports the whole file into Claude Code's instructions.
+3. `sre-triage` may not edit any file: it has only the `read` and `mcp` groups. `sre-postmortem` may also edit, but only Markdown files in `docs/postmortems/` (a `fileRegex` in `.bob/custom_modes.yaml`).
+4. `ai_setup.py` keeps the Viewer token in the cluster Secret `mcp-grafana-token`, and the MCP server runs inside the cluster. Bob and Claude Code only connect to `http://localhost:8000/mcp` through the tunnel, so no token is written into a file that could reach Git.
+5. The query (PromQL or LogQL) and its result. A claim without evidence does not count (AGENTS.md, rule 5).
+</details>
 
 **Common problems**
 
@@ -279,7 +286,14 @@ The app has a drill endpoint, `/inject`. It is off unless the Deployment has `EN
 4. Why is a log line a possible attack path for an AI agent, but not for a human reading the same dashboard?
 5. Why must the human, not the agent, set and remove `ENABLE_INJECTION_DRILL`?
 
-*Answers: in the instructor answer key, which professors keep in a private repository (see [docs/instructor/README.md](../instructor/README.md)).*
+<details><summary>Answers (try first)</summary>
+
+1. Any three of: the Bob SRE Triage mode has no `execute` group, so it cannot run a command; in Claude Code, a deny rule in `.claude/settings.json` and the `guard_mutations.py` hook; Kubernetes RBAC, because the `ai-readonly` identity has only the `view` role.
+2. The hook blocks the tool call. Claude Code does not run the command and shows the hook's message instead.
+3. Even with `-disable-write`, mcp-grafana 2.2.0 still registers one write tool, `alerting_manage_routing`. Approving the whole server would approve that tool too. Naming read tools one by one keeps a human approval on everything else.
+4. A human reads the line as text and decides. An agent reads the same text as part of its input and may treat it as an instruction, and it may have tools to act on it. Anyone who can make the app write a log line can try to talk to the agent.
+5. Turning the drill on and off changes the Deployment, which is a write. Under the safety rules only a human makes changes. The agent is also the one being tested, so it must not control the test.
+</details>
 
 **Common problems**
 
@@ -355,7 +369,12 @@ The lab collector ([k8s/config/otel-collector.yaml](../../k8s/config/otel-collec
 2. Why does this demo show logs in Loki but no Claude Code metrics in Prometheus?
 3. Name one privacy risk of agent telemetry.
 
-*Answers: in the instructor answer key, which professors keep in a private repository (see [docs/instructor/README.md](../instructor/README.md)).*
+<details><summary>Answers (try first)</summary>
+
+1. The audit log shows which tools the agent called. It does not show cost, token use, the prompts, or what the model decided not to do. It is also a local file on one laptop, not next to the incident timeline in Grafana.
+2. The collector's metrics pipeline only takes span metrics today. OTLP metrics from Claude Code are not stored unless the instructor adds `otlp` to the metrics `receivers`. The logs pipeline already sends OTLP logs to Loki.
+3. Prompts and tool data can contain personal data, secrets or client names. Anyone who can read Loki could read them. Turn content capture on only on purpose, and on the instructor's own account.
+</details>
 
 **Common problems**
 
@@ -380,7 +399,7 @@ unset CLAUDE_CODE_ENABLE_TELEMETRY OTEL_LOGS_EXPORTER OTEL_METRICS_EXPORTER OTEL
 
 | Course mapping | Time | Memory | Level | Prerequisites |
 | --- | --- | --- | --- | --- |
-| topic1 TTD/TTA/TTR, topic6 incident management, ex19 chaos, ex18 rollbacks (+ M21 canary) | 4-5 h (prep 45 min, two drills 2 × 60 min, postmortem 60 min, review 30 min) | core stack + one add-on (chaos or Argo Rollouts) | Advanced | M17, M18, Part 3 (incident response), Part 6 (chaos or canary) |
+| topic1 TTD/TTA/TTR, topic6 incident management, ex19 chaos, ex18 rollbacks (+ M21 canary) | 4-5 h (prep 45 min, two drills 2 × 60 min, postmortem 60 min, review 30 min) | core stack; one add-on (chaos or Argo Rollouts) only for the optional chaos or canary drill | Advanced | M17, M18, Part 3 (incident response), M14 (rollbacks). Chaos or canary from Part 6 is optional: the core path runs both drills with `trigger-alert` |
 
 **Learning objectives**
 - Run a timed incident drill in fixed roles (incident commander, operations, scribe) with an AI agent as a read-only assistant.
@@ -460,7 +479,13 @@ TTD = alert `startsAt` (firing) minus the start of the problem. TTA = acknowledg
 3. Why does the postmortem keep AI suggestions and human decisions in separate lines of the timeline?
 4. Which part of TTD can an AI agent not improve at all in this lab?
 
-*Answers: in the instructor answer key, which professors keep in a private repository (see [docs/instructor/README.md](../instructor/README.md)).*
+<details><summary>Answers (try first)</summary>
+
+1. The incident commander approves it. The operations person runs it, in the admin window. The AI only proposes.
+2. Any two of: the team had already seen the same failure in drill A; the roles were rotated, so a stronger person may have been operations; the injected failure or its timing was easier; the team knew a drill would come and watched more closely.
+3. So the review can see what the AI got right or wrong, and who made each decision. It keeps the human accountable for every action, and it feeds the "AI got it wrong" log.
+4. The time before the alert fires. TTD ends at the alert's `startsAt`. The rule's `for:` duration and the rate window decide it, and the agent only starts after the alert fires.
+</details>
 
 **Common problems**
 

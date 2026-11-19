@@ -62,6 +62,8 @@ data:
     # "equal: [service]" means: only for the same service (every rule in alerts.yml and slo.yml has it).
     inhibit_rules:
       # The app is down: errors, failed probes and budget burn are symptoms of the same outage.
+      # ServiceDown fires only when ALL replicas are down or gone (alerts.yml). ReplicaDown (one pod of
+      # two lost) is never a source here, so one lost pod cannot hide errors on the pod still serving.
       - source_matchers:
           - alertname = "ServiceDown"
         target_matchers:

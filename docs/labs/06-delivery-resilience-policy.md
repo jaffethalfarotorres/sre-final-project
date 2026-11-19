@@ -12,6 +12,8 @@ This part is about changing a running system safely. You deploy from Git with Ar
 | [M20](#m20-policy-as-code-with-kyverno) | Policy as code with Kyverno | [`policy/workload-baseline.yaml`](../../policy/workload-baseline.yaml), [`scripts/policy_setup.py`](../../scripts/policy_setup.py) |
 | [M21](#m21-progressive-delivery-with-argo-rollouts) | Progressive delivery with Argo Rollouts | [`progressive/rollout.yaml`](../../progressive/rollout.yaml), [`scripts/canary_demo.py`](../../scripts/canary_demo.py) |
 
+**Core path:** only **M14** (30 min, no add-on). M13, M15, M20 and M21 are optional add-ons: do them on a 16 GB laptop, one at a time, or watch the instructor demo. See the [core path](README.md#official-core-path-about-35-hours).
+
 **Before you start (all modules).** Run every command from the project folder (`cd ~/sre-final-project`), in the Mac Terminal or the Ubuntu window on Windows. The core stack must be running (`./scripts/deploy.sh`, see [`../GUIDE.md`](../GUIDE.md)). On Windows with Docker Desktop and PowerShell, use `scripts\*.ps1` where this page says `./scripts/*.sh`, and type `python` instead of `python3`. A few inspection commands (`grep`, jsonpath with `\n`) are written for bash. Run them in the Ubuntu window.
 
 **Memory rule.** The core stack uses about 3.2-3.8 GiB. The add-ons in this part were measured in a 6 GiB Minikube, created as in Part 1, step 4 (run `minikube delete` first if a 4 GB cluster already exists; `minikube start --driver=docker --memory=6144` before `./scripts/deploy.sh`). The deploy script's default is 4096 MB, which is not enough for these add-ons. Run **one add-on at a time** (ArgoCD, chaos tools, Kyverno, Argo Rollouts) and use its **Clean up** section before you start the next module. Before each add-on module, run `kubectl get namespaces` and check that none of `argocd`, `litmus`, `argo`, `kyverno`, `argo-rollouts`, `progressive` or `awx` is left over (except the one for the module you are in).
@@ -104,7 +106,7 @@ Why this matters for SRE: every change has a commit, an author and a review. A r
 3. Which object stops this Application from deploying into the `application` namespace?
 4. After a UI rollback, what does Git say about the running version? Why is that a problem during an incident review?
 
-<details><summary>Answers (instructors)</summary>
+<details><summary>Answers (try first)</summary>
 
 1. `prune` deletes cluster objects that were removed from Git. `selfHeal` reverts manual changes to objects that are still in Git.
 2. `valuesObject` in `gitops/application.yaml` sets `replicaCount: 2`, and it wins over the chart's `values.yaml`.
@@ -209,7 +211,7 @@ The demo uses the tag `sre-metrics-app:broken`, which does not exist. Because th
 3. Which command shows which revision you can go back to?
 4. In the demo, what is the difference between "rollback took" and "bad release to recovery"? Which one is closer to MTTR?
 
-<details><summary>Answers (instructors)</summary>
+<details><summary>Answers (try first)</summary>
 
 1. Kubernetes could remove one old pod before the new one is ready. Only one pod would serve traffic, so capacity is halved. With 1 replica it would be an outage.
 2. `maxUnavailable: 0` keeps both old pods until a new pod is Ready, and the broken pod never becomes Ready, so the Service never sends it traffic.
@@ -310,7 +312,7 @@ The tools:
 4. Why does the workflow end with a `cleanup` step?
 5. Why must you remove other add-ons before this test?
 
-<details><summary>Answers (instructors)</summary>
+<details><summary>Answers (try first)</summary>
 
 1. Steady state (HTTP 200 on `/`), fault (delete 50% of pods every 10 s for 30 s), expected result (probe never fails, verdict Pass).
 2. The `ChaosResult` `sre-metrics-app-pod-delete-pod-delete`. It fails when the continuous `httpProbe` fails (after its retries).
@@ -422,7 +424,7 @@ A real finding from this project: the first alert drill pod (created with `kubec
 3. Which rules did the `nginx:latest` test pod break?
 4. Why was the drill pod changed, even though it is only a test tool?
 
-<details><summary>Answers (instructors)</summary>
+<details><summary>Answers (try first)</summary>
 
 1. Audit allows the pod and records the violation in a PolicyReport. Enforce rejects the pod at the API server.
 2. To find existing violations without breaking running workloads. You switch to Enforce once the reports are clean.
@@ -524,7 +526,7 @@ The app reads `STORE_ERROR_RATE` (see [`app/app.py`](../../app/app.py)). The sta
 4. What is the difference between this gate and `maxUnavailable: 0` in M14?
 5. Why is the gate (90%) below the app's normal success rate (about 95%)?
 
-<details><summary>Answers (instructors)</summary>
+<details><summary>Answers (try first)</summary>
 
 1. Without it, the stable pods' good traffic would hide the canary's errors. The hash selects only the new pods.
 2. About 25% of requests, and only for the analysis window (around a minute), because the abort happened at the first step.

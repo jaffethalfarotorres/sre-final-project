@@ -100,3 +100,87 @@ tests:
               summary: "High p95 latency (>500ms) on /store of sre-metrics-app"
               description: "p95 latency of /store is 962.5ms (threshold > 500ms) over the last 2 minutes."
               runbook_url: "https://github.com/jaffethalfarotorres/sre-final-project/blob/main/docs/runbooks/high-latency.md"
+
+  # 6) One app pod of two is down for 10 minutes: only the ReplicaDown warning. The other pod still
+  #    serves users, so ServiceDown (the page) must stay silent.
+  - interval: 1m
+    input_series:
+      - series: 'up{job="kubernetes-pods", namespace="application", app="sre-metrics-app", pod="sre-metrics-app-a", instance="10.0.0.1:5000"}'
+        values: '1x5 0x10'
+      - series: 'up{job="kubernetes-pods", namespace="application", app="sre-metrics-app", pod="sre-metrics-app-b", instance="10.0.0.2:5000"}'
+        values: '1x15'
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: ServiceDown
+        exp_alerts: []
+      - eval_time: 15m
+        alertname: ReplicaDown
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              service: sre-metrics-app
+            exp_annotations:
+              summary: "Some replicas of sre-metrics-app are down"
+              description: "Only 1 sre-metrics-app pod(s) answer. The others cannot be scraped. Users are still served."
+              runbook_url: "https://github.com/jaffethalfarotorres/sre-final-project/blob/main/docs/runbooks/service-down.md"
+
+  # 7) A short blip of one pod (2 minutes, like a pod restart or rolling update) does not even warn.
+  - interval: 1m
+    input_series:
+      - series: 'up{job="kubernetes-pods", namespace="application", app="sre-metrics-app", pod="sre-metrics-app-a", instance="10.0.0.1:5000"}'
+        values: '1x5 0x2 1x8'
+      - series: 'up{job="kubernetes-pods", namespace="application", app="sre-metrics-app", pod="sre-metrics-app-b", instance="10.0.0.2:5000"}'
+        values: '1x15'
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: ReplicaDown
+        exp_alerts: []
+      - eval_time: 15m
+        alertname: ServiceDown
+        exp_alerts: []
+
+  # 8) Both app pods are down: ServiceDown pages (critical). ReplicaDown stays silent, the page covers it.
+  - interval: 1m
+    input_series:
+      - series: 'up{job="kubernetes-pods", namespace="application", app="sre-metrics-app", pod="sre-metrics-app-a", instance="10.0.0.1:5000"}'
+        values: '1x5 0x10'
+      - series: 'up{job="kubernetes-pods", namespace="application", app="sre-metrics-app", pod="sre-metrics-app-b", instance="10.0.0.2:5000"}'
+        values: '1x5 0x10'
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: ReplicaDown
+        exp_alerts: []
+      - eval_time: 15m
+        alertname: ServiceDown
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              service: sre-metrics-app
+            exp_annotations:
+              summary: "Service sre-metrics-app is down (no replica can be scraped)"
+              description: "No sre-metrics-app pod answers: every replica is down, or Prometheus finds no app pod at all."
+              runbook_url: "https://github.com/jaffethalfarotorres/sre-final-project/blob/main/docs/runbooks/service-down.md"
+
+  # 9) No app pod at all (Deployment scaled to 0): there is no "up" series to be 0, so absent() pages.
+  #    Other pods (here the OpenTelemetry Collector) are still scraped; they must not hide the outage.
+  - interval: 1m
+    input_series:
+      - series: 'up{job="kubernetes-pods", namespace="opentelemetry", app="otel-collector", pod="otel-collector-a", instance="10.0.0.9:9464"}'
+        values: '1x15'
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: ReplicaDown
+        exp_alerts: []
+      - eval_time: 15m
+        alertname: ServiceDown
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              service: sre-metrics-app
+              job: kubernetes-pods
+              namespace: application
+              app: sre-metrics-app
+            exp_annotations:
+              summary: "Service sre-metrics-app is down (no replica can be scraped)"
+              description: "No sre-metrics-app pod answers: every replica is down, or Prometheus finds no app pod at all."
+              runbook_url: "https://github.com/jaffethalfarotorres/sre-final-project/blob/main/docs/runbooks/service-down.md"

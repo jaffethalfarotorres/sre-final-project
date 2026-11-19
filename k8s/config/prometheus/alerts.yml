@@ -1,17 +1,48 @@
 groups:
   - name: sre-metrics-app-slo
     rules:
+      # The app runs 2 replicas, so one lost pod is not an outage: the other pod still serves users.
+      # ServiceDown pages only when NO app pod can be scraped:
+      #   - sum(up) == 0: every app pod exists but none answers /metrics;
+      #   - absent(up): Prometheus finds no app pod at all (for example the Deployment is scaled to 0).
+      # Labels come from prometheus.yml: job "kubernetes-pods", and "app" copied from the pod label.
       - alert: ServiceDown
-        expr: up{namespace="application"} == 0
+        expr: |
+          sum(up{job="kubernetes-pods", namespace="application", app="sre-metrics-app"}) == 0
+          or
+          absent(up{job="kubernetes-pods", namespace="application", app="sre-metrics-app"})
         for: 1m
         labels:
           severity: critical
           service: sre-metrics-app
         annotations:
-          summary: "Service sre-metrics-app is down"
-          description: "Target sre-metrics-app on {{ $labels.instance }} is unreachable (up == 0)."
+          summary: "Service sre-metrics-app is down (no replica can be scraped)"
+          description: "No sre-metrics-app pod answers: every replica is down, or Prometheus finds no app pod at all."
           runbook_url: "https://github.com/jaffethalfarotorres/sre-final-project/blob/main/docs/runbooks/service-down.md"
 
+      # Some replicas are down, but at least one still answers. Users are still served, so this is a
+      # warning (the warning route: Slack, email and phone push; no AWX job). "for: 5m" lets a normal
+      # rolling update or a pod restart finish without noise. Limit: a pod that never gets an IP
+      # (Pending) is not a scrape target, so it is not counted here; "kubectl get pods" shows it.
+      - alert: ReplicaDown
+        expr: |
+          sum(up{job="kubernetes-pods", namespace="application", app="sre-metrics-app"})
+            < count(up{job="kubernetes-pods", namespace="application", app="sre-metrics-app"})
+          and
+          sum(up{job="kubernetes-pods", namespace="application", app="sre-metrics-app"}) > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: sre-metrics-app
+        annotations:
+          summary: "Some replicas of sre-metrics-app are down"
+          description: "Only {{ $value }} sre-metrics-app pod(s) answer. The others cannot be scraped. Users are still served."
+          runbook_url: "https://github.com/jaffethalfarotorres/sre-final-project/blob/main/docs/runbooks/service-down.md"
+
+      # HighErrorRate overlaps ErrorBudgetFastBurn (slo.yml) by design. A 5% error ratio is a burn rate
+      # of 5x on the 1% budget. It is the fast symptom page: it needs only 5 minutes of data and fires
+      # about 2-3 minutes into the drill. FastBurn also needs its 1-hour window, so on an older cluster
+      # it fires some minutes later (see docs/SLO.md). Inhibition does not mute one with the other.
       # Error ratio over 5 minutes, but only when there is real traffic (more than 0.2 requests per
       # second, about 60 requests in 5 minutes). Without the floor, 1 failure out of 3 requests on a
       # quiet service would already page someone.

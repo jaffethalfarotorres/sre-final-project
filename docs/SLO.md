@@ -38,7 +38,9 @@ The request guards keep a drill on a fresh cluster from firing the long-window a
 
 **Where 14.4 comes from.** A 30-day window has 720 hours. Spending 2% of the budget in 1 hour means burning `0.02 × 720 = 14.4` times faster than "exactly on budget". In the same way, 5% in 6 hours is `0.05 × 720 / 6 = 6`.
 
-**Alertmanager inhibition.** When `ServiceDown` fires, the error, latency, probe and burn-rate alerts are muted (they are symptoms of the same outage). `ErrorBudgetExhausted` is not muted. When `ErrorBudgetFastBurn` fires, the slow burn and the ticket are muted. When `ErrorBudgetSlowBurn` fires, the ticket is muted. Muted alerts still show in the Alertmanager UI as "inhibited". See `inhibit_rules` in [`k8s/alertmanager.yaml`](../k8s/alertmanager.yaml).
+**HighErrorRate overlaps `ErrorBudgetFastBurn` by design.** It is the fast symptom page (5% errors, which is a 5× burn rate, for 2 m). It needs no 1-hour window, so it pages first in a drill.
+
+**Alertmanager inhibition.** When `ServiceDown` fires (all app replicas down or gone), the error, latency, probe and burn-rate alerts are muted (they are symptoms of the same outage). `ErrorBudgetExhausted` is not muted. When `ErrorBudgetFastBurn` fires, the slow burn and the ticket are muted. When `ErrorBudgetSlowBurn` fires, the ticket is muted. Muted alerts still show in the Alertmanager UI as "inhibited". See `inhibit_rules` in [`k8s/alertmanager.yaml`](../k8s/alertmanager.yaml).
 
 **Tested without a cluster.** [`tests/rules/`](../tests/rules/) holds `promtool` unit tests: the alerts stay silent on normal traffic, the page fires at 15× and stays silent at 14×, the drill fires it, and one drill on a 1-day-old cluster does not exhaust the budget. CI runs them.
 

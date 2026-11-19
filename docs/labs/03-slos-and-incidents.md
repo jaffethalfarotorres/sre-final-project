@@ -108,7 +108,7 @@ Why the 100,000-request guard? Prometheus calls the window "30 days", but on a f
 4. On a cluster that is 3 hours old, the budget gauge shows a negative value after the drill. Why does `ErrorBudgetExhausted` not fire?
 5. Which band of the error budget policy are you in when 30% of the budget is left, and what changes for releases?
 
-<details><summary>Answers (instructors)</summary>
+<details><summary>Answers (try first)</summary>
 
 1. `(1 - 0.98) / (1 - 0.99) = 0.02 / 0.01 = 2x`. The budget would last `30 / 2 = 15` days.
 2. The 1 h window proves the problem is real and lasting: 2% of the monthly budget is gone in one hour. A 5 m spike alone could be noise; requiring both cuts false pages. The 5 m window makes the page clear soon after the fix. This is also why the page comes minutes after `HighErrorRate` in the drill.
@@ -205,7 +205,7 @@ The alert `SyntheticProbeFailing` ([`alerts.yml`](../../k8s/config/prometheus/al
 3. With zero app pods, why does `ServiceDown` stay silent?
 4. Which cAdvisor metric shows how close a container is to an OOM kill?
 
-<details><summary>Answers (instructors)</summary>
+<details><summary>Answers (try first)</summary>
 
 1. The blackbox exporter, acting as a user, did not get a 2xx answer (or timed out after 5 s) from that URL.
 2. `/store` fails about 0.5% of the time on purpose. An alert on it would fire on normal behaviour. It is still useful on the dashboard to see latency from the user side.
@@ -327,7 +327,7 @@ Every alert has a `runbook_url` that points to [`../runbooks/`](../runbooks/). A
 4. Rewrite this sentence in blameless form: "Ana deployed a bad config and broke the store."
 5. ORR section 5 is "Partial". Name the Medium gap and its fix.
 
-<details><summary>Answers (instructors)</summary>
+<details><summary>Answers (try first)</summary>
 
 1. Sev-1. Incident Commander, subject-matter experts, communications lead, scribe and on-call. Updates every 15 minutes, postmortem required.
 2. TTD = 2.5 min (met, < 3). TTA = 3.5 min (met, < 5). TTR = 20 min (met, < 30). None is missed. Ask students to show the arithmetic.
@@ -444,7 +444,7 @@ Labels must exist before they are used. Dependabot does not create missing label
 3. Which words in a PR description close an issue on merge?
 4. Why should the labels exist before Dependabot runs?
 
-<details><summary>Answers (instructors)</summary>
+<details><summary>Answers (try first)</summary>
 
 1. `.github/ISSUE_TEMPLATE/config.yml` sets `blank_issues_enabled: false`, so every issue uses a form with the fields the team needs.
 2. It adds `needs-triage` to new issues, and comments the closed/referenced issues on merged PRs. It uses only the built-in `GITHUB_TOKEN`, no extra secrets.

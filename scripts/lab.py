@@ -3,11 +3,12 @@
 SRE Academy Lab Game: missions, XP, levels, achievements and a shareable proof.
 
 Theme: the Road to Junior SRE. With Bob, your AI pair, you climb camp by camp from "Career Changer" to On-Call
-Ready. Each camp teaches one SRE principle and lists the skills you can name on your CV.
-A mission is only marked done when a
-read-only check finds the evidence on your cluster or repository. The progress file and the passport stay on
-your own laptop, so professors confirm them with "lab.py verify" or a short live demo. IBM Bob (mode "SRE Lab
-Guide") and Claude Code (/lab) use this script as the game engine, and you can run it yourself:
+Ready (the lab's last camp: you completed its on-call missions; it is practice, not a job certification). Each
+camp teaches one SRE principle. A CV skill is listed only when the mission that proves it is done.
+A mission is only marked done when a read-only check finds the evidence on your cluster or repository. The
+progress file and the passport stay on your own laptop, so professors confirm them with "lab.py verify" or a
+short live demo. IBM Bob (mode "SRE Lab Guide") and Claude Code (/lab) use this script as the game engine,
+and you can run it yourself:
 
     python3 scripts/lab.py status              # level, XP, next mission
     python3 scripts/lab.py missions            # every mission and whether it is done
@@ -437,11 +438,37 @@ def xp_of(catalog, progress):
     return earned + sum(quiz_points(catalog, v) for v in progress["quiz"].values())
 
 
+def zone_skills(zone):
+    """A zone's skills as {"skill", "proof"} dicts. An older catalog lists plain strings: proof is then None and
+    the skill counts when the whole camp is cleared."""
+    return [s if isinstance(s, dict) else {"skill": s, "proof": None} for s in zone.get("skills", [])]
+
+
+def zone_questions(zone):
+    """A zone's interview questions as {"kind", "question"} dicts (an older catalog has one plain string)."""
+    items = zone.get("interview") or []
+    items = [items] if isinstance(items, (str, dict)) else items
+    return [q if isinstance(q, dict) else {"kind": "concept", "question": q} for q in items]
+
+
+def proof_label(catalog, ids):
+    """'M14' or 'M13 (add-on)': the mission ids that prove a skill, marking the optional add-ons."""
+    kinds = {m["id"]: m["kind"] for m in catalog["missions"]}
+    return ", ".join(f"{i} (add-on)" if kinds.get(i) == "addon" else i for i in ids or [])
+
+
 def skills_earned(catalog, progress):
-    """CV skills: every skill of each cleared camp, in climb order."""
+    """CV skills, in climb order: a skill counts only when every mission that proves it is done, whether or not
+    its camp is cleared. Returns (zone, [skill dicts]) for each zone with at least one earned skill."""
+    done = set(progress["missions"])
     cleared = set(zones_cleared(catalog, progress))
-    return [(z, z.get("skills", [])) for z in sorted(catalog.get("zones", []), key=lambda z: z["part"])
-            if z["part"] in cleared]
+    earned = []
+    for zone in sorted(catalog.get("zones", []), key=lambda z: z["part"]):
+        won = [s for s in zone_skills(zone)
+               if (set(s["proof"]) <= done if s["proof"] else s["proof"] is None and zone["part"] in cleared)]
+        if won:
+            earned.append((zone, won))
+    return earned
 
 
 def level_of(catalog, xp):
@@ -585,12 +612,18 @@ def cmd_check(args):
         print(f"  You and Bob reach level {step}/{len(zones)} on the way to the On-Call Ready summit.")
         if zone.get("principle"):
             print(f"  SRE principle you practised: {zone['principle']}")
-        if zone.get("skills"):
-            print("  New skills for your CV: " + "; ".join(zone["skills"]))
-        if zone.get("interview"):
-            print(f"  Interview practice: \"{zone['interview']}\" (type /interview to Bob to rehearse it)")
+        done_ids = set(progress["missions"])
+        won = [s for s in zone_skills(zone) if s["proof"] is None or set(s["proof"]) <= done_ids]
+        if won:
+            print("  Skills for your CV (proved by): " + "; ".join(
+                s["skill"] + (f" ({proof_label(catalog, s['proof'])})" if s["proof"] else "") for s in won))
+        questions = zone_questions(zone)
+        if questions:
+            print(f"  Interview practice: \"{questions[0]['question']}\" ({PY} scripts/lab.py cv shows all "
+                  f"{len(questions)}; type /interview to Bob to rehearse them)")
         print(f"  Next camp: {following['name']} - {following['story']}" if following else
-              f"  SUMMIT REACHED: you are On-Call Ready. Run: {PY} scripts/lab.py proof --name \"Your Name\"")
+              "  SUMMIT REACHED: On-Call Ready. You completed the lab's on-call missions (practice, not a job "
+              f"certification).\n  Run: {PY} scripts/lab.py proof --name \"Your Name\"")
         print("=" * 60)
     write_mission_control()  # keep the visual dashboard current
     return 0 if all(m["id"] in progress["missions"] for m in missions) else 1
@@ -657,23 +690,31 @@ def cmd_cv(args):
     catalog, progress = load_catalog(), load_progress()
     earned = skills_earned(catalog, progress)
     if not earned:
-        print("No camp cleared yet. Clear Orientation Day (mission B00) to earn your first skills.")
+        print("No skill earned yet. Finish mission B00 (Orientation Day) to earn your first skills.")
         return 0
-    print("Skills you practised hands-on in the SRE Academy lab (each one backed by a checked mission):\n")
+    print("Skills you practised hands-on in the SRE Academy lab. Each one is listed only because the mission in "
+          "brackets passed its check:\n")
     for zone, skills in earned:
         for skill in skills:
-            print(f"- {skill}")
+            proof = f" (proved by {proof_label(catalog, skill['proof'])})" if skill["proof"] else ""
+            print(f"- {skill['skill']}{proof}")
     done = [m for m in catalog["missions"] if m["id"] in progress["missions"] and m["kind"] == "portfolio"]
     for mission in done:
-        print(f"Portfolio project: {mission['title']} ({mission['goal']})")
+        print(f"Portfolio project: {mission['title']} ({mission['goal']}) (proved by {mission['id']})")
+    cleared = set(zones_cleared(catalog, progress))
+    won = [z for z in sorted(catalog.get("zones", []), key=lambda z: z["part"]) if z["part"] in cleared]
+    if not won:
+        print("\nClear a whole camp (every core mission in it) to unlock its SRE principle and interview questions.")
+        return 0
     print("\nSRE principles you can explain with your own examples:")
-    for zone, _ in earned:
+    for zone in won:
         if zone.get("principle"):
             print(f"- {zone['principle']}")
-    print("\nInterview practice for the camps you cleared (ask Bob to play the interviewer):")
-    for zone, _ in earned:
-        if zone.get("interview"):
-            print(f"- {zone['name']}: {zone['interview']}")
+    print("\nInterview practice for the camps you cleared (ask Bob to play the interviewer with /interview):")
+    for zone in won:
+        for item in zone_questions(zone):
+            cite = f" Answer with: {', '.join(item['evidence'])}." if item.get("evidence") else ""
+            print(f"- {zone['name']} [{item['kind']}]: {item['question']}{cite}")
     return 0
 
 
@@ -706,20 +747,45 @@ BADGE = """<svg xmlns="http://www.w3.org/2000/svg" width="320" height="64" role=
 """
 
 
+SUMMIT_NOTE = ("**On-Call Ready** means the student completed the lab's on-call missions (AI triage, the "
+               "prompt-injection drill and a practice game day). It is a lab milestone, not a statement of job "
+               "readiness.\n\n")
+
+VERIFY_NOTE = (
+    "## How a reviewer can verify this\n\n"
+    f"- Live: on the student's laptop, run `{PY} scripts/lab.py verify`. It re-runs the read-only check of every "
+    "mission above. Some evidence is time-limited (fired alerts: 24 hours), so ask for a short live demo of those.\n"
+    "- Files: postmortems (M09, M27) are in `docs/postmortems/` and can be committed to the student's fork. "
+    "Reports stay on the laptop, because Git ignores `reports/`: ask the student to show `reports/incident-*.md` "
+    "(M10), `reports/ai-triage-*.md` (M17, M18) and `reports/dora.md` (M16).\n"
+    "- `evidence.json` holds the data behind this page. Remove the `sha256` field, hash the rest with "
+    "SHA-256 (Python: `json.dumps(data, sort_keys=True)`) and compare it with the fingerprint below.\n\n")
+
+PRIVACY_NOTE = (
+    "## Privacy\n\n"
+    "If you commit `lab-proof/` to a public fork, everyone can read: the name you typed, your fork's URL, your "
+    "XP, level and achievements, and the date and evidence line of each mission. lab.py does not put passwords, "
+    "tokens or cluster secrets here, but read the files before you commit. Use a name you are happy to show, or "
+    "keep `lab-proof/` out of Git and share it privately.\n")
+
+
 def cmd_proof(args):
     catalog, progress = load_catalog(), load_progress()
     xp = xp_of(catalog, progress)
     level = level_of(catalog, xp)[0]["name"]
     done = [m for m in catalog["missions"] if m["id"] in progress["missions"]]
-    skills = [skill for _, zone_skills in skills_earned(catalog, progress) for skill in zone_skills]
+    earned = [skill for _, won in skills_earned(catalog, progress) for skill in won]
+    skills = [skill["skill"] for skill in earned]
+    summit = len(zones_cleared(catalog, progress)) == len(catalog.get("zones", []))
     badges = [m["achievement"] for m in done if m["achievement"]]
     PROOF_DIR.mkdir(exist_ok=True)
     generated = datetime.now(timezone.utc).isoformat(timespec="seconds")
     record = {"name": args.name, "level": level, "xp": xp,
               "generated": generated, "skills": skills,
+              "skills_proof": {skill["skill"]: skill["proof"] for skill in earned if skill["proof"]},
               "repository": _origin_repo(), "missions": {m["id"]: progress["missions"][m["id"]] for m in done},
               "quiz_correct": sum(1 for v in progress["quiz"].values() if v),
-              "summit": len(zones_cleared(catalog, progress)) == len(catalog.get("zones", []))}
+              "summit": summit}
     record["sha256"] = hashlib.sha256(json.dumps(record, sort_keys=True).encode()).hexdigest()
     (PROOF_DIR / "evidence.json").write_text(json.dumps(record, indent=2), encoding="utf-8")
     badge = BADGE.format(label=f"{level}, {xp} XP", level=level, xp=xp, done=len(done),
@@ -732,17 +798,23 @@ def cmd_proof(args):
         f"**Level:** {level} · **XP:** {xp} · **Missions:** {len(done)}/{len(catalog['missions'])} · "
         f"**Quiz answers correct:** {record['quiz_correct']}\n\n"
         f"**Achievements:** {', '.join(badges) or 'none yet'}\n\n"
-        "## Skills practised hands-on\n\n" + ("".join(f"- {skill}\n" for skill in skills) or "- none yet\n") +
+        + (SUMMIT_NOTE if summit else "") +
+        "## Skills practised hands-on\n\n"
+        "A skill is listed only when every mission that proves it (in brackets) passed its check.\n\n" +
+        ("".join(f"- {s['skill']}" + (f" ({proof_label(catalog, s['proof'])})" if s["proof"] else "") + "\n"
+                 for s in earned) or "- none yet\n") +
         "\n## Missions and evidence\n\n"
         "Each mission below was marked done only when a read-only check in `scripts/lab.py` found the evidence on "
         "the student's own Kubernetes cluster or repository (SRE Academy lab). This passport is generated on the "
-        "student's laptop, so it is a record, not a certificate: a professor or interviewer confirms it with "
-        "`lab.py verify` or a short live demo.\n\n| Mission | Title | Date | Evidence |\n| --- | --- | --- | --- |\n"
-        f"{rows}\n\nFingerprint (SHA-256 of evidence.json without this field; it shows accidental edits, it is not a "
+        "student's laptop, so it is a record, not a certificate.\n\n| Mission | Title | Date | Evidence |\n"
+        f"| --- | --- | --- | --- |\n{rows}\n\n" + VERIFY_NOTE + PRIVACY_NOTE +
+        f"\nFingerprint (SHA-256 of evidence.json without this field; it shows accidental edits, it is not a "
         f"signature): `{record['sha256']}`\n",
         encoding="utf-8")
     print(f"Wrote {PROOF_DIR / 'PASSPORT.md'}, badge.svg and evidence.json ({level}, {xp} XP).")
     print("Share it: commit lab-proof/ to your fork and link PASSPORT.md, or add the badge to your profile README.")
+    print("Privacy: once committed to a public fork, your name, fork URL and mission evidence are public. "
+          "Read PASSPORT.md first (its Privacy section says what it holds).")
 
 
 def main():

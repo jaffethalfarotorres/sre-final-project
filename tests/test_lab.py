@@ -68,12 +68,19 @@ def test_proof_writes_passport_badge_and_hash(tmp_path, monkeypatch):
     assert "Test Student" in passport and "M00" in passport
     assert (tmp_path / "proof" / "badge.svg").read_text(encoding="utf-8").startswith("<svg")
     assert len(json.loads((tmp_path / "proof" / "evidence.json").read_text())["sha256"]) == 64
+    assert "## Privacy" in passport and "lab.py verify" in passport and "Docker containers (M00)" in passport
 
 
 def test_one_journey_every_camp_teaches_a_principle(catalog):
     assert "tracks" not in catalog
+    ids = {m["id"] for m in catalog["missions"]}
     for zone in catalog["zones"]:
         assert zone["principle"] and zone["skills"] and zone["interview"]
+        for skill in zone["skills"]:
+            assert skill["skill"] and skill["proof"] and set(skill["proof"]) <= ids, skill
+        assert [q["kind"] for q in zone["interview"]] == ["concept", "judgement", "behavioural"], zone["name"]
+        assert all(q["question"].strip() for q in zone["interview"])
+        assert zone["interview"][2]["evidence"] and set(zone["interview"][2]["evidence"]) <= ids
     portfolio = [m for m in catalog["missions"] if m["kind"] == "portfolio"]
     assert len(portfolio) == 4 and all(m["needs"] is None for m in portfolio)
 
@@ -109,3 +116,44 @@ def test_cohort_report_summarizes_the_class(tmp_path, monkeypatch):
     lab.cmd_proof(type("Args", (), {"name": "Student A"})())
     text = cohort_report.report(cohort_report.load(tmp_path / "proof"), lab.load_catalog())
     assert "1 students" in text and "| ok |" in text
+
+
+def test_skills_need_their_proof_missions_not_a_cleared_camp(catalog):
+    def earned(*done):
+        progress = {"missions": {mid: {} for mid in done}, "quiz": {}}
+        return {s["skill"]: s["proof"] for _, won in lab.skills_earned(catalog, progress) for s in won}
+
+    assert earned() == {}
+    assert set(earned("B00")) == {"Working safely with an AI coding assistant (IBM Bob)",
+                                  "Reviewing and approving commands before they run"}
+    only_rollback = earned("M14")  # camp 6 is far from cleared, but the mission that proves the skill is done
+    assert only_rollback == {"Rollbacks": ["M14"]}
+    assert "Kubernetes basics: pods, deployments, services, probes" not in earned("M00")  # needs M02 too
+    assert "Kubernetes basics: pods, deployments, services, probes" in earned("M00", "M02")
+    every_core = [m["id"] for m in catalog["missions"] if m["kind"] in ("core", "capstone")]
+    assert "GitOps with ArgoCD" not in earned(*every_core)  # only the add-on M13 proves it
+    assert lab.proof_label(catalog, ["M13"]) == "M13 (add-on)"
+
+
+def test_old_catalog_shape_still_works(catalog):
+    legacy = dict(catalog, zones=[dict(z, skills=["Old skill"], interview="Old question?") for z in catalog["zones"]])
+    progress = {"missions": {"B00": {}}, "quiz": {}}
+    earned = [(z["part"], [s["skill"] for s in won]) for z, won in lab.skills_earned(legacy, progress)]
+    assert earned == [(0, ["Old skill"])]
+    assert lab.zone_questions(legacy["zones"][0]) == [{"kind": "concept", "question": "Old question?"}]
+
+
+def test_cv_and_mission_control_show_the_proof(tmp_path, monkeypatch, capsys, catalog):
+    import lab_ui
+    monkeypatch.setattr(lab, "PROGRESS", tmp_path / "progress.json")
+    lab.save_progress({"missions": {"B00": {}, "M14": {}}, "quiz": {}})
+    lab.cmd_cv(None)
+    out = capsys.readouterr().out
+    assert "Rollbacks (proved by M14)" in out and "[behavioural]" in out and "Docker" not in out
+    page = lab_ui.career(catalog, lab.load_progress(), {0})
+    assert "Rollbacks" in page and "M14" in page and "Tell me about a time" in page
+
+
+def test_rank_names_do_not_over_promise(catalog):
+    names = [level["name"] for level in catalog["levels"]]
+    assert "Junior SRE Lab Graduate" in names and not any("Interview-Ready" in n for n in names)

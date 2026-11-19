@@ -35,6 +35,9 @@ Memory is the most common blocker. The core stack uses about 3.2-3.8 GiB. Later 
 
 **Lab steps**
 
+0. Before class: run the read-only preflight, `python scripts\preflight.py` (Mac: `python3 scripts/preflight.py`). It needs no admin rights and prints PASS, WARN, TODO or FAIL with a fix for each line. On an IBM-managed laptop, send [IT-REQUEST.md](../IT-REQUEST.md) to IT at least two weeks before class.
+   What you should see: no FAIL line. TODO lines are the tools step 1 installs.
+
 1. Install the tools. Follow [docs/GUIDE.md step 2](../GUIDE.md#2-install-the-tools-one-time) exactly (Mac or Windows section). Then check:
    ```bash
    docker version
@@ -99,7 +102,7 @@ Memory is the most common blocker. The core stack uses about 3.2-3.8 GiB. Later 
 3. Where is the Grafana admin password stored, and why is that file not in Git?
 4. Why is `AlwaysFiringDemoAlert` useful even though it is "fake"?
 
-<details><summary>Answers (instructors)</summary>
+<details><summary>Answers (try first)</summary>
 
 1. Minikube with `--driver=docker` runs the cluster inside a container, so it needs a running container engine. Mac has no Linux kernel, so Colima provides a small Linux VM. WSL2 provides one on Windows.
 2. It tunnels a port on `localhost` to a Service inside the cluster. It is a running process; closing the window stops the tunnel.
@@ -223,6 +226,10 @@ If `OTEL_EXPORTER_OTLP_ENDPOINT` is not set (tests, local runs), spans and logs 
    ```
    What you should see: JSON lines with `"trace_id"` and `"span_id"`, mixed with Gunicorn access-log lines (those are plain text, not JSON).
 
+9. Record the mission: `python scripts\lab.py check M01` (Mac/Linux: `python3 scripts/lab.py check M01`).
+
+> **Be honest about this check.** `lab.py check M01` looks for the app's metric series in Prometheus and for the service `sre-metrics-app` in Jaeger. The traffic generator creates both a few minutes after M00, so **the check can pass before you do steps 1-8**. A green check here only proves the stack sends signals. Your own work in M01 is the evidence below (the test output, your PromQL graph, and one trace ID found in both Jaeger and Loki). That is what a professor asks for.
+
 **Self-check**
 1. Why is `http_requests_total` a Counter and `http_request_duration_seconds` a Histogram?
 2. What links a log line in Loki to a trace in Jaeger?
@@ -231,7 +238,7 @@ If `OTEL_EXPORTER_OTLP_ENDPOINT` is not set (tests, local runs), spans and logs 
 5. `/metrics` requests do not create traces. Which line causes that, and why is it a good idea?
 6. Step 5 shows a p95 of about 0.44 s, but `/store` never sleeps longer than 0.35 s. Why?
 
-<details><summary>Answers (instructors)</summary>
+<details><summary>Answers (try first)</summary>
 
 1. A request count only goes up; `rate()` turns it into requests per second and error ratio. Latency needs a distribution (buckets) so you can compute percentiles such as p95 with `histogram_quantile`.
 2. The `trace_id` (and `span_id`) that `JsonFormatter` adds from the current span context. Grafana's Loki data source has a `TraceID` derived field that links to Jaeger.
@@ -256,6 +263,7 @@ If `OTEL_EXPORTER_OTLP_ENDPOINT` is not set (tests, local runs), spans and logs 
 - Spend 10 minutes walking through `app.py` on the projector before the lab. Students new to Python only need to recognise the three signal blocks.
 - Demo live: open one red trace in Jaeger, copy its ID, find the same ID in Loki. This "click from log to trace" moment is the point of the module.
 - Grading idea: give each student a different PromQL question (error ratio of `/store`, p99 latency, requests per second per endpoint) and grade the query and the number.
+- `lab.py check M01` passes on any healthy stack, even without the student's work (see the note before the self-check). Grade M01 only on the evidence below, never on the check alone.
 - Evidence to submit: terminal output of `pytest tests -q`; screenshot of the PromQL error-ratio graph (the third query in step 5); screenshot of a red Jaeger trace and of the matching Loki log line showing the same trace ID.
 - Link forward: the metrics here feed the SLO recording rules in [`k8s/config/prometheus/slo.yml`](../../k8s/config/prometheus/slo.yml), explained in [`docs/SLO.md`](../SLO.md) (Part 3, M06).
 
@@ -369,7 +377,7 @@ Windows PowerShell: nothing to do, because you never activated it.
 4. Why does editing a normal ConfigMap not change a running Prometheus, and how does `configMapGenerator` fix it?
 5. Why does CI build for both `linux/amd64` and `linux/arm64`?
 
-<details><summary>Answers (instructors)</summary>
+<details><summary>Answers (try first)</summary>
 
 1. For a tag that is not `latest` the default is `IfNotPresent`, so it would still start while the image is in Minikube. If the image is missing (for example after `minikube delete`), Kubernetes would try Docker Hub, find no `sre-metrics-app:1.0.0` and show `ErrImagePull`. `Never` states the "local image only" intent and fails fast with `ErrImageNeverPull` instead.
 2. Up to 3 pods (2 + 1 surge). Never fewer than 2 ready.
