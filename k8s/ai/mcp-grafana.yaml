@@ -1,0 +1,81 @@
+# AI-assisted SRE (SRE Academy 2027, modules M17-M18): the Grafana MCP server, run INSIDE the cluster.
+# Claude Code and IBM Bob both connect to it over HTTP (http://localhost:8000/mcp via scripts/dashboards.*),
+# so neither tool's config file holds a token. Three independent safety layers:
+#   1. Grafana token with the Viewer role only (created by scripts/ai_setup.py, stored in a Secret)
+#   2. --disable-write and friends: write, admin, raw API, rendering and assistant tools are not registered
+#   3. Host-header allowlist: only requests through the local port-forward are accepted
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-grafana
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mcp-grafana
+  template:
+    metadata:
+      labels:
+        app: mcp-grafana
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: mcp-grafana
+          image: grafana/mcp-grafana:2.2.0
+          args:
+            - -t
+            - streamable-http
+            - -address
+            - 0.0.0.0:8000
+            - -allowed-hosts
+            - localhost:8000,127.0.0.1:8000
+            - -disable-write
+            - -disable-api
+            - -disable-admin
+            - -disable-rendering
+            - -disable-assistant
+            - -usage-stats
+            - disabled
+          env:
+            - name: GRAFANA_URL
+              value: http://grafana.monitoring.svc.cluster.local:3000
+            - name: GRAFANA_SERVICE_ACCOUNT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: mcp-grafana-token
+                  key: token
+          ports:
+            - containerPort: 8000
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {cpu: 200m, memory: 128Mi}
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+              httpHeaders:
+                - name: Host
+                  value: localhost:8000
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mcp-grafana
+  namespace: monitoring
+spec:
+  selector:
+    app: mcp-grafana
+  ports:
+    - port: 8000
+      targetPort: 8000

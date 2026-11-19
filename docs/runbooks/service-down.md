@@ -26,9 +26,9 @@ kubectl get events -n application --sort-by=.lastTimestamp | tail -20
 | Pods `Running` but probe failing | Service selector or network problem | `kubectl get endpoints sre-metrics-app -n application` |
 
 ## 3. Mitigate
-- Roll back or restart:
+- Roll back or restart. Run from the repo root with the lab virtual environment active (`source ~/.venvs/sre-lab/bin/activate`, see Lab 05 M10 step 1), so Ansible finds the `kubernetes` library:
   ```bash
-  ansible-playbook -i ansible/inventory.ini ansible/runbooks/restart-app.yml
+  ansible-playbook -i ansible/inventory.ini ansible/runbooks/restart-app.yml -e ansible_python_interpreter="$(command -v python3)"
   ```
 - Confirm the app answers:
   ```bash

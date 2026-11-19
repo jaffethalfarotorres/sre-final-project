@@ -8,9 +8,9 @@ $amService = if ($LASTEXITCODE -eq 0) { "kube-prometheus-stack-alertmanager" } e
 $alertsUrl = "/api/v1/namespaces/monitoring/services/${amService}:9093/proxy/api/v2/alerts"
 
 # A short-lived pod inside the cluster calls /error about 1,000 times (~4 minutes), then stops by itself.
+Set-Location (Split-Path $PSScriptRoot -Parent)
 kubectl delete pod errload -n application --ignore-not-found *> $null
-kubectl run errload -n application --image=curlimages/curl:8.10.1 --restart=Never --command -- `
-    sh -c 'i=0; while [ $i -lt 1000 ]; do curl -s -o /dev/null http://sre-metrics-app:5000/error; i=$((i+1)); sleep 0.2; done' | Out-Null
+kubectl apply -f k8s/drills/errload-pod.yaml | Out-Null
 Write-Host "Sending failing requests to the app. The HighErrorRate alert needs about 2-3 minutes to fire..."
 
 for ($i = 1; $i -le 36; $i++) {
@@ -24,3 +24,4 @@ for ($i = 1; $i -le 36; $i++) {
     Start-Sleep -Seconds 10
 }
 Write-Error "The alert has not fired yet. Check 'kubectl get pods -A' and try again."
+exit 1

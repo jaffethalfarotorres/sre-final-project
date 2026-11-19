@@ -3,6 +3,8 @@ __pycache__/
 .venv/
 venv/
 .env
+.env.*
+!.env.example
 .idea/
 .vscode/
 *.log
@@ -35,3 +37,8 @@ terraform/*.tfstate.*
 
 # Incident reports written by the Ansible diagnostics runbook
 reports/
+
+# Claude Code personal files and the audit log written by .claude/hooks/audit_log.py
+CLAUDE.local.md
+.claude/settings.local.json
+.claude/audit.log

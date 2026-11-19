@@ -10,7 +10,7 @@ The ORR checklist from SRE Academy topic 3, applied to `sre-metrics-app`. Each i
 | SLIs and SLOs defined | [`SLO.md`](SLO.md), recording rules in [`slo.yml`](../k8s/config/prometheus/slo.yml) |
 | Alerts on critical failures, with severity | [`alerts.yml`](../k8s/config/prometheus/alerts.yml): `ServiceDown`, `HighErrorRate`, `HighLatency`, `SyntheticProbeFailing`; burn-rate alerts; Grafana rules in [`alerting.yaml`](../k8s/config/grafana/alerting.yaml) |
 | Alert routing configured | Alertmanager routes critical, warning and demo alerts to Slack and email ([`alertmanager.yaml`](../k8s/alertmanager.yaml)) |
-| Dashboards | Grafana: *SRE Metrics Demo*, *Golden Signals*, *SLO and Error Budget* (provisioned as code) |
+| Dashboards | Grafana: *SRE Metrics Demo*, *Golden Signals*, *SLO and Error Budget*, *LLM Observability* (4 dashboards, provisioned as code in [`k8s/config/grafana/dashboards/`](../k8s/config/grafana/dashboards/)) |
 | Synthetic monitoring | Blackbox exporter probes `/` and `/store` ([`blackbox.yaml`](../k8s/blackbox.yaml)) |
 
 ## 2. Structured logging and storage: ✅ Pass

@@ -61,6 +61,7 @@ def app_pods():
 
 
 def main():
+    sys.stdout.reconfigure(line_buffering=True)  # show progress immediately, even when piped
     install_tools()
     # Remove a leftover engine from an interrupted run so the experiment starts clean.
     kubectl("delete", "chaosengine", "sre-metrics-app-pod-delete", "-n", "litmus", "--ignore-not-found")

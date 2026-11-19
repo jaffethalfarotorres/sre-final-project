@@ -1,0 +1,22 @@
+# A Kubernetes identity for AI agents (SRE Academy 2027, module M18). Bound to the built-in "view"
+# ClusterRole: it can read pods, logs, events and deployments, but cannot read Secrets and cannot change
+# anything. scripts/ai_setup.py writes a short-lived kubeconfig for it; start your AI tool with
+# KUBECONFIG pointing at that file and the cluster itself refuses any write, whatever the agent tries.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ai-readonly
+  namespace: monitoring
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: ai-readonly-view
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view
+subjects:
+  - kind: ServiceAccount
+    name: ai-readonly
+    namespace: monitoring

@@ -39,11 +39,11 @@ issue starts ──TTD──> alert fires ──TTA──> someone acknowledges 
 
 | Metric | How it is measured here | Target | How this project lowers it |
 | --- | --- | --- | --- |
-| **TTD** (time to detect) | Alert `activeAt` minus the time the problem started | < 3 min | Short `for:` windows (1-2 min), 10 s scrape interval, synthetic probes, burn-rate alerts |
-| **TTA** (time to acknowledge) | Slack acknowledgement minus the alert time | < 5 min | Severity routing; critical alerts go to Slack and email at once |
-| **TTR** (time to resolve) | Resolved notification minus the alert time | < 30 min | Runbook links on every alert, Ansible runbooks, one-command rollback, rolling updates |
+| **TTD** (time to detect) | Alertmanager `startsAt` (alert firing, after `for:`) minus the time the problem started | < 3 min | Short `for:` windows (1-2 min), 10 s scrape interval, synthetic probes, burn-rate alerts |
+| **TTA** (time to acknowledge) | Acknowledgement minus the alert's `startsAt` | < 5 min | Severity routing; critical alerts go to Slack and email at once |
+| **TTR** (time to resolve) | Alerts resolved minus the time the problem started | < 30 min | Runbook links on every alert, Ansible runbooks, one-command rollback, rolling updates |
 
-Worked example (course topic 1): the issue starts at 10:00, is detected at 10:05, acknowledged at 10:08 and resolved at 10:30. That gives TTD = 5 min, TTA = 3 min and TTR = 22 min.
+Worked example: the issue starts at 10:00, the alert fires at 10:05, it is acknowledged at 10:08 and resolved at 10:30. That gives TTD = 5 min, TTA = 3 min and TTR = 30 min. (The 2026 topic-1 material measured TTR from acknowledgement, which gives 22 min. This course measures TTR from problem start, as the incident form does.)
 
 Measured on this project during testing:
 - **TTD for a 5xx burst:** `HighErrorRate` fired about 140 s after the burst started (`scripts/trigger-alert`).

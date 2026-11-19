@@ -28,7 +28,7 @@ Multi-window burn-rate alerts. The long window proves the problem is real; the s
 | --- | --- | --- |
 | `ErrorBudgetFastBurn` | burn rate above 6× over 5 m **and** above 1× over 1 h | Page: incident now |
 | `ErrorBudgetSlowBurn` | above 1× over 6 h **and** over 1 h, for 15 m | Ticket for this sprint |
-| `ErrorBudgetExhausted` | remaining budget below 0 for 5 m | Apply the error budget policy |
+| `ErrorBudgetExhausted` | remaining budget below 0 **and** more than 100,000 requests in the 30-day window, for 5 m (the guard keeps a drill on a fresh cluster from firing it) | Apply the error budget policy |
 
 ## Error budget policy
 - **Budget above 50%:** normal feature work. Experiments and risky changes are allowed.

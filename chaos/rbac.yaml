@@ -18,9 +18,16 @@ kind: ClusterRole
 metadata:
   name: sre-chaos
 rules:
+  # Least privilege: pods (to delete them), events, read-only ConfigMaps. No access to Secrets or Services.
   - apiGroups: [""]
-    resources: ["pods", "events", "services", "configmaps", "secrets"]
+    resources: ["pods"]
     verbs: ["create", "get", "list", "watch", "patch", "update", "delete", "deletecollection"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "get", "list", "watch", "patch", "update"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list"]
   - apiGroups: [""]
     resources: ["pods/log", "pods/exec"]
     verbs: ["get", "list", "watch", "create"]

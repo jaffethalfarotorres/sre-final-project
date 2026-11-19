@@ -38,6 +38,7 @@ def pods():
 
 
 def main():
+    sys.stdout.reconfigure(line_buffering=True)  # show progress immediately, even when piped
     kubectl("rollout", "status", DEPLOYMENT, "-n", NAMESPACE, "--timeout=120s")
     print("1) Current release is healthy:")
     print(pods())

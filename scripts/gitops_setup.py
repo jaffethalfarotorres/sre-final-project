@@ -29,6 +29,7 @@ def kubectl(*args, check=True):
 
 
 def main():
+    sys.stdout.reconfigure(line_buffering=True)  # show progress immediately, even when piped
     if subprocess.run(["kubectl", "get", "deployment", "argocd-server", "-n", "argocd"],
                       capture_output=True).returncode != 0:
         print(f"Installing ArgoCD {ARGOCD_VERSION} (about 2-3 minutes)...")

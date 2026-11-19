@@ -11,7 +11,8 @@ AWX incident automation (SRE Academy exercise 13), the same on macOS, Windows an
    collect-diagnostics once to prove the chain works.
 
     python scripts/awx_setup.py            (use python3 on Mac/Linux)
-Needs about 2.5 GB of free memory in Minikube (see docs/GUIDE.md, "Add-ons").
+Needs about 2.5 GB of free memory in Minikube (see docs/labs/06-delivery-resilience-policy.md,
+"Memory rule", and docs/GUIDE.md section 7b).
 """
 
 import base64
@@ -97,13 +98,17 @@ def configure(awx):
         "organization": org, "scm_type": "git", "scm_url": REPO_URL, "scm_branch": "main",
         "scm_update_on_launch": True, "description": "Runbooks from the SRE final project repository"})
     print(f"Project sre-final-project (id {project['id']}): syncing from GitHub...")
+    # Start a fresh sync and follow that job (the project status may still show an older sync).
+    update = awx.call("POST", f"/projects/{project['id']}/update/", {})
+    update_id = update.get("project_update") or update.get("id")
 
     def project_ready():
-        status = awx.call("GET", f"/projects/{project['id']}/")["status"]
-        if status in ("failed", "error"):
-            sys.exit("AWX could not sync the project from GitHub. Check the project in the AWX UI.")
+        status = awx.call("GET", f"/project_updates/{update_id}/")["status"]
+        if status in ("failed", "error", "canceled"):
+            sys.exit(f"AWX could not sync the project from GitHub (project update {update_id} {status}). "
+                     "Check it in the AWX UI under Jobs.")
         return status == "successful"
-    wait_for("the project sync", project_ready, timeout=600)
+    wait_for("the project sync", project_ready, timeout=600, interval=5)
 
     inventory = awx.find_or_create("inventories", "minikube", {"organization": org,
                                                                "description": "Runs runbooks inside the cluster"})
@@ -121,6 +126,18 @@ def configure(awx):
     except RuntimeError:
         pass  # already in the group
 
+    # Kubernetes credential for the jobs: the least-privilege awx-runbooks ServiceAccount (awx/rbac.yaml).
+    token = base64.b64decode(kubectl("get", "secret", "awx-runbooks-token", "-n", "awx",
+                                     "-o", "jsonpath={.data.token}")).decode()
+    ca_cert = base64.b64decode(kubectl("get", "secret", "awx-runbooks-token", "-n", "awx",
+                                       "-o", "jsonpath={.data.ca\\.crt}")).decode()
+    k8s_type = awx.call("GET", "/credential_types/?namespace=kubernetes_bearer_token")["results"][0]["id"]
+    credential = awx.find_or_create("credentials", "minikube-awx-runbooks", {
+        "organization": org, "credential_type": k8s_type,
+        "description": "ServiceAccount awx/awx-runbooks (read app namespace, patch the app Deployment)",
+        "inputs": {"host": "https://kubernetes.default.svc", "bearer_token": token,
+                   "verify_ssl": True, "ssl_ca_cert": ca_cert}})
+
     templates = {}
     for name, playbook, description, extra in (
         ("collect-diagnostics", "ansible/runbooks/collect-diagnostics.yml",
@@ -131,11 +148,15 @@ def configure(awx):
         templates[name] = awx.find_or_create("job_templates", name, {
             "project": project["id"], "inventory": inventory["id"], "playbook": playbook,
             "description": description, "extra_vars": json.dumps(extra)})
+        attached = awx.call("GET", f"/job_templates/{templates[name]['id']}/credentials/")["results"]
+        if not any(c["id"] == credential["id"] for c in attached):
+            awx.call("POST", f"/job_templates/{templates[name]['id']}/credentials/", {"id": credential["id"]})
         print(f"Job template {name} (id {templates[name]['id']})")
     return templates
 
 
 def main():
+    sys.stdout.reconfigure(line_buffering=True)  # show progress immediately, even when piped
     install()
     password = base64.b64decode(kubectl("get", "secret", "awx-admin-password", "-n", "awx",
                                         "-o", "jsonpath={.data.password}")).decode()

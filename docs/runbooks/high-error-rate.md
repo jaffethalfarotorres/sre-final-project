@@ -21,9 +21,9 @@
    kubectl rollout history deployment/sre-metrics-app -n application
    ```
    A recent revision is the most likely cause.
-4. **Collect evidence automatically:**
+4. **Collect evidence automatically.** Run from the repo root with the lab virtual environment active (`source ~/.venvs/sre-lab/bin/activate`, see Lab 05 M10 step 1), so Ansible finds the `kubernetes` library.
    ```bash
-   ansible-playbook -i ansible/inventory.ini ansible/runbooks/collect-diagnostics.yml
+   ansible-playbook -i ansible/inventory.ini ansible/runbooks/collect-diagnostics.yml -e ansible_python_interpreter="$(command -v python3)"
    ```
    The report is saved in `reports/`.
 
@@ -32,9 +32,9 @@
   ```bash
   kubectl rollout undo deployment/sre-metrics-app -n application
   ```
-- **Pods in a bad state:** run the restart runbook:
+- **Pods in a bad state:** run the restart runbook. Run from the repo root with the lab virtual environment active (`source ~/.venvs/sre-lab/bin/activate`, see Lab 05 M10 step 1), so Ansible finds the `kubernetes` library.
   ```bash
-  ansible-playbook -i ansible/inventory.ini ansible/runbooks/restart-app.yml
+  ansible-playbook -i ansible/inventory.ini ansible/runbooks/restart-app.yml -e ansible_python_interpreter="$(command -v python3)"
   ```
 
 ## 4. Verify and close

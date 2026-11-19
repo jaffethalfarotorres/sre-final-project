@@ -54,8 +54,18 @@ fi
 
 
 if [[ "$(minikube status -p minikube --format='{{.Host}}' 2>/dev/null || true)" != "Running" ]]; then
-  # 4 GB is enough for the full observability stack (see docs/GUIDE.md for the add-ons).
-  minikube start --driver=docker --memory=4096
+  # 4 GB fits the core stack only; add-ons need 6 GB (docs/labs/01 step 4).
+  # Minikube refuses more memory than Docker has, so check that first (WSL gives Docker
+  # only half of the laptop's RAM unless .wslconfig says otherwise).
+  docker_bytes="$(docker info --format '{{.MemTotal}}' 2>/dev/null || echo 0)"
+  limit_mb=$(( docker_bytes / 1048576 - 256 ))
+  mem=$(( limit_mb < 4096 ? limit_mb : 4096 ))
+  if (( mem < 3500 )); then
+    echo "Docker has only ${limit_mb}MB of memory; Minikube needs about 4096MB." >&2
+    echo "Is Docker running? Windows: raise WSL memory in %USERPROFILE%\\.wslconfig. Mac: colima start --memory 6. See docs/GUIDE.md." >&2
+    exit 1
+  fi
+  minikube start --driver=docker --memory="$mem"
 fi
 
 minikube image build -t sre-metrics-app:1.0.0 .

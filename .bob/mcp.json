@@ -1,0 +1,28 @@
+{
+  "mcpServers": {
+    "grafana": {
+      "type": "streamable-http",
+      "url": "http://localhost:8000/mcp",
+      "disabled": false,
+      "alwaysAllow": [
+        "query_prometheus",
+        "query_prometheus_histogram",
+        "list_prometheus_metric_names",
+        "list_prometheus_label_names",
+        "list_prometheus_label_values",
+        "query_loki_logs",
+        "query_loki_stats",
+        "query_loki_patterns",
+        "list_loki_label_names",
+        "list_loki_label_values",
+        "alerting_rules_read",
+        "list_alert_groups",
+        "get_alert_group",
+        "search_dashboards",
+        "get_dashboard_summary",
+        "get_dashboard_panel_queries",
+        "list_datasources"
+      ]
+    }
+  }
+}

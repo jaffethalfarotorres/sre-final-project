@@ -45,6 +45,7 @@ configMapGenerator:
       - config/grafana/dashboards/sre-metrics.json
       - config/grafana/dashboards/golden-signals.json
       - config/grafana/dashboards/slo.json
+      - config/grafana/dashboards/llm-observability.json
   - name: otel-collector-config
     namespace: opentelemetry
     files:

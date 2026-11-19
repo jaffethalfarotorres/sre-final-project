@@ -12,18 +12,19 @@ pip install -r requirements-dev.txt
 ## Checks to run before a pull request
 
 ```bash
-flake8 app tests --max-line-length=120
+flake8 app tests scripts .claude/hooks --max-line-length=120
 pytest tests -q
 helm lint helm/sre-metrics-app
-kubectl apply --dry-run=client -f k8s/application.yaml   # needs a running cluster
+kubectl kustomize k8s > /dev/null   # renders the whole stack, no cluster needed
+docker run --rm -v "$PWD/k8s/config/prometheus:/rules" --entrypoint promtool prom/prometheus:v2.54.1 check rules /rules/alerts.yml /rules/slo.yml
 ```
 
-CI runs the same checks plus `kubeconform`, `promtool check rules` and `amtool check-config`.
+CI runs these checks plus `kubeconform` on the rendered stack and add-ons, `promtool check config` and `amtool check-config`.
 
 ## Workflow
 
 1. Fork the repository and create a focused branch, for example `fix/alert-threshold` or `feat/new-panel`.
-2. Make your change. Comment non-obvious code and keep the raw manifests in [`k8s/`](k8s/) and the Helm values in [`helm/`](helm/) consistent, especially the alert rules.
+2. Make your change. Comment non-obvious code and note that alert and SLO rules live in `k8s/config/prometheus/` (alerts.yml, slo.yml), and dashboards in `k8s/config/grafana/dashboards/`. The Helm path in `helm/values-monitoring.yaml` carries only ServiceDown, HighErrorRate, HighLatency and AlwaysFiringDemoAlert; if you change one of those, mirror it there.
 3. Update the README when deployment behavior or prerequisites change.
 4. Open a pull request that describes what changed and how you verified it. Wait for CI to pass.
 

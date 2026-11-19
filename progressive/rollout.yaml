@@ -1,0 +1,146 @@
+# Progressive delivery (SRE Academy 2027, module M21): a canary release gated by an SLO.
+# Argo Rollouts shifts traffic to the new version step by step (by replica count: 1 of 4 pods = 25%)
+# while an AnalysisRun asks Prometheus for the canary pods' success rate. Below 90% the rollout is
+# aborted and every pod goes back to the stable version automatically, before most users are affected.
+#
+#   python scripts/canary_demo.py     (installs Argo Rollouts, then releases a good and a bad version)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: progressive
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: canary-success-rate
+  namespace: progressive
+spec:
+  args:
+    - name: canary-hash
+  metrics:
+    - name: success-rate
+      # Wait for Prometheus to scrape the new pods before judging them.
+      initialDelay: 45s
+      interval: 20s
+      count: 6
+      failureLimit: 1
+      successCondition: len(result) == 0 || result[0] >= 0.90
+      provider:
+        prometheus:
+          address: http://prometheus.monitoring.svc.cluster.local:9090
+          query: |
+            sum(rate(http_requests_total{namespace="progressive", rollouts_pod_template_hash="{{args.canary-hash}}", status!~"5.."}[1m]))
+            /
+            sum(rate(http_requests_total{namespace="progressive", rollouts_pod_template_hash="{{args.canary-hash}}"}[1m]))
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: sre-metrics-app
+  namespace: progressive
+spec:
+  replicas: 4
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: sre-metrics-app
+  strategy:
+    canary:
+      # Background analysis runs during the whole canary, from the first step.
+      analysis:
+        templates:
+          - templateName: canary-success-rate
+        startingStep: 1
+        args:
+          - name: canary-hash
+            valueFrom:
+              podTemplateHashValue: Latest
+      steps:
+        - setWeight: 25
+        - pause: {duration: 120s}
+        - setWeight: 50
+        - pause: {duration: 60s}
+        - setWeight: 100
+  template:
+    metadata:
+      labels:
+        app: sre-metrics-app
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /metrics
+        prometheus.io/port: "5000"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: app
+          image: sre-metrics-app:1.0.0
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 5000
+          env:
+            - name: APP_VERSION
+              value: "1.0.0"
+            - name: STORE_ERROR_RATE
+              value: "0.05"
+          resources:
+            requests: {cpu: 25m, memory: 64Mi}
+            limits: {cpu: 200m, memory: 192Mi}
+          readinessProbe:
+            httpGet: {path: /, port: 5000}
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sre-metrics-app
+  namespace: progressive
+spec:
+  selector:
+    app: sre-metrics-app
+  ports:
+    - port: 5000
+      targetPort: 5000
+---
+# Steady user traffic so the analysis has data: about 5 requests per second.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: traffic-generator
+  namespace: progressive
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: traffic-generator
+  template:
+    metadata:
+      labels:
+        app: traffic-generator
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 100
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: curl
+          image: curlimages/curl:8.10.1
+          command: ["/bin/sh", "-c"]
+          args:
+            - while true; do curl -s -o /dev/null http://sre-metrics-app:5000/store; sleep 0.2; done
+          resources:
+            requests: {cpu: 10m, memory: 16Mi}
+            limits: {cpu: 100m, memory: 32Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]

@@ -1,6 +1,22 @@
-# Least privilege for AWX jobs (they run with the "awx" service account in the task pod):
-# read pods, events, logs and deployments in the application namespace, and patch only the
-# app Deployment (needed by the human-approved restart runbook).
+# Least privilege for AWX jobs. scripts/awx_setup.py turns this ServiceAccount's token into an AWX
+# "OpenShift or Kubernetes API Bearer Token" credential attached to the runbook job templates.
+# It can read pods, logs, events and deployments in the application namespace, and patch only the
+# app Deployment (needed by the human-approved restart runbook). Nothing else, nowhere else.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: awx-runbooks
+  namespace: awx
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: awx-runbooks-token
+  namespace: awx
+  annotations:
+    kubernetes.io/service-account.name: awx-runbooks
+type: kubernetes.io/service-account-token
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -29,5 +45,5 @@ roleRef:
   name: awx-runbooks
 subjects:
   - kind: ServiceAccount
-    name: awx
+    name: awx-runbooks
     namespace: awx

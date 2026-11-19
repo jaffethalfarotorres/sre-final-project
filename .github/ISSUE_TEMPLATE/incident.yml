@@ -51,7 +51,7 @@ body:
     attributes:
       label: Time to resolve (TTR)
       description: From problem start to alert resolved.
-      placeholder: 22 min
+      placeholder: 30 min
   - type: textarea
     id: summary
     attributes:

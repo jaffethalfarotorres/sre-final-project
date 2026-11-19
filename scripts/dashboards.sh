@@ -25,6 +25,18 @@ kubectl port-forward -n monitoring $PROMETHEUS >/dev/null 2>&1 &
 # shellcheck disable=SC2086
 kubectl port-forward -n monitoring $ALERTMANAGER >/dev/null 2>&1 &
 kubectl port-forward -n application service/sre-metrics-app 5000:5000 >/dev/null 2>&1 &
+# Jaeger exists only in the default install (the Helm demo has no tracing).
+JAEGER_LINE=""
+if kubectl get service jaeger -n opentelemetry >/dev/null 2>&1; then
+  kubectl port-forward -n opentelemetry service/jaeger 16686:16686 >/dev/null 2>&1 &
+  JAEGER_LINE="  Jaeger        http://localhost:16686"
+fi
+# The Grafana MCP server for AI assistants exists only after scripts/ai_setup.py has run.
+MCP_LINE=""
+if kubectl get service mcp-grafana -n monitoring >/dev/null 2>&1; then
+  kubectl port-forward -n monitoring service/mcp-grafana 8000:8000 >/dev/null 2>&1 &
+  MCP_LINE="  MCP (AI)      http://localhost:8000/mcp  (Claude Code and IBM Bob, see docs/AI-SRE.md)"
+fi
 sleep 3
 
 password="$(kubectl get secret grafana-admin-credentials -n monitoring \
@@ -36,15 +48,20 @@ cat <<EOF
   Prometheus    http://localhost:9090
   Alertmanager  http://localhost:9093
   The app       http://localhost:5000
+${JAEGER_LINE}
+${MCP_LINE}
 
 Keep this window open while you use them. Press Ctrl+C to close the tunnels.
 EOF
 
-# Open Grafana in the default browser (macOS: open; WSL2: the Windows browser).
-if command -v open >/dev/null 2>&1; then
+# Open Grafana in the default browser (macOS: open; WSL2: the Windows browser; Linux desktop: xdg-open).
+# Do not test for `open` alone: on Ubuntu/WSL it is an alias of openvt and fails silently.
+if [[ "$(uname -s)" == Darwin ]]; then
   open "http://localhost:3000" || true
 elif command -v explorer.exe >/dev/null 2>&1; then
   explorer.exe "http://localhost:3000" || true
+elif command -v xdg-open >/dev/null 2>&1; then
+  xdg-open "http://localhost:3000" >/dev/null 2>&1 || true
 fi
 
 wait

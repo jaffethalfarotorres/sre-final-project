@@ -1,0 +1,61 @@
+{
+  "title": "LLM Observability",
+  "uid": "llm-observability",
+  "description": "SRE Academy 2027 module M23: watching a generative AI dependency like any other. The /ask endpoint simulates a model call and records OpenTelemetry gen_ai.* attributes (Development status) and token metrics.",
+  "editable": true,
+  "schemaVersion": 39,
+  "version": 1,
+  "time": {"from": "now-30m", "to": "now"},
+  "refresh": "10s",
+  "panels": [
+    {
+      "id": 1, "type": "timeseries", "title": "Tokens per minute (input vs output)",
+      "description": "Token usage drives cost. Watch for sudden growth (prompt bloat, retries, loops).",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "targets": [{"refId": "A", "expr": "sum by (type) (rate(genai_tokens_total[5m])) * 60", "legendFormat": "{{type}}"}]
+    },
+    {
+      "id": 2, "type": "stat", "title": "Estimated cost per hour (example price)",
+      "description": "Example price only: $3 per million input tokens and $15 per million output tokens. Replace with your provider's price list.",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "currencyUSD", "decimals": 4}, "overrides": []},
+      "gridPos": {"h": 8, "w": 6, "x": 12, "y": 0},
+      "targets": [{"refId": "A", "expr": "(sum(rate(genai_tokens_total{type=\"input\"}[5m])) * 3 + sum(rate(genai_tokens_total{type=\"output\"}[5m])) * 15) * 3600 / 1e6"}]
+    },
+    {
+      "id": 3, "type": "stat", "title": "Model calls in the last hour",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 6, "x": 18, "y": 0},
+      "targets": [{"refId": "A", "expr": "sum(increase(genai_request_duration_seconds_count[1h]))"}]
+    },
+    {
+      "id": 4, "type": "timeseries", "title": "Model call latency p50 / p95",
+      "description": "Generative AI calls are slow and variable; give them their own latency SLO instead of mixing them with the app's.",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "targets": [
+        {"refId": "A", "expr": "histogram_quantile(0.50, sum by (le) (rate(genai_request_duration_seconds_bucket[5m])))", "legendFormat": "p50"},
+        {"refId": "B", "expr": "histogram_quantile(0.95, sum by (le) (rate(genai_request_duration_seconds_bucket[5m])))", "legendFormat": "p95"}
+      ]
+    },
+    {
+      "id": 5, "type": "timeseries", "title": "p95 of the model span (from traces)",
+      "description": "The same latency measured from the 'chat demo-model' client span by the Collector's spanmetrics connector.",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "ms"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "targets": [{"refId": "A", "expr": "histogram_quantile(0.95, sum by (le) (rate(otel_collector_span_metrics_duration_milliseconds_bucket{span_name=\"chat demo-model\"}[5m])))", "legendFormat": "chat demo-model"}]
+    },
+    {
+      "id": 6, "type": "logs", "title": "GenAI call logs (Loki)",
+      "datasource": {"type": "loki", "uid": "loki"},
+      "gridPos": {"h": 9, "w": 24, "x": 0, "y": 16},
+      "options": {"showTime": true, "wrapLogMessage": true, "sortOrder": "Descending", "enableLogDetails": true},
+      "targets": [{"refId": "A", "expr": "{service_name=\"sre-metrics-app\"} |= \"genai demo call\""}]
+    }
+  ]
+}

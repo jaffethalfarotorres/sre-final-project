@@ -1,7 +1,9 @@
 version: 2
 updates:
   - package-ecosystem: pip
-    directories: ["/", "/app"]
+    # The root requirements-dev.txt includes app/requirements.txt, so "/" covers both files
+    # (listing "/app" as well would open every PR twice).
+    directory: /
     schedule:
       interval: weekly
     labels: ["dependencies", "python"]

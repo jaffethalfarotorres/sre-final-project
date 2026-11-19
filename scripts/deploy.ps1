@@ -8,6 +8,20 @@ param(
 $ErrorActionPreference = "Stop"
 Set-Location (Split-Path $PSScriptRoot -Parent)
 
+# "Stop" does not stop the script when a native program (minikube, kubectl, helm) fails
+# in Windows PowerShell 5.1, so check each exit code ourselves and stop on the first failure.
+# Kept as a simple function (no param block) so flags like -n and -o pass straight through.
+function Invoke-Native {
+    $exe = $args[0]
+    $rest = @()
+    if ($args.Count -gt 1) { $rest = $args[1..($args.Count - 1)] }
+    & $exe @rest
+    if ($LASTEXITCODE -ne 0) { throw "'$exe $($rest -join ' ')' failed with exit code $LASTEXITCODE" }
+}
+function Assert-LastExit([string]$What) {
+    if ($LASTEXITCODE -ne 0) { throw "$What failed with exit code $LASTEXITCODE" }
+}
+
 function Require-Command([string]$Name) {
     if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
         throw "$Name is not installed. See docs/GUIDE.md, step 2 (Install the tools)."
@@ -67,32 +81,37 @@ $minikubeHost = minikube status -p minikube --format='{{.Host}}' 2>$null
 $ErrorActionPreference = "Stop"
 if ($minikubeHost -ne 'Running') {
     # 4 GB is enough for the full observability stack (see docs/GUIDE.md for the add-ons).
-    minikube start --driver=docker --memory=4096
+    Invoke-Native minikube start --driver=docker --memory=4096
 }
 
-minikube image build -t sre-metrics-app:1.0.0 .
+Invoke-Native minikube image build -t sre-metrics-app:1.0.0 .
 
 if ($Helm) {
     Write-Host "Deploying via Helm..."
-    helm repo add prometheus-community https://prometheus-community.github.io/helm-charts 2>$null
-    helm repo update
+    # Re-adding a repo that already exists must not stop the script (deploy.sh uses '|| true').
+    $ErrorActionPreference = "Continue"
+    helm repo add prometheus-community https://prometheus-community.github.io/helm-charts *> $null
+    $ErrorActionPreference = "Stop"
+    if ($LASTEXITCODE -ne 0) { Write-Host "helm repo add returned $LASTEXITCODE (repo may already exist with another URL; check 'helm repo list')." }
+    Invoke-Native helm repo update
 
     # The Secret must exist before the chart mounts it into Alertmanager.
     kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
-    kubectl apply -f $SecretFile
-    kubectl apply -f $GrafanaSecretFile
+    Assert-LastExit "kubectl apply namespace monitoring"
+    Invoke-Native kubectl apply -f $SecretFile
+    Invoke-Native kubectl apply -f $GrafanaSecretFile
 
-    helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack `
+    Invoke-Native helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack `
         --namespace monitoring `
         --create-namespace `
         -f helm/values-monitoring.yaml
 
-    helm upgrade --install sre-metrics-app helm/sre-metrics-app `
+    Invoke-Native helm upgrade --install sre-metrics-app helm/sre-metrics-app `
         --namespace application `
         --create-namespace
 
-    kubectl rollout status deployment/sre-metrics-app -n application --timeout=180s
-    kubectl rollout status deployment/kube-prometheus-stack-operator -n monitoring --timeout=180s
+    Invoke-Native kubectl rollout status deployment/sre-metrics-app -n application --timeout=180s
+    Invoke-Native kubectl rollout status deployment/kube-prometheus-stack-operator -n monitoring --timeout=180s
 
     Write-Host "Helm deployment complete. Use separate terminals for:"
     Write-Host "  kubectl port-forward -n monitoring service/kube-prometheus-stack-grafana 3000:80"
@@ -103,14 +122,15 @@ if ($Helm) {
 else {
     Write-Host "Deploying the full stack with Kustomize (kubectl apply -k k8s)..."
     kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
-    kubectl apply -f $SecretFile
-    kubectl apply -f $GrafanaSecretFile
-    kubectl apply -k k8s
+    Assert-LastExit "kubectl apply namespace monitoring"
+    Invoke-Native kubectl apply -f $SecretFile
+    Invoke-Native kubectl apply -f $GrafanaSecretFile
+    Invoke-Native kubectl apply -k k8s
 
     foreach ($d in "monitoring/prometheus", "monitoring/alertmanager", "monitoring/grafana", "monitoring/blackbox-exporter",
         "opentelemetry/otel-collector", "opentelemetry/jaeger", "opentelemetry/loki", "application/sre-metrics-app") {
         $ns, $name = $d.Split("/")
-        kubectl rollout status "deployment/$name" -n $ns --timeout=300s
+        Invoke-Native kubectl rollout status "deployment/$name" -n $ns --timeout=300s
     }
 
     Write-Host "Deployment complete."

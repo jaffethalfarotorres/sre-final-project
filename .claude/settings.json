@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "deny": [
+      "Read(./k8s/alertmanager-secret.yaml)",
+      "Read(./k8s/grafana-secret.yaml)",
+      "Read(./terraform/*.tfstate*)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Bash(kubectl apply *)",
+      "Bash(kubectl create *)",
+      "Bash(kubectl delete *)",
+      "Bash(kubectl patch *)",
+      "Bash(kubectl edit *)",
+      "Bash(kubectl scale *)",
+      "Bash(kubectl set *)",
+      "Bash(kubectl rollout restart *)",
+      "Bash(kubectl rollout undo *)",
+      "Bash(kubectl get secret*)",
+      "Bash(kubectl get * secret*)",
+      "Bash(kubectl * get secret*)",
+      "Bash(kubectl get --raw*)",
+      "Bash(kubectl * --kubeconfig*)",
+      "Bash(kubectl kustomize *--enable-exec*)",
+      "Bash(kubectl kustomize *--enable-alpha-plugins*)",
+      "Bash(helm * --post-renderer*)",
+      "Bash(helm install *)",
+      "Bash(helm upgrade *)",
+      "Bash(helm uninstall *)",
+      "Bash(helm rollback *)",
+      "Bash(terraform apply *)",
+      "Bash(terraform destroy *)",
+      "Bash(argocd app sync *)",
+      "Bash(git push *)",
+      "PowerShell(kubectl apply *)",
+      "PowerShell(kubectl create *)",
+      "PowerShell(kubectl delete *)",
+      "PowerShell(kubectl patch *)",
+      "PowerShell(kubectl edit *)",
+      "PowerShell(kubectl scale *)",
+      "PowerShell(kubectl set *)",
+      "PowerShell(kubectl rollout restart *)",
+      "PowerShell(kubectl rollout undo *)",
+      "PowerShell(kubectl get secret*)",
+      "PowerShell(kubectl get * secret*)",
+      "PowerShell(kubectl * --kubeconfig*)",
+      "PowerShell(helm install *)",
+      "PowerShell(helm upgrade *)",
+      "PowerShell(helm uninstall *)",
+      "PowerShell(helm rollback *)",
+      "PowerShell(terraform apply *)",
+      "PowerShell(terraform destroy *)",
+      "PowerShell(argocd app sync *)",
+      "PowerShell(git push *)"
+    ],
+    "ask": [
+      "Bash(pytest *)",
+      "Bash(ansible-playbook *)",
+      "Bash(python3 scripts/*)",
+      "Bash(python scripts/*)",
+      "Edit(./k8s/**)",
+      "Edit(./.github/**)"
+    ],
+    "allow": [
+      "Bash(kubectl get *)",
+      "Bash(kubectl describe *)",
+      "Bash(kubectl logs *)",
+      "Bash(kubectl top *)",
+      "Bash(kubectl rollout status *)",
+      "Bash(kubectl rollout history *)",
+      "Bash(flake8 *)",
+      "Bash(helm lint *)",
+      "Bash(helm template *)",
+      "Bash(kubectl kustomize *)",
+      "mcp__grafana__query_prometheus",
+      "mcp__grafana__query_prometheus_histogram",
+      "mcp__grafana__list_prometheus_metric_names",
+      "mcp__grafana__list_prometheus_label_names",
+      "mcp__grafana__list_prometheus_label_values",
+      "mcp__grafana__query_loki_logs",
+      "mcp__grafana__query_loki_stats",
+      "mcp__grafana__query_loki_patterns",
+      "mcp__grafana__list_loki_label_names",
+      "mcp__grafana__list_loki_label_values",
+      "mcp__grafana__alerting_rules_read",
+      "mcp__grafana__list_alert_groups",
+      "mcp__grafana__get_alert_group",
+      "mcp__grafana__search_dashboards",
+      "mcp__grafana__get_dashboard_summary",
+      "mcp__grafana__get_dashboard_panel_queries",
+      "mcp__grafana__list_datasources"
+    ]
+  },
+  "enableAllProjectMcpServers": false,
+  "enabledMcpjsonServers": ["grafana"],
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -z \"$CLAUDE_PROJECT_DIR\" ]; then echo 'SRE lab guard: CLAUDE_PROJECT_DIR is not set, blocking to be safe' >&2; exit 2; fi; for p in python3 python py; do if command -v \"$p\" >/dev/null 2>&1 && \"$p\" -c 'import sys' </dev/null >/dev/null 2>&1; then \"$p\" \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard_mutations.py\"; [ $? -eq 0 ] && exit 0; exit 2; fi; done; echo 'SRE lab guard: no working Python 3 found (python3/python/py), blocking to be safe. Install Python 3.' >&2; exit 2"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "for p in python3 python py; do if command -v \"$p\" >/dev/null 2>&1 && \"$p\" -c 'import sys' </dev/null >/dev/null 2>&1; then \"$p\" \"$CLAUDE_PROJECT_DIR/.claude/hooks/audit_log.py\"; exit 0; fi; done; exit 0"
+          }
+        ]
+      }
+    ]
+  }
+}

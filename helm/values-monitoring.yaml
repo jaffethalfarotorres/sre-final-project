@@ -33,7 +33,7 @@ additionalPrometheusRulesMap:
     groups:
       - name: sre-metrics-alerts
         rules:
-          # Keep identical to k8s/prometheus.yaml (prometheus-rules ConfigMap).
+          # Subset of k8s/config/prometheus/alerts.yml (exercise-14 Helm demo). SyntheticProbeFailing and the SLO rules in slo.yml are not included.
           - alert: ServiceDown
             expr: up{namespace="application"} == 0
             for: 1m

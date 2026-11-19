@@ -21,6 +21,11 @@ if ($LASTEXITCODE -eq 0) {
     )
 }
 $forwards += , @("application", "service/sre-metrics-app", "5000:5000")
+$forwards += , @("opentelemetry", "service/jaeger", "16686:16686")
+# The Grafana MCP server for AI assistants exists only after scripts/ai_setup.py has run.
+kubectl get service mcp-grafana -n monitoring *> $null
+$hasMcp = ($LASTEXITCODE -eq 0)
+if ($hasMcp) { $forwards += , @("monitoring", "service/mcp-grafana", "8000:8000") }
 
 $processes = @()
 try {
@@ -38,6 +43,8 @@ try {
     Write-Host "  Prometheus    http://localhost:9090"
     Write-Host "  Alertmanager  http://localhost:9093"
     Write-Host "  The app       http://localhost:5000"
+    Write-Host "  Jaeger        http://localhost:16686"
+    if ($hasMcp) { Write-Host "  MCP (AI)      http://localhost:8000/mcp  (Claude Code and IBM Bob, see docs/AI-SRE.md)" }
     Write-Host ""
     Write-Host "Keep this window open while you use them. Press Ctrl+C to close the tunnels."
     Start-Process "http://localhost:3000"
