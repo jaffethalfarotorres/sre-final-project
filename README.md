@@ -1,4 +1,4 @@
-# SRE Academy Mega Lab: AI SRE onboarding with IBM Bob
+# SRE Academy: your first on-call shift, guided by IBM Bob
 
 [![CI](https://github.com/jaffethalfarotorres/sre-final-project/actions/workflows/ci.yml/badge.svg)](https://github.com/jaffethalfarotorres/sre-final-project/actions/workflows/ci.yml)
 [![CD](https://github.com/jaffethalfarotorres/sre-final-project/actions/workflows/cd.yml/badge.svg)](https://github.com/jaffethalfarotorres/sre-final-project/actions/workflows/cd.yml)
@@ -7,21 +7,43 @@
 [![Runs on Mac and Windows](https://img.shields.io/badge/runs%20on-macOS%20%7C%20Windows-informational)](docs/GUIDE.md)
 [![Guided by IBM Bob](https://img.shields.io/badge/guided%20by-IBM%20Bob-0f62fe)](docs/BOB-QUICKSTART.md)
 
-**In plain words:** this project runs a small pretend online shop on your laptop, measures how healthy it is, shows the measurements as live charts, raises an alarm on your phone, in Slack or by email when something goes wrong, and lets you practise what Site Reliability Engineers do next: investigate, roll back, automate the fix and learn from the incident, now including AI assistants that help without being allowed to break anything.
+**What this is, in plain words:** an ice-breaker for Site Reliability Engineering (SRE: the people who keep online services working). You open [IBM Bob](https://bob.ibm.com), paste the link to this repository, and in **one sitting of about 2 to 3 hours** (most of it is waiting for installs) Bob sets up a real SRE toolchain on your laptop and walks you through your **first on-call shift**: live dashboards, an alert that reaches your phone, the trace of one failing request, and an AI teammate that investigates safely without being allowed to break anything.
 
-It started as my SRE Academy 2026 final project and grew into a **complete, reusable lab**. It covers every topic and exercise of the 2026 course on one working stack. It adds the topics a 2027 class needs, for example AI assistants on call (IBM Bob, Claude Code optional) that can only read, never change, the system. It comes with a lab guide that professors can teach from. New words? See the [glossary](docs/GUIDE.md#glossary) or the [FAQ](docs/FAQ.md).
+You do not need a technical background. Nobody grades it. You type, you approve, Bob explains. New words? See the [glossary](docs/GUIDE.md#glossary) or the [FAQ](docs/FAQ.md).
 
-There is no presentation for this project: this repository is the whole submission. The [FAQ](docs/FAQ.md) answers the questions I would get in person, with links to the proof.
+**→ [Start your first on-call shift with IBM Bob](docs/BOB-QUICKSTART.md)**
+
+<a id="the-first-on-call-shift"></a>
+## Your first on-call shift: 9 steps, about 165 minutes
+
+The pretend shop is **Nimbus Store**. It went down for an hour last week and nobody noticed. Today you make sure that never happens again.
+
+| # | Mission | What you do | Minutes |
+| --- | --- | --- | --- |
+| 1 | B00 Meet your AI partner | Learn how you and Bob work together, including the "Stay in control" rules | 15 |
+| 2 | M00 Boot the lab | Run `scripts/preflight.py`, then the one-command setup kit `scripts/install-tools.*` installs what is missing, and Bob deploys the stack (mostly waiting) | 60 |
+| 3 | M01 Instrument a service | See the numbers, traces and logs the shop sends out | 10 |
+| 4 | M04 Dashboards as code | Open Grafana and read the live charts | 10 |
+| 5 | M05 First alert | Break the shop on purpose (`scripts/trigger-alert.*`) and watch an alert fire | 15 |
+| 6 | N01 Alerts on your phone | Run `scripts/notify_setup.py`, subscribe in the free ntfy app or a browser, and get a real `[firing]` push | 10 |
+| 7 | M07 Follow the trace | Follow one failing request step by step in Jaeger | 10 |
+| 8 | M17 AI on call | Turn on Bob's read-only access (`scripts/ai_setup.py`), let Bob triage in **SRE Triage** mode, save it with `/save-triage` | 20 |
+| 9 | M18 Injection proof | See Bob spot a planted instruction in the logs and refuse to follow it | 15 |
+
+When all nine are done you get a **SHIFT COMPLETE** moment and the **First On-Call Shift** badge. Check where you are at any time with `python scripts\lab.py journey` on Windows (Mac and Linux: `python3 scripts/lab.py journey`). Everything else in this repository is optional: see [Keep exploring](#keep-exploring).
 
 ## Start here, by audience
 
 | You are... | Read this first | Then |
 | --- | --- | --- |
+| **An IBMer trying SRE for the first time** | [BOB-QUICKSTART.md](docs/BOB-QUICKSTART.md): paste one message into IBM Bob and follow the [9 steps](#the-first-on-call-shift) | First check your laptop with `python scripts\preflight.py` on Windows (Mac: `python3 scripts/preflight.py`). If something is blocked, send IT the [IT request template](docs/IT-REQUEST.md) |
 | **The grader** | The [grader view](#final-project-grader-view) just below (rubric to file to screenshot) | The [FAQ](docs/FAQ.md) (alert path, burn-rate math, design choices, limits) and the evidence: [screenshots](#evidence), [AI triage drill](docs/evidence/ai-triage-2026-11-19.md), [postmortem](docs/postmortems/2026-11-19-alert-drill-and-ai-triage.md) |
-| **An SRE Academy professor (2027)** | The [course map](docs/COURSE-MAP.md) (every 2026 topic and exercise mapped to files) | The [instructor notes](docs/instructor/README.md) and the [lab guide](docs/labs/README.md) (parts, timing, assessment) |
-| **A classmate from a non-technical team** | The plain-words paragraph at the top of this page, then [GUIDE section 1, "What is this project?"](docs/GUIDE.md#1-what-is-this-project) | The [step-by-step guide](docs/GUIDE.md) and its [glossary](docs/GUIDE.md#glossary) |
-| **A 2027 student on an IBM laptop (Windows or Mac)** | [BOB-QUICKSTART.md](docs/BOB-QUICKSTART.md): IBM Bob installs the tools and guides you | First check your laptop with `python scripts\preflight.py` on Windows (Mac: `python3 scripts/preflight.py`). If something is blocked, send IT the [IT request template](docs/IT-REQUEST.md) |
+| **A professor or team lead running a session** | The [instructor notes](docs/instructor/README.md) (how to run it as one class session) | The [course map](docs/COURSE-MAP.md) and the [lab guide](docs/labs/README.md) (the shift first, then optional deeper parts) |
+| **A team that onboards SRE new hires or interns** | [Reuse it for onboarding](#reuse-it-for-onboarding) | The mission catalog [`lab/missions.json`](lab/missions.json) and [`scripts/lab.py`](scripts/lab.py) |
+| **A classmate who only wants to understand it** | The plain-words paragraph at the top of this page, then [GUIDE section 1, "What is this project?"](docs/GUIDE.md#1-what-is-this-project) | The [step-by-step guide](docs/GUIDE.md) and its [glossary](docs/GUIDE.md#glossary) |
 | **A hiring manager** | [What I built](#what-you-get) and [How this was built](#how-this-was-built) (what I did, what the AI did) | The [evidence](#evidence), a [real drill postmortem](docs/postmortems/2026-11-19-alert-drill-and-ai-triage.md) (time to detect 2 min 19 s) and the [CI runs](https://github.com/jaffethalfarotorres/sre-final-project/actions/workflows/ci.yml) |
+
+This repository is also my SRE Academy 2026 final project. There is no presentation: the repository is the whole submission, and the [FAQ](docs/FAQ.md) answers the questions I would get in person, with links to the proof. The rubric mapping is right below.
 
 <a id="final-project-requirements"></a>
 ## Final project: grader view
@@ -53,23 +75,22 @@ I am an SRE Academy 2026 student from a non-technical background. I built this p
 - **How to see it:** commits made with AI help carry a `Co-Authored-By` trailer in the Git history.
 - **What I can explain end to end:** the alert path, from a failing request to the metric, the Prometheus rule and the Alertmanager route; the SLO burn-rate alerts and why they use two windows; and how the app is deployed on Kubernetes. I wrote these answers down in the [FAQ](docs/FAQ.md), with the problems the checks found in AI-generated work.
 
-## Start here: let IBM Bob guide you
+<a id="keep-exploring"></a>
+## Keep exploring (optional, at your own pace)
 
-Built for **non-technical students**. Paste one message into [IBM Bob](https://bob.ibm.com) and Bob installs the tools, sets up the lab on your laptop and then guides you through the missions, explaining every idea in plain words. You learn SRE, the tools and how to work with an AI partner at the same time, earn **XP, levels and badges**, and finish with a **self-generated SRE Lab Passport** that your professor confirms in a short live check-off.
-
-**→ [Start the lab with IBM Bob](docs/BOB-QUICKSTART.md)** (about 2 hours of setup, then one mission at a time)
+The shift is the whole ice-breaker. If you liked it, the rest of the repository is there for you, with no deadline and no grade. Bob stays your guide: open the folder in Bob, choose the **SRE Lab Guide** mode and type `/next-mission`.
 
 | You are... | Start with |
 | --- | --- |
 | A student with IBM Bob | [BOB-QUICKSTART.md](docs/BOB-QUICKSTART.md): open the folder in Bob, choose the **SRE Lab Guide** mode, type `/start-lab` |
 | A student without Bob | The [step-by-step guide for Mac and Windows](docs/GUIDE.md), then `python3 scripts/lab.py status` (Windows: `python scripts\lab.py status`; or `/lab` in Claude Code) |
-| A professor | The [lab guide](docs/labs/README.md) (objectives, timing, instructor notes, assessment), the [course map](docs/COURSE-MAP.md) and the [instructor notes on answer keys](docs/instructor/README.md) |
+| A professor | The [lab guide](docs/labs/README.md) (the shift, then the deeper parts with objectives and timing), the [course map](docs/COURSE-MAP.md) and the [instructor notes](docs/instructor/README.md) |
 
-A mission counts only when [`scripts/lab.py`](scripts/lab.py) finds the evidence on the student's own cluster or fork; the professor confirms it live with `lab.py verify`. Quizzes are for learning and never count toward a grade.
+A mission counts only when [`scripts/lab.py`](scripts/lab.py) finds the evidence on your own cluster or fork. Quizzes are for learning and never count toward a grade.
 
 ### The journey: Road to Junior SRE
 
-The lab is one journey, built for IBMers from non-technical teams who want to move into technical roles such as junior SRE, DevOps, cloud or operations. The student's first assignment as an apprentice is **Nimbus Store** (the demo app), a small online shop that went down for an hour last week and nobody noticed. With **Bob, the student's AI pair** (fast and helpful, never allowed to change anything without the student's OK), the student climbs camp by camp from **Career Changer** to the summit **On-Call Ready**: the day a team trusts them with the pager. Each camp gives Nimbus a real capability, teaches one SRE principle, lists skills the student can name on a CV and adds one interview question to rehearse with Bob (`lab.py cv`, Bob: `/my-cv` and `/interview`). The lab gives hands-on evidence for junior roles; it does not claim to make anyone a senior engineer.
+The full lab is a longer climb, built for IBMers from non-technical teams who want to move into technical roles such as junior SRE, DevOps, cloud or operations. With **Bob, your AI pair** (fast and helpful, never allowed to change anything without your OK), you climb camp by camp from **Career Changer** to the last camp, **On-Call Ready**. Each camp gives Nimbus a real capability, teaches one SRE principle, lists skills you can name on a CV and adds one interview question to rehearse with Bob (`lab.py cv`, Bob: `/my-cv` and `/interview`). The first on-call shift already touches camps 0, 1, 2, 4 and 7. The lab gives hands-on evidence for junior roles; it does not claim to make anyone a senior engineer.
 
 | Camp | SRE principle |
 | --- | --- |
@@ -82,20 +103,31 @@ The lab is one journey, built for IBMers from non-technical teams who want to mo
 | 6. The Proving Grounds | Release engineering: gradual, reversible changes, tested by breaking things on purpose |
 | 7. The AI Command Center | Trust, but verify: AI helps on call only with least privilege and human judgement |
 
-Ranks by XP: Career Changer (0) → Tech Apprentice (500) → SRE Intern (1300) → Junior SRE Candidate (2300) → Interview-Ready Junior SRE (3300). There are 31 missions (`lab.py missions`): 20 core missions (B00 orientation with the "Stay in control" safety rules, then the core missions from M00 to M23, including **M09b**, work in your own fork), 6 optional add-ons (M10X, M13, M15, M19, M20, M21), 4 optional portfolio projects and the capstone game day **M27**. The mission IDs have gaps on purpose: M22 and M24 to M26 are not used.
+Ranks by XP: Career Changer (0) → Tech Apprentice (500) → SRE Intern (1300) → Junior SRE Candidate (2300) → Junior SRE Lab Graduate (3300). See every mission with `lab.py missions`: the 9 shift missions, the other core missions of the camps (for example M02, M03, M06, M09, M09b work in your own fork, M14), 6 optional add-ons (M10X, M13, M15, M19, M20, M21), 4 optional portfolio projects and the capstone game day **M27**. The mission IDs have gaps on purpose: M22 and M24 to M26 are not used.
 
 **Portfolio projects** (optional, open to everyone, pieces to show in interviews):
 
-| Project | What the student builds | Badge |
+| Project | What you build | Badge |
 | --- | --- | --- |
-| **P-DASH** | Their own Grafana dashboard | Dashboard Builder |
+| **P-DASH** | Your own Grafana dashboard | Dashboard Builder |
 | **P-ENV** | A second `dev` environment with a Terraform workspace | Environment Builder |
 | **P-RUNBOOK** | A new runbook linked from an alert's `runbook_url` | Runbook Author |
 | **P-POLICY** | A new Kyverno ClusterPolicy | Guardrail Author |
 
-**Badges** are earned along the way, for example *Paired with AI* (B00), *Hello, Cluster* (M00), *First Page* (M05), *Budget Keeper* (M06), *Storyteller* (M09), *Rollback Hero* (M14), *AI Wrangler* (M17), *Injection Proof* (M18) and *Game Day Captain* (M27), plus one per add-on and portfolio project. `lab.py play` (Bob: `/mission-control`) opens Mission Control, the visual dashboard of the climb, with "Your CV so far" and "Interview practice" panels.
+**Badges** are earned along the way, for example *Paired with AI* (B00), *Hello, Cluster* (M00), *First Page* (M05), *AI Wrangler* (M17) and *Injection Proof* (M18) during the shift, then *Budget Keeper* (M06), *Storyteller* (M09), *Rollback Hero* (M14) and *Game Day Captain* (M27), plus one per add-on and portfolio project. `lab.py play` (Bob: `/mission-control`) opens Mission Control, the visual dashboard of the climb, with "Your CV so far" and "Interview practice" panels.
 
-Professors get a class summary with `python3 scripts/cohort_report.py <folder of the students' lab-proof/evidence.json files>` (Windows: `python scripts\cohort_report.py ...`): how many students reached On-Call Ready, the missions most students skipped (topics to reteach) and a fingerprint check of each file. The passport is a self-generated record, not a certificate; its fingerprint is not a signature, so confirm a sample with `lab.py verify` or a short live demo.
+**For professors (optional):** `python3 scripts/cohort_report.py <folder of the students' lab-proof/evidence.json files>` (Windows: `python scripts\cohort_report.py ...`) gives a class summary: how many students reached On-Call Ready, the missions most students skipped and a fingerprint check of each file. The passport from `lab.py proof` is a self-generated record, not a certificate; its fingerprint is not a signature.
+
+<a id="reuse-it-for-onboarding"></a>
+## Reuse it for onboarding
+
+Nothing in the shift is hard-coded to one class. The steps live in the catalog [`lab/missions.json`](lab/missions.json), and [`scripts/lab.py`](scripts/lab.py) reads them. That makes the repository a starting kit for a team that onboards **SRE new hires or interns**: fork it and define your own first-week journey.
+
+- **A journey** is one entry in the catalog's `journeys` list: an `id` (here `first-shift`), a `name` ("First on-call shift"), a `summary` (one plain sentence for the student), an `achievement` (the badge recorded when every step is done, here "First On-Call Shift"), `default: true` for the journey `lab.py status` shows first, an optional `banner` (the big line at the end; "SHIFT COMPLETE" when it is left out), and `steps`, an ordered list where each step is `{"mission": "<mission id>", "minutes": <estimate>}`. `lab.py journey` shows the steps in order, the done marks and the minutes left. A step can only point to a mission that exists in the same catalog.
+- **A mission** has an `id`, a `title`, a `goal`, a `guide` (the page that teaches it), `xp`, a `kind` (for example `core`, `addon` or `portfolio`), a `part` (its camp), `needs` (an add-on it depends on, or `null`), an optional `achievement`, an optional short `quiz` and a `check`: the name of the evidence test that marks it done, sometimes with one argument after a colon (for example `alert_fired:HighErrorRate`).
+- **What needs no code:** a new journey that reuses existing missions, new titles, goals, guides and minutes, and new quiz questions. A quiz answer is stored as the first 16 characters of `sha256("<salt>:<mission id>:<question number>:<letter>")`, using the catalog's `salt`, so students and their AI cannot read it.
+- **What needs a little Python:** a new kind of evidence. Each `check` name maps to one `check_<name>()` function in `scripts/lab.py` (for example `check_alert_fired`), so a new check is one new function and a test in `tests/`.
+- **Keep the safety rules:** [`AGENTS.md`](AGENTS.md) and the "Stay in control" box in B00 are what make it safe to let an AI guide a beginner. Keep them in your fork.
 
 ## What you get
 
@@ -112,7 +144,7 @@ flowchart LR
     PROM --> AM[Alertmanager]
     GRAF[Grafana<br/>4 dashboards + alert rules] --> PROM & LOKI & JAEGER
     GRAF --> AM
-    AM --> SLACK[Slack / email]
+    AM --> SLACK[ntfy phone push<br/>Slack / email]
     AM -->|critical| AWX[AWX runbook:<br/>collect diagnostics]
     AI[IBM Bob / Claude Code] -->|read-only MCP| MCP[Grafana MCP server] --> GRAF
 ```
@@ -141,7 +173,9 @@ cd sre-final-project
 
 No accounts or credentials are needed. **On Windows with IBM Bob, use PowerShell and skip WSL:** every script also exists as `scripts\*.ps1` (for example `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\deploy.ps1`), and you type `python`, never `python3`. The tunnels can run in the background: `scripts\dashboards.ps1 -Background` (Mac/Linux: `./scripts/dashboards.sh --background`), stopped with `-Stop` / `--stop`.
 
-## The lab path
+## The lab path (optional, go deeper)
+
+After the shift, the seven lab parts teach each topic in depth, at your own pace. They are optional; the hour estimates are in the [lab guide](docs/labs/README.md#go-deeper-at-your-own-pace).
 
 | Part | Modules | Course coverage |
 | --- | --- | --- |

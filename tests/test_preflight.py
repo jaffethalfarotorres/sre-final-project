@@ -87,9 +87,9 @@ def test_windows_11_is_recognised_from_the_build():
 
 def test_missing_tool_is_todo_with_install_command():
     windows = preflight.check_tool("minikube", None, None, "Windows")
-    assert windows.status == "TODO" and "winget install -e --id Kubernetes.minikube" in windows.fix
+    assert windows.status == "TODO" and "install-tools.ps1" in windows.fix
     mac = preflight.check_tool("kubectl", None, None, "Darwin")
-    assert "brew install kubectl" in mac.fix
+    assert "install-tools.sh" in mac.fix
 
 
 def test_optional_tool_says_optional():

@@ -58,22 +58,23 @@ INSTALL = {
     "Windows": {
         "docker": "Install a container engine: winget install -e --id SUSE.RancherDesktop (free) "
                   "or Docker.DockerDesktop (needs a licence). See docs/IT-REQUEST.md",
-        "minikube": "winget install -e --id Kubernetes.minikube",
-        "kubectl": "winget install -e --id Kubernetes.kubectl",
+        "minikube": "Run the setup kit: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\install-tools.ps1",
+        "kubectl": "Run the setup kit: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\install-tools.ps1",
         "git": "winget install -e --id Git.Git",
-        "gh": "winget install -e --id GitHub.cli",
+        "gh": "Run the setup kit: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\install-tools.ps1",
         "terraform": "winget install -e --id Hashicorp.Terraform (needed in Part 5, M11)",
-        "helm": "winget install -e --id Helm.Helm (only for the Helm path in Part 5)",
+        "helm": "Optional (only for the Helm path in Part 5). Run the setup kit: "
+                "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\install-tools.ps1",
         "python": "winget install -e --id Python.Python.3.12 --scope user, then use 'python' (never 'python3')",
     },
     "Darwin": {
         "docker": "brew install colima docker, then: colima start --cpu 4 --memory 6 --disk 60",
         "colima": "brew install colima, then: colima start --cpu 4 --memory 6 --disk 60 (8 GB Mac: --cpu 2 "
                   "--memory 4)",
-        "minikube": "brew install minikube",
-        "kubectl": "brew install kubectl",
-        "git": "brew install git",
-        "gh": "brew install gh",
+        "minikube": "Run the setup kit: ./scripts/install-tools.sh",
+        "kubectl": "Run the setup kit: ./scripts/install-tools.sh",
+        "git": "Run the setup kit: ./scripts/install-tools.sh",
+        "gh": "Run the setup kit: ./scripts/install-tools.sh",
         "terraform": "brew tap hashicorp/tap && brew install hashicorp/tap/terraform (needed in Part 5, M11)",
         "helm": "brew install helm (only for the Helm path in Part 5)",
         "python": "brew install python@3.12, then use python3.12 instead of python3",

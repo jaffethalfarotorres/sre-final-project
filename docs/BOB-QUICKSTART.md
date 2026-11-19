@@ -1,23 +1,31 @@
 # Start the lab with IBM Bob
 
-## Welcome to the Road to Junior SRE
+## Your first on-call shift, in one sitting
 
-You work at IBM in a non-technical team, and you want to move into a technical role: junior SRE, DevOps, cloud or operations. This lab is your first real assignment.
+**One sitting, about 2-3 hours, mostly installs.** You paste one message into IBM Bob. Bob installs the tools on your laptop, starts a small online shop called **Nimbus Store**, and walks you through your **first on-call shift**: you watch the shop, fire a real alert, get it on your phone, and investigate it with an AI that is not allowed to change anything. Nobody grades it. It is a friendly first taste of SRE (Site Reliability Engineering).
 
-The assignment is **Nimbus Store**, a small online shop. Last week it went down for an hour, and nobody noticed until customers complained. Your job is to make sure that never happens again.
+**No experience needed.** Last week Nimbus Store went down for an hour, and nobody noticed until customers complained. Today you make sure that does not happen again. **Bob** (IBM Bob, an AI assistant) is **your AI pair**: it explains every step and proposes every command, but it never changes anything without your OK.
 
-You will not do it alone. **Bob** (IBM Bob, an AI assistant) is **your AI pair**. Bob is fast and helpful: it explains every step and proposes every command. But Bob is never allowed to change anything without your OK. You climb camp by camp, from **Career Changer** to the summit, **On-Call Ready**. That is the day a team trusts you with the pager (you are the person called when something breaks).
+### The 9 steps of your shift (about 165 minutes)
 
-**No experience needed.** You paste one message into Bob. Bob installs the tools, sets up the lab on your laptop and then guides you one mission at a time. Every camp teaches you one SRE principle and gives you skills you can name on your CV, with real evidence behind them.
+1. **Meet your AI partner** (B00, 15 min): how you and Bob work together, and how you stay in control.
+2. **Boot the lab** (M00, 60 min): Bob installs the tools and starts the shop. Mostly waiting.
+3. **Instrument a service** (M01, 10 min): see the shop's numbers and the path of one request.
+4. **Dashboards as code** (M04, 10 min): open the live charts in Grafana.
+5. **First alert** (M05, 15 min): break the shop on purpose and watch the alarm fire.
+6. **Alerts on your phone** (N01, 10 min): get that alarm as a push on your phone, with the free ntfy app.
+7. **Follow the trace** (M07, 10 min): find the error in the logs and the failed request in Jaeger.
+8. **AI on call** (M17, 20 min): Bob investigates the alert in a read-only mode and writes a report.
+9. **Injection proof** (M18, 15 min): a fake attack hides in a log line; Bob must spot it and not obey it.
 
-**An honest note:** a lab does not make anyone a senior engineer. What it gives you is hands-on evidence, the words to explain it, and practice for the interview. That is exactly what a junior role asks for.
+When all 9 are done: **SHIFT COMPLETE**, and you earn the **First On-Call Shift** badge. Everything after that is optional: see [Keep exploring](#keep-exploring-optional).
 
 > Don't have IBM Bob? IBMers use their IBM Bob entitlement. Everyone else can use the trial at [bob.ibm.com](https://bob.ibm.com). No Bob at all? Follow the [step-by-step guide](GUIDE.md) by hand, or use Claude Code with `/lab`.
 
 ## What you need
 - A Mac or a Windows laptop with **at least 8 GB of memory** (16 GB is better) and **20 GB of free disk**. With 8 GB you run the core stack only, with no add-ons (Mac: see the Mac box below).
-- Administrator rights on your laptop (to install tools) and about **2 hours** for the setup.
-- IBM Bob installed and signed in, and a free [GitHub](https://github.com) account.
+- Administrator rights on your laptop (to install tools) and **one sitting of about 2-3 hours**. Most of it is waiting while things install.
+- IBM Bob installed and signed in, a free [GitHub](https://github.com) account, and (for step 6) your phone.
 
 <details>
 <summary><b>New words? Open this first (1 minute)</b></summary>
@@ -49,7 +57,7 @@ You will not do it alone. **Bob** (IBM Bob, an AI assistant) is **your AI pair**
 <details>
 <summary><b>Optional extra lock: a deny list for Bob</b></summary>
 
-In Bob's settings, add this deny list. Bob then refuses these commands even if you click Approve by mistake. If your Bob version names the setting differently, ask your professor. Never add an "allow" list instead.
+In Bob's settings, add this deny list. Bob then refuses these commands even if you click Approve by mistake. If your Bob version names the setting differently, look for the denied commands setting. Never add an "allow" list instead.
 
 ```json
 "deniedCommands": ["iex", "Invoke-Expression", "curl | ", "python -c", "python3 -c", "kubectl delete", "minikube delete", "git push --force", "Remove-Item -Recurse", "rm -rf", "--kubeconfig"]
@@ -65,10 +73,11 @@ In Bob's settings, add this deny list. Bob then refuses these commands even if y
 <details>
 <summary><b>On an IBM-managed laptop? Read this before the lab day</b></summary>
 
+- **Preflight first:** once the lab is on your laptop, Bob runs `python scripts\preflight.py`. It only reads your laptop and says what is missing. If IBM IT has to unlock something, send them [IT-REQUEST.md](IT-REQUEST.md).
 - **Admin rights:** installers need them. Request temporary administrator rights through IBM's usual IT help process **before** the lab.
-- **Container engine:** Docker Desktop needs a paid licence in large companies ([licence terms](https://docs.docker.com/subscription/desktop-license/)). Ask your professor which one is approved. If Docker Desktop is not licensed for you, use [Rancher Desktop](https://rancherdesktop.io/) with the **dockerd (moby)** engine.
+- **Container engine:** Docker Desktop needs a paid licence in large companies ([licence terms](https://docs.docker.com/subscription/desktop-license/)). Ask your manager or IT which one is approved. If Docker Desktop is not licensed for you, use [Rancher Desktop](https://rancherdesktop.io/) with the **dockerd (moby)** engine.
 - **VPN:** if downloads fail or hang, disconnect the VPN during installs (if your IBM policy allows), then reconnect.
-- **"Running scripts is disabled on this system":** the lab always runs scripts with `-ExecutionPolicy Bypass`, which works for one script only and changes no setting. If it is still blocked, the policy is locked by IT: ask your professor.
+- **"Running scripts is disabled on this system":** the lab always runs scripts with `-ExecutionPolicy Bypass`, which works for one script only and changes no setting. If it is still blocked, the policy is locked by IT: see [IT-REQUEST.md](IT-REQUEST.md).
 
 More detail: [On an IBM-managed laptop](GUIDE.md#on-an-ibm-managed-laptop) in the guide.
 
@@ -96,6 +105,9 @@ Set up the SRE Academy lab for me. I am new to this, so explain each step in sim
 1. Find out if I am on Windows or Mac.
 2. Install git, Python 3.12 and the GitHub command line (gh) if they are missing.
    Windows: winget install -e --id Git.Git, then Python.Python.3.12 --scope user, then GitHub.cli.
+   If winget is not available (common on IBM laptops), tell me, and I will install Git from
+   https://git-scm.com/download/win and Python from https://www.python.org/downloads/windows/
+   ("Install for me only", tick "Add python.exe to PATH") myself.
    After each winget install, refresh PATH in the same terminal:
    $env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User')
    On Windows always use "python", never "python3" (python3 opens the Microsoft Store).
@@ -122,18 +134,22 @@ Set up the SRE Academy lab for me. I am new to this, so explain each step in sim
 1. Open the **`sre-final-project` folder itself**: **File > Open Folder…**, then choose `sre-final-project`. In the Explorer on the left, the top line must say `SRE-FINAL-PROJECT`, with `AGENTS.md`, `README.md` and the `scripts` folder right underneath.
    > **Important:** do not open a parent folder that only *contains* `sre-final-project`. Bob reads the lab rules, the **SRE Lab Guide** mode and the `/start-lab` command only from the top of the open folder.
 2. If Bob asks whether you **trust** this folder, say yes. The rules Bob follows are in `AGENTS.md` and the `.bob/` folder, and you can read them.
-3. Open Bob's **Permissions** (auto-approve) menu. Tick **Read** and **MCP** only. Leave **Execute** and **Write** off. (MCP is how Bob reads your dashboards; it switches on in mission M17.)
+3. Open Bob's **Permissions** (auto-approve) menu. Tick **Read** and **MCP** only. Leave **Execute** and **Write** off. (MCP is how Bob reads your dashboards. The **grafana** server stays off until step 8 of your shift, M17, when Bob shows you how to switch it on.)
 4. In the mode picker, choose **SRE Lab Guide**. Type `/start-lab` and press Enter.
 
-From now on Bob explains each idea in plain words, proposes one approved command at a time, checks each mission on your real laptop, and asks a short quiz.
+Bob then runs the **setup kit** (`scripts\install-tools.ps1`, Mac `scripts/install-tools.sh`): one approved command that installs only the tools that are missing, even on IBM laptops without winget. Bob also runs the **preflight** (`python scripts\preflight.py`, Mac `python3 scripts/preflight.py`). It only reads your laptop and tells you what is missing. Then Bob walks you through the 9 steps of your shift: it explains each idea in plain words, proposes one approved command at a time, checks each step on your real laptop, and asks a short quiz.
 
-## Your first mission: Orientation Day (B00)
+## Step 3: your shift starts with B00
 
-The first mission, **B00 "Meet your AI partner"**, is your first day on the team. Bob explains how you two work together, and you answer **5 short quiz questions**. The **Stay in control** box at the top of this page is part of the mission: read it with Bob before you answer. Everyone walks the same road, one lab that covers everything.
+The first step, **B00 "Meet your AI partner"**, is your first minutes on the team. Bob explains how you two work together, and you answer **5 short quiz questions**. The **Stay in control** box at the top of this page is part of it: read it with Bob before you answer. Then Bob takes you through the other 8 steps, one at a time. Type `/lab-status` at any moment to see how far you are and how many minutes are left.
 
-## The climb: 8 camps
+## Keep exploring (optional)
 
-The road has **8 camps**. Each camp gives Nimbus a real new capability on your laptop and teaches you **one SRE principle**.
+Your shift is complete? Well done. You can stop here; that is a perfectly good ending. If you are curious, there is much more in this repository, any time, at your own pace. Type `/next-mission` and Bob picks it up from where you are. The deeper lab parts, one topic at a time, are in the [lab guide](labs/README.md).
+
+### The bigger map: 8 camps
+
+Your shift touched a few missions from a bigger map, the **Road to Junior SRE**. It has **8 camps**, from Career Changer to the summit **On-Call Ready**. Each camp gives Nimbus a real new capability on your laptop and teaches you **one SRE principle**.
 
 | Camp | What Nimbus can do after it | The SRE principle you learn |
 | --- | --- | --- |
@@ -147,13 +163,13 @@ The road has **8 camps**. Each camp gives Nimbus a real new capability on your l
 | 7. The AI Command Center | **On-Call Ready**: you lead incidents with an AI teammate you can trust and verify | Trust, but verify: AI helps only with least privilege and human judgement |
 
 - **Clearing a camp is a LEVEL UP.** Bob then shows you three things: the SRE principle of that camp, the **new skills for your CV**, and **one interview question** to practise.
-- **About 30 missions.** 20 core missions, from "Meet your AI partner" to "Watching the model", then the capstone **M27 "Game day captain"**, where you lead a practice incident. One core mission, **M09b "Join the guild (fork the repo)"**, checks that you work in your own copy of the project. There are also 6 optional add-ons for laptops with more memory.
-- **XP and ranks:** Career Changer (0 XP) → Tech Apprentice (500) → SRE Intern (1300) → Junior SRE Candidate (2300) → Interview-Ready Junior SRE (3300). `/lab-status` shows your XP and what comes next.
-- **Quizzes:** you get full XP on the first try and half on the second. After that the question locks. Quizzes are for learning: they never block a mission and they are never graded. Bob never tells you the answer.
+- **About 30 missions.** The core missions go from "Meet your AI partner" to "Watching the model", then the capstone **M27 "Game day captain"**, where you lead a practice incident. One core mission, **M09b "Join the guild (fork the repo)"**, checks that you work in your own copy of the project. There are also 6 optional add-ons for laptops with more memory.
+- **XP and ranks:** Career Changer (0 XP) → Tech Apprentice (500) → SRE Intern (1300) → Junior SRE Candidate (2300) → Junior SRE Lab Graduate (3300). `/lab-status` shows your XP and what comes next.
+- **Quizzes:** you get full XP on the first try and half on the second. After that the question locks. Quizzes are for learning: they never block a mission and nothing is graded. Bob never tells you the answer.
 - **Mission Control:** type `/mission-control`. Bob opens a visual map with your camp, what Nimbus can do now, your next mission, your badges, a **"Your CV so far"** panel and an **"Interview practice"** panel.
 - **Two modes, two jobs:** *SRE Lab Guide* runs lab commands **you approve**. *SRE Triage (read-only)* is the on-call helper for the incident missions: it investigates but can never change anything.
 
-## Portfolio projects (optional, open to everyone)
+### Portfolio projects
 
 Want something extra to show in an interview? Pick one or more. Each one is your own work, not a copy of the lab, and earns a badge.
 
@@ -166,32 +182,32 @@ Want something extra to show in an interview? Pick one or more. Each one is your
 
 Take a screenshot, keep the file in your fork, and you have a real story to tell: "here is what I built, and why".
 
-## Your CV and interview practice
+### Your CV and interview practice
 
 - **`/my-cv`**: Bob runs `python scripts\lab.py cv` (Mac and Ubuntu: `python3 scripts/lab.py cv`). You see the skills you earned, the principles you practised and the interview questions of the camps you cleared. Then Bob helps you turn them into CV or LinkedIn lines in plain English. Bob only writes what you actually did in the lab. It never invents experience.
 - **`/interview`**: Bob plays a friendly interviewer for a junior SRE or DevOps role. It asks the questions of the camps you cleared, one at a time. After each answer you get kind feedback and a model answer that points to what you really did in the lab.
 
-## Commands you can type to Bob
+### Your proof (optional)
+
+A mission counts only when `scripts/lab.py` finds the evidence on your laptop.
+
+If you climb all the camps, type `/lab-proof Your Name`. Bob creates `lab-proof/PASSPORT.md` (your missions, dates, evidence and the **skills** you earned), a badge image and a **fingerprint** of the evidence. The fingerprint shows if the file was edited later; it is **not a signature**. The passport is a **self-generated record, not a certificate**. A mentor can confirm it in a short live check (`lab.py verify`). Commit it to your fork and share the link, for example next to your CV.
+
+### Commands you can type to Bob
 
 | Command | What it does |
 | --- | --- |
-| `/start-lab` | Start, or continue where you left off |
+| `/start-lab` | Start your shift, or continue where you left off |
 | `/next-mission` | Explain and begin the next mission |
 | `/check-mission M05` | Check a mission on your laptop and collect the XP |
 | `/hint` | A small hint, without spoiling the answer |
 | `/explain error budget` | Explain any idea in plain words |
-| `/lab-status` | Your rank, XP, badges and next mission |
-| `/mission-control` | Open the visual map of the climb |
+| `/lab-status` | How far you are in your shift, your XP and what comes next |
+| `/mission-control` | Open the visual map: your shift and everything after it |
 | `/save-triage` | Save the SRE Triage answer as a report (missions M17 and M18). Type it in **SRE Lab Guide** mode |
 | `/my-cv` | Your skills so far, turned into CV and LinkedIn lines |
 | `/interview` | Practise a junior SRE interview with Bob |
 | `/lab-proof Your Name` | Create your SRE Lab Passport |
-
-## Your proof
-
-A mission counts only when `scripts/lab.py` finds the evidence; your professor verifies it live (`lab.py verify`).
-
-When you finish the core missions, type `/lab-proof Your Name`. Bob creates `lab-proof/PASSPORT.md` (your missions, dates, evidence and the **skills** you earned), a badge image and a **fingerprint** of the evidence. The fingerprint shows if the file was edited later; it is **not a signature**. The passport is a **self-generated record, not a certificate**: your professor confirms it in a short live check. Commit it to your fork and share the link, for example next to your CV.
 
 ## If something goes wrong
 
@@ -203,4 +219,5 @@ When you finish the core missions, type `/lab-proof Your Name`. Bob creates `lab
 | "not recognized" right after an install | The terminal has an old PATH. Run the PATH refresh line from Step 1, or open a new terminal. |
 | A command keeps running and the chat seems stuck | Some steps take minutes (the alert test takes about 4). That is normal. Wait for Bob to say it finished. |
 | Laptop slow, or pods stay "Pending" | You probably ran two add-ons at once. Ask Bob to clean up the last add-on. |
-| Anything else | Ask Bob: "This failed, what does it mean?" It reads the error with you and uses the [guide's troubleshooting table](GUIDE.md#troubleshooting). Still stuck? Open an issue with the **Bug report** form, or ask your professor. |
+| The preflight prints FAIL | Read the fix on that line with Bob. If an IBM-managed laptop blocks it, send [IT-REQUEST.md](IT-REQUEST.md) to IBM IT. |
+| Anything else | Ask Bob: "This failed, what does it mean?" It reads the error with you and uses the [guide's troubleshooting table](GUIDE.md#troubleshooting). Still stuck? Open an issue with the **Bug report** form, or ask a mentor. |

@@ -24,7 +24,7 @@ def test_catalog_ids_are_unique_and_checks_exist(catalog):
     for mission in catalog["missions"]:
         assert mission["check"].split(":")[0] in lab.CHECKS, mission["id"]
         assert mission["kind"] in ("core", "addon", "capstone", "portfolio")
-        assert os.path.exists(os.path.join(ROOT, mission["guide"])), mission["guide"]
+        assert os.path.exists(os.path.join(ROOT, mission["guide"].split("#")[0])), mission["guide"]
 
 
 def test_quiz_answers_are_hashed_not_plain(catalog):
@@ -52,6 +52,11 @@ def test_wrong_answer_is_rejected(tmp_path, monkeypatch):
 
 def test_checks_never_crash_without_a_cluster(monkeypatch):
     monkeypatch.setattr(lab, "run", lambda *a, **k: (127, ""))
+
+    def offline(*args, **kwargs):
+        raise OSError("offline")
+
+    monkeypatch.setattr(lab, "_http_get", offline)
     for mission in lab.load_catalog()["missions"]:
         result = lab.run_check(mission["check"])
         assert set(result) == {"ok", "detail"}
@@ -157,3 +162,92 @@ def test_cv_and_mission_control_show_the_proof(tmp_path, monkeypatch, capsys, ca
 def test_rank_names_do_not_over_promise(catalog):
     names = [level["name"] for level in catalog["levels"]]
     assert "Junior SRE Lab Graduate" in names and not any("Interview-Ready" in n for n in names)
+
+
+def test_default_journey_is_a_short_first_shift(catalog):
+    journey = lab.default_journey(catalog)
+    assert journey and journey["default"] is True and journey["achievement"]
+    ids = {m["id"] for m in catalog["missions"]}
+    steps = [s["mission"] for s in journey["steps"]]
+    assert set(steps) <= ids and len(steps) == len(set(steps))
+    assert 150 <= sum(s["minutes"] for s in journey["steps"]) <= 180
+    assert lab.default_journey({"missions": []}) is None and lab.journey_state({"missions": []}, {}) is None
+
+
+def test_next_mission_follows_the_journey(catalog):
+    steps = [s["mission"] for s in lab.default_journey(catalog)["steps"]]
+    progress = {"missions": {}, "quiz": {}}
+    for step in steps:
+        assert lab.next_mission(catalog, progress)["id"] == step
+        progress["missions"][step] = {}
+    after = lab.next_mission(catalog, progress)  # the journey is done: back to the rest of the lab
+    assert after is not None and after["id"] not in steps
+    state = lab.journey_state(catalog, progress)
+    assert state["complete"] and state["minutes_left"] == 0
+
+
+def test_journey_completion_is_recorded(tmp_path, monkeypatch, capsys, catalog):
+    import lab_ui
+    monkeypatch.setattr(lab, "PROGRESS", tmp_path / "progress.json")
+    monkeypatch.setattr(lab, "PROOF_DIR", tmp_path / "proof")
+    monkeypatch.setattr(lab, "_origin_repo", lambda: None)
+    monkeypatch.setattr(lab, "run_check", lambda spec: lab.evidence(True, "test evidence"))
+    journey = lab.default_journey(catalog)
+    steps = [s["mission"] for s in journey["steps"]]
+    lab.save_progress({"missions": {mid: {"completed": "2027-01-10T10:00:00+00:00", "evidence": "ok"}
+                                    for mid in steps[:-1]}, "quiz": {}})
+    assert lab.cmd_check(type("Args", (), {"mission": steps[-1], "all": False})()) == 0
+    out = capsys.readouterr().out
+    assert "SHIFT COMPLETE" in out and journey["achievement"] in out and "Keep exploring" in out
+    progress = lab.load_progress()
+    assert journey["id"] in progress["journeys"] and lab.xp_of(catalog, progress) >= 0
+    assert journey["achievement"] in lab.journey_achievements(catalog, progress)
+    lab.cmd_check(type("Args", (), {"mission": steps[-1], "all": False})())  # no second banner
+    assert "SHIFT COMPLETE" not in capsys.readouterr().out
+    lab.cmd_journey(None)
+    assert "Journey complete" in capsys.readouterr().out
+    lab.cmd_proof(type("Args", (), {"name": "Test Student"})())
+    evidence = json.loads((tmp_path / "proof" / "evidence.json").read_text())
+    assert journey["id"] in evidence["journeys"]
+    assert journey["name"] in (tmp_path / "proof" / "PASSPORT.md").read_text(encoding="utf-8")
+    page = lab_ui.render(catalog, progress, 0, catalog["levels"][0], None, None, "now")
+    assert "SHIFT COMPLETE" in page and "Keep exploring" in page
+
+
+def test_status_shows_the_journey_first(tmp_path, monkeypatch, capsys, catalog):
+    monkeypatch.setattr(lab, "PROGRESS", tmp_path / "progress.json")
+    lab.cmd_status(None)
+    out = capsys.readouterr().out
+    journey = lab.default_journey(catalog)
+    assert out.startswith(journey["name"]) and "minutes left" in out
+
+
+def test_phone_push_check_never_raises(tmp_path, monkeypatch):
+    monkeypatch.setattr(lab, "NTFY_SECRET", tmp_path / "missing.yaml")
+    result = lab.check_phone_push()
+    assert result["ok"] is False and "notify_setup.py" in result["detail"]
+
+    secret = tmp_path / "alertmanager-secret.yaml"
+    monkeypatch.setattr(lab, "NTFY_SECRET", secret)
+    secret.write_text('stringData:\n  ntfy-url: "http://ntfy-not-configured.invalid/"\n', encoding="utf-8")
+    assert lab.check_phone_push()["ok"] is False
+
+    secret.write_text('stringData:\n  ntfy-url: "https://ntfy.sh/sre-lab-secrettopic?tpl=yes"\n', encoding="utf-8")
+    seen = []
+
+    def offline(url, timeout=10):
+        seen.append(url)
+        raise OSError("offline")
+
+    monkeypatch.setattr(lab, "_http_get", offline)
+    result = lab.check_phone_push()
+    assert result["ok"] is False and "sre-lab-secrettopic" not in result["detail"]
+    assert seen == ["https://ntfy.sh/sre-lab-secrettopic/json?poll=1&since=24h"]
+
+    monkeypatch.setattr(lab, "_http_get", lambda url, timeout=10: '{"event":"open"}\n'
+                        '{"event":"message","title":"[test] info: LabConnected"}\n')
+    assert lab.check_phone_push()["ok"] is False
+    monkeypatch.setattr(lab, "_http_get", lambda url, timeout=10: 'not json\n'
+                        '{"event":"message","title":"[firing] critical: HighErrorRate"}\n')
+    result = lab.check_phone_push()
+    assert result["ok"] is True and "sre-lab-secrettopic" not in result["detail"]

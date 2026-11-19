@@ -10,7 +10,11 @@ I wrote this page because there is no presentation for this project. You only ge
 
 **What is this?** A small pretend online shop runs on my laptop. The project measures how healthy it is, draws the measurements as live charts, and sends an alarm to my phone when something goes wrong. Then it practises what a Site Reliability Engineer (SRE, the person who keeps online services working) does next: find the cause, fix it and learn from it.
 
-**Who is it for?** First, it is my SRE Academy 2026 final project. Second, it is a reusable lab for the 2027 class, guided by IBM Bob (IBM's AI assistant). The README has a [table by audience](../README.md#start-here-by-audience).
+**Who is it for?** First, it is an **ice-breaker** for IBMers who want to try SRE: you open IBM Bob (IBM's AI assistant), paste the link to this repository, and Bob sets up the tools and walks you through your [first on-call shift](../README.md#the-first-on-call-shift). Second, it is my SRE Academy 2026 final project, so the grader material stays here too. The README has a [table by audience](../README.md#start-here-by-audience).
+
+**How long does it take?** One sitting of about 2 to 3 hours. The 9 steps add up to about 165 minutes, and most of that is waiting while Bob installs the tools and deploys the stack (step M00, about 60 minutes). Everything else in the repository (the other camps, the add-ons, the portfolio projects, the seven deeper lab parts) is optional, at your own pace: [Keep exploring](../README.md#keep-exploring).
+
+**Is it graded?** No. Nobody grades the shift. The quizzes and XP are there to help you learn and to make it fun. A course may choose to grade the optional deeper material; the [lab guide, "Suggested assessment"](labs/README.md#suggested-assessment) says how.
 
 **Do I need to be technical to read it?** No. Start with [GUIDE section 1](GUIDE.md#1-what-is-this-project) and the [glossary](GUIDE.md#glossary).
 
@@ -139,11 +143,12 @@ Before this change, `ServiceDown` was per pod, so one lost pod could page as cri
 The core stack. One command (`scripts/deploy.sh` or `deploy.ps1`) covers requirements 1 to 5: the app with metrics, Kubernetes, Prometheus, Grafana and Alertmanager. No add-on is needed. Requirement 6 is the documentation you write.
 
 **How long:**
-- Installing the tools: about 2 hours the first time ([BOB-QUICKSTART, "What you need"](BOB-QUICKSTART.md#what-you-need)).
+- Installing the tools: the shift plans about 60 minutes for the install and the first deploy together (step M00), mostly waiting. A slow laptop or network can take longer ([BOB-QUICKSTART, "What you need"](BOB-QUICKSTART.md#what-you-need)).
 - The first deploy: 5 to 10 minutes ([README Quick start](../README.md#quick-start)).
-- To understand what you deployed, the lab parts that cover requirements 1 to 5 are [Part 1](labs/01-foundations.md) (about 5.5 h) and [Part 2](labs/02-metrics-dashboards-alerts.md) (about 4 h), from the [lab guide table](labs/README.md).
+- The first on-call shift: about 165 minutes in one sitting, the tool install included ([lab guide](labs/README.md#the-first-on-call-shift-one-sitting)).
+- Optional, to go deeper into what you deployed: the lab parts that cover requirements 1 to 5 are [Part 1](labs/01-foundations.md) (about 5.5 h) and [Part 2](labs/02-metrics-dashboards-alerts.md) (about 4 h), from the [lab guide table](labs/README.md#go-deeper-at-your-own-pace).
 
-**For a 2027 student:** a copy of this repository earns no credit. The [lab guide, "Suggested assessment"](labs/README.md#suggested-assessment) and [GUIDE, "Your final project"](GUIDE.md#your-final-project-what-you-must-hand-in) say what you add in your own fork.
+**For a 2027 student:** the [first on-call shift](../README.md#the-first-on-call-shift) already deploys this core stack in one sitting, and nobody grades it. Only if your course chooses to grade the optional deeper material: a copy of this repository earns no credit, and the [lab guide, "Suggested assessment"](labs/README.md#suggested-assessment) and [GUIDE, "Your final project"](GUIDE.md#your-final-project-what-you-must-hand-in) say what you add in your own fork.
 
 ---
 
@@ -205,6 +210,7 @@ docker run --rm -v "${PWD}:/w" -w /w --entrypoint sh prom/prometheus:v2.54.1 -c 
 - **Slack and email delivery** are configured, but the repository does not show them working: they need a personal webhook or mail account. The delivered notification I can show is the ntfy push.
 - **The add-on results** in the README table (ArgoCD, canary, AWX, rollback times) come from my own runs on Minikube in November 2026, with Claude Code as the operator. Most run logs are not stored in the repository ([lab guide, "How the verification was done"](labs/README.md#how-the-verification-was-done)).
 - **The AI triage drill ran once**, with Claude Code, not with IBM Bob.
+- **The shift's minutes are estimates.** The 9 steps (about 165 minutes) have not been timed with a real class yet. The tool install depends most on the laptop and the network: on a slow connection or a blocked laptop it can take longer, so run the preflight before the session.
 - **Lab only:** no persistent storage, local and short-lived credentials, container images pinned to fixed versions.
 - **IT decisions for 2027** (container engine, admin rights, VPN, Bob access) belong to the academy. [IT-REQUEST.md](IT-REQUEST.md) is a ticket template, and [`scripts/preflight.py`](../scripts/preflight.py) checks a laptop before the course.
 
@@ -222,8 +228,10 @@ docker run --rm -v "${PWD}:/w" -w /w --entrypoint sh prom/prometheus:v2.54.1 -c 
 
 **Where are the answer keys for the lab?** Not in this public repository, so students and their AI cannot read them. See [docs/instructor/README.md](instructor/README.md).
 
-**I am a professor. Where do I start?** The [course map](COURSE-MAP.md), the [lab guide](labs/README.md) and the [instructor notes](instructor/README.md).
+**I am a professor. Where do I start?** The [instructor notes](instructor/README.md) explain how to run the shift as one class session. Then the [course map](COURSE-MAP.md) and the [lab guide](labs/README.md) for the optional deeper material.
 
-**I am a 2027 student on an IBM laptop. Where do I start?** [BOB-QUICKSTART.md](BOB-QUICKSTART.md). Run `python scripts\preflight.py` first to check your laptop (Mac: `python3 scripts/preflight.py`). It only reads and needs no admin rights.
+**I am a 2027 student on an IBM laptop. Where do I start?** [BOB-QUICKSTART.md](BOB-QUICKSTART.md). Run `python scripts\preflight.py` first to check your laptop (Mac: `python3 scripts/preflight.py`). It only reads and needs no admin rights. Then follow the 9 steps of the shift; `python scripts\lab.py journey` (Mac: `python3 scripts/lab.py journey`) shows where you are.
+
+**Can my team reuse it to onboard SRE new hires or interns?** Yes. The shift is defined in the mission catalog [`lab/missions.json`](../lab/missions.json), so a team can define its own onboarding journey from the existing missions, or add its own. What needs code and what does not is in the README, [Reuse it for onboarding](../README.md#reuse-it-for-onboarding).
 
 **Can I reuse this?** Yes, under the MIT licence ([LICENSE.md](../LICENSE.md)). Keep the original copyright line and add your own.

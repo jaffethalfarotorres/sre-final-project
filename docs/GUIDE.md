@@ -1,8 +1,10 @@
 # Step-by-step guide for Mac and Windows (no experience needed)
 
+> **Using IBM Bob?** Then you do not need this page to start. Follow [BOB-QUICKSTART.md](BOB-QUICKSTART.md): Bob runs your **First on-call shift**, 9 short steps in one sitting of about 2-3 hours (mostly waiting for installs), and does the setup below with you. This guide is the **by-hand version** of the same lab, and the reference Bob uses when something fails. Nothing here is graded.
+
 > **Using IBM Bob on Windows?** Use the [Windows (PowerShell, used by IBM Bob)](#windows-powershell-used-by-ibm-bob) section and skip WSL. Bob's terminal is PowerShell, so every command must work there.
 
-> **Start with the preflight.** Run `python scripts\preflight.py` (Windows) or `python3 scripts/preflight.py` (Mac). It only reads your laptop and tells you what is missing. On an IBM-managed laptop, send [IT-REQUEST.md](IT-REQUEST.md) to IT before the course.
+> **Start with the preflight.** Run `python scripts\preflight.py` (Windows) or `python3 scripts/preflight.py` (Mac). It only reads your laptop and tells you what is missing. On an IBM-managed laptop, send [IT-REQUEST.md](IT-REQUEST.md) to IT before you start.
 
 This guide explains the project in plain language and walks you through running it on a **Mac** or a **Windows** computer, one step at a time. You do not need to know Kubernetes or programming. If a word is new, check the [glossary](#glossary) at the end.
 
@@ -72,6 +74,12 @@ Everything runs on your computer. Nothing is sent to the internet unless you set
 ---
 
 ## 2. Install the tools (one time)
+
+> **Fastest way: the setup kit.** Once the project is on your laptop (step 3 clones it), one command checks every tool and installs only the missing ones, then runs the preflight:
+> - Windows PowerShell: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-tools.ps1 -Engine rancher` (or `-Engine docker` if you have a Docker Desktop licence; add `-DryRun` first to only see what is missing). It works without winget too: kubectl, minikube, helm and gh go into `%USERPROFILE%\tools\bin`, no admin rights needed.
+> - Mac: `./scripts/install-tools.sh` (add `--dry-run` first to only see what is missing).
+>
+> The sections below are the same steps by hand.
 
 ### Mac
 
@@ -232,9 +240,9 @@ Use this path only if you follow the guide **without** IBM Bob. The tools run in
 
 Company laptops have a few extra locks. Fix them **before** the lab day:
 - **Administrator rights.** The installers need them. Request temporary administrator rights through IBM's usual IT help process.
-- **Which container engine.** Docker Desktop needs a paid licence in large companies ([Docker's licence terms](https://docs.docker.com/subscription/desktop-license/)). Ask your professor which engine is approved. If Docker Desktop is not licensed for you, use [Rancher Desktop](https://rancherdesktop.io/) with the **dockerd (moby)** engine.
+- **Which container engine.** Docker Desktop needs a paid licence in large companies ([Docker's licence terms](https://docs.docker.com/subscription/desktop-license/)). Ask your manager or IT which engine is approved. If Docker Desktop is not licensed for you, use [Rancher Desktop](https://rancherdesktop.io/) with the **dockerd (moby)** engine.
 - **VPN.** Downloads can fail or hang on the VPN. Disconnect it during installs and the first deploy (if your IBM policy allows), then reconnect.
-- **Script policy.** If PowerShell says "running scripts is disabled on this system", use the `powershell -NoProfile -ExecutionPolicy Bypass -File ...` form shown in this guide. If that is also blocked, IT has locked the policy: ask your professor.
+- **Script policy.** If PowerShell says "running scripts is disabled on this system", use the `powershell -NoProfile -ExecutionPolicy Bypass -File ...` form shown in this guide. If that is also blocked, IT has locked the policy: send them [IT-REQUEST.md](IT-REQUEST.md).
 - **Data.** Never put client data, w3 credentials or screenshots of internal IBM tools into the lab, into IBM Bob or into your fork.
 
 ### AI assistants (only for lab Part 7)
@@ -462,9 +470,10 @@ Windows PowerShell: `python scripts\chaos_test.py`
 
 ### The Road to Junior SRE (the lab game, also without Bob)
 
-The lab is one journey: you start as a **Career Changer** and climb 8 camps to **On-Call Ready**, the day a team trusts you with the pager. Each camp gives Nimbus Store (the pretend shop) a real new capability, teaches one SRE principle and lists skills you can name on your CV. You can play it by hand with the same script Bob uses. The commands below are for **Mac** and for the **Ubuntu window (WSL)**: `python3 scripts/lab.py ...`. Only in **Windows PowerShell** type `python scripts\lab.py ...` instead (the backslash and `python` work only there):
+The lab is one journey: you start as a **Career Changer** and climb 8 camps to **On-Call Ready**, the day a team trusts you with the pager. Each camp gives Nimbus Store (the pretend shop) a real new capability, teaches one SRE principle and lists skills you can name on your CV. The default start is the **First on-call shift**, 9 missions in one sitting: `python3 scripts/lab.py journey` lists them with done marks and minutes left. Everything after it is optional. You can play it by hand with the same script Bob uses. The commands below are for **Mac** and for the **Ubuntu window (WSL)**: `python3 scripts/lab.py ...`. Only in **Windows PowerShell** type `python scripts\lab.py ...` instead (the backslash and `python` work only there):
 
 ```bash
+python3 scripts/lab.py journey         # the 9 steps of the First on-call shift
 python3 scripts/lab.py status          # your rank, XP and next mission
 python3 scripts/lab.py show M05        # what to do and the quiz questions
 python3 scripts/lab.py check M05       # check the mission on your laptop (read-only)
@@ -474,11 +483,13 @@ python3 scripts/lab.py play            # Mission Control, the visual dashboard
 python3 scripts/lab.py proof --name "Your Name"   # your SRE Lab Passport
 ```
 
-Ranks by XP: Career Changer (0), Tech Apprentice (500), SRE Intern (1300), Junior SRE Candidate (2300), Interview-Ready Junior SRE (3300). Quizzes are for learning only: they never block a mission and are never graded. The passport is a self-generated record, not a certificate; its fingerprint shows later edits but is not a signature. Your professor confirms it with `lab.py verify` or a short live demo.
+Ranks by XP: Career Changer (0), Tech Apprentice (500), SRE Intern (1300), Junior SRE Candidate (2300), Junior SRE Lab Graduate (3300). Quizzes are for learning only: they never block a mission and are never graded. The passport is a self-generated record, not a certificate; its fingerprint shows later edits but is not a signature. A mentor can confirm it with `lab.py verify` or a short live demo.
 
 ---
 
 ## Your final project: what you must hand in
+
+> Only for students of the SRE Academy course. If you came for the First on-call shift, you can skip this section.
 
 The SRE Academy final project has **six required items** and **three bonuses**. This table shows where you do each one in this lab. Everything you hand in lives in **your own fork** (see [step 3](#3-download-and-start-the-project)). A copy of this repository with no changes of your own earns no credit.
 
@@ -551,7 +562,7 @@ If a command fails, **you are probably not doing anything wrong**. Find the mess
 | No Slack or email message | Check the logs: `kubectl logs deployment/alertmanager -n monitoring --tail=30`. `no_team` or `invalid_token` means a wrong Slack URL. `535` means a wrong email address or app password. Fix the file, then repeat step 6e. |
 | Windows: `python` opens the Microsoft Store, or `python3` does nothing | Install Python with `winget install -e --id Python.Python.3.12 --scope user`, refresh PATH (see [Windows step 3](#windows-powershell-used-by-ibm-bob)), and use `python`, never `python3`. |
 | Windows: a tool is "not recognized" right after `winget install` | The open terminal has an old PATH. Run the PATH refresh line from [Windows step 3](#windows-powershell-used-by-ibm-bob), or open a new terminal. |
-| Windows: "running scripts is disabled on this system" | Use the full form `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\<name>.ps1`. If that is also blocked, the policy is locked by IT: ask your professor. |
+| Windows: "running scripts is disabled on this system" | Use the full form `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\<name>.ps1`. If that is also blocked, the policy is locked by IT: see [IT-REQUEST.md](IT-REQUEST.md). |
 | `winget` or a download fails, hangs or shows a certificate error | Usually the VPN or a company proxy. Disconnect the VPN during installs (if your policy allows) and try again. |
 | An installer asks for administrator rights you do not have | Request temporary admin rights through IBM's IT help process, then run the install again. See [On an IBM-managed laptop](#on-an-ibm-managed-laptop). |
 | Docker Desktop asks for a subscription | Your company may not have a licence for you. Use Rancher Desktop with the dockerd (moby) engine instead. |

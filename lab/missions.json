@@ -1,6 +1,53 @@
 {
  "quiz_attempts": 2,
- "version": 7,
+ "version": 8,
+ "journeys": [
+  {
+   "id": "first-shift",
+   "name": "First on-call shift",
+   "default": true,
+   "achievement": "First On-Call Shift",
+   "summary": "Your first hands-on taste of SRE, in one sitting (about 2 to 3 hours, most of it waiting for installs). Bob sets up the tools with you, then you watch a real service, make an alert fire, get it on your phone, follow the trace and let an AI help you on call, safely.",
+   "steps": [
+    {
+     "mission": "B00",
+     "minutes": 15
+    },
+    {
+     "mission": "M00",
+     "minutes": 60
+    },
+    {
+     "mission": "M01",
+     "minutes": 10
+    },
+    {
+     "mission": "M04",
+     "minutes": 10
+    },
+    {
+     "mission": "M05",
+     "minutes": 15
+    },
+    {
+     "mission": "N01",
+     "minutes": 10
+    },
+    {
+     "mission": "M07",
+     "minutes": 10
+    },
+    {
+     "mission": "M17",
+     "minutes": 20
+    },
+    {
+     "mission": "M18",
+     "minutes": 15
+    }
+   ]
+  }
+ ],
  "salt": "sre-academy-2027",
  "story": "You work at IBM in a non-technical team and you want to move into tech. Your first assignment as an apprentice: **Nimbus Store**, a small online shop that went down for an hour last week and nobody noticed until customers complained. With **Bob**, your AI pair (fast and helpful, but never allowed to change anything without your OK), you climb from Career Changer to the last camp of this lab: **On-Call Ready**. Reaching it means you completed the lab's on-call missions; it is practice, not a job certification. Each camp gives Nimbus a real new capability on your laptop. Each skill appears on your CV list only when the mission that proves it is done, so you can defend it in an interview with evidence.",
  "theme": {
@@ -124,6 +171,12 @@
      "skill": "Alerting with Alertmanager",
      "proof": [
       "M05"
+     ]
+    },
+    {
+     "skill": "Routing alerts to people (phone push with ntfy)",
+     "proof": [
+      "N01"
      ]
     }
    ],
@@ -657,6 +710,29 @@
       "c": "Deletes the alert after 2 minutes"
      },
      "answer": "7892595384319e61"
+    }
+   ]
+  },
+  {
+   "id": "N01",
+   "title": "Alerts on your phone",
+   "part": 2,
+   "kind": "core",
+   "xp": 100,
+   "goal": "Connect Alertmanager to the free ntfy app (python scripts\\notify_setup.py on Windows, python3 scripts/notify_setup.py on Mac), subscribe on your phone or in a browser, and receive a real \"[firing]\" push.",
+   "guide": "docs/GUIDE.md#6-0-phone-push-with-ntfy-recommended-on-ibm-laptops-no-account",
+   "check": "phone_push",
+   "needs": null,
+   "achievement": null,
+   "quiz": [
+    {
+     "q": "Why send alerts through a channel outside the cluster?",
+     "options": {
+      "a": "It is cheaper than Grafana",
+      "b": "If the cluster is down, the alert must still reach a human",
+      "c": "Kubernetes cannot send messages"
+     },
+     "answer": "f25c998eab96369e"
     }
    ]
   },

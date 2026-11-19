@@ -2,7 +2,8 @@
 Mission Control: the visual side of the SRE Academy lab game.
 
 render(catalog, progress, xp, level, following) returns one self-contained HTML page (no internet, no tracking):
-the story, the student's level and XP, the zone map, every mission card (done / next / open / locked),
+the default journey as a stepper at the top (when the catalog has one), then, under "Keep exploring", the story,
+the student's level and XP, the zone map, every mission card (done / next / open / locked),
 achievements and the exact message to type to IBM Bob next. scripts/lab.py writes it to .lab/mission-control.html.
 """
 
@@ -190,6 +191,61 @@ def career(catalog, progress, cleared):
             f'<p class="sub">Type to Bob: <code>/interview</code> and Bob plays the interviewer.</p></section></div>')
 
 
+JOURNEY_CSS = """
+.journey{background:var(--panel);border:2px solid var(--accent);border-radius:var(--radius);padding:16px 18px;
+margin:18px 0 8px}
+.journey h2{margin:0;font-size:20px}.journey .sub{margin:2px 0 10px}
+.steps{list-style:none;margin:12px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+gap:8px}
+.steps li{border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--card);font-size:13px}
+.steps .n{font:12px ui-monospace,Consolas,monospace;color:var(--muted)}
+.steps .t{display:block;font-weight:600;margin:2px 0}.steps .m{color:var(--muted);font-size:12px}
+.steps li.done{border-color:var(--done)}.steps li.done .t::before{content:"\\2713  ";color:var(--done)}
+.steps li.next{border:2px solid var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 20%,transparent)}
+.steps li.todo{opacity:.75}
+.shift{margin:12px 0 0;padding:12px 14px;border-radius:10px;border:1px solid var(--gold);
+background:color-mix(in srgb,var(--gold) 14%,var(--panel))}
+.shift strong{color:var(--gold);letter-spacing:.5px}.shift ul{margin:6px 0 0;padding-left:18px}
+.explore{margin:30px 0 0;font-size:22px}
+"""
+
+
+def journey_panel(catalog, progress):
+    """The default journey as a stepper (done / next / to do, with minutes), or "" when the catalog has none."""
+    import lab  # the same rules as "lab.py journey", so the page and the terminal never disagree
+    state = lab.journey_state(catalog, progress)
+    if not state:
+        return ""
+    journey = state["journey"]
+    items = []
+    for n, step in enumerate(state["steps"], 1):
+        mission = step["mission"]
+        cls = "done" if step["done"] else ("next" if step is state["next"] else "todo")
+        items.append(f'<li class="{cls}"><span class="n">{n} · {html.escape(mission["id"])}</span>'
+                     f'<span class="t">{html.escape(mission["title"])}</span>'
+                     f'<span class="m">about {step["minutes"]} min</span></li>')
+    if state["complete"]:
+        skills = "".join(f"<li>{html.escape(s['skill'])}</li>" for s in lab.journey_skills(catalog, progress, journey))
+        tips = "".join(f"<li>{html.escape(t)}</li>" for t in lab.keep_exploring(catalog, progress, journey))
+        badge = html.escape(journey.get("achievement") or "")
+        status = (f'<div class="shift"><strong>{html.escape(journey.get("banner", "SHIFT COMPLETE"))}!</strong>'
+                  f'{" Badge: " + badge if badge else ""}'
+                  f'{"<p>Skills you touched:</p><ul>" + skills + "</ul>" if skills else ""}'
+                  f'{"<p>Keep exploring (optional):</p><ul>" + tips + "</ul>" if tips else ""}</div>')
+        line = f"All {state['total']} steps done."
+    else:
+        step = state["next"]["mission"]
+        status = ""
+        line = (f"{state['done']}/{state['total']} steps done · about {state['minutes_left']} minutes left · "
+                f"next: {html.escape(step['id'])} {html.escape(step['title'])}")
+    pct = int(100 * state["done"] / state["total"]) if state["total"] else 100
+    return (f'<section class="journey"><div class="id">YOUR JOURNEY · about {state["minutes_total"]} minutes</div>'
+            f'<h2>{html.escape(journey["name"])}</h2>'
+            f'<p class="sub">{html.escape(journey.get("summary", ""))}</p>'
+            f'<div>{line}</div><div class="bar"><i style="width:{pct}%"></i></div>'
+            f'<ol class="steps">{"".join(items)}</ol>{status}</section>')
+
+
 def render(catalog, progress, xp, level, following, next_mission, generated, cleared=()):
     done_ids = set(progress["missions"])
     zones = catalog.get("zones", [])
@@ -237,13 +293,20 @@ def render(catalog, progress, xp, level, following, next_mission, generated, cle
 
     badges = "".join(f'<span class="badge{"" if m["id"] in done_ids else " off"}">{_icon("star")}'
                      f'{html.escape(m["achievement"])}</span>' for m in missions if m.get("achievement"))
+    recorded = progress.get("journeys", {})
+    badges = "".join(f'<span class="badge{"" if j["id"] in recorded else " off"}">{_icon("star")}'
+                     f'{html.escape(j["achievement"])}</span>'
+                     for j in catalog.get("journeys") or [] if j.get("achievement")) + badges
 
     current_part = next((z["part"] for z in zones if z["part"] not in set(cleared)), None)
     caps_html = capabilities(zones, set(cleared), current_part) if zones else ""
+    journey_html = journey_panel(catalog, progress)
+    explore_html = ('<h2 class="explore">Keep exploring</h2><p class="sub">Everything below is optional: more camps, '
+                    'add-ons and portfolio projects, at your own pace.</p>') if journey_html else ""
 
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SRE Mission Control</title><style>{CSS}{MOUNTAIN_CSS}</style></head>
+<title>SRE Mission Control</title><style>{CSS}{MOUNTAIN_CSS}{JOURNEY_CSS}</style></head>
 <body><div class="wrap">
 <header><div><h1>SRE <span>Mission Control</span></h1>
 <p class="sub">Road to Junior SRE · {sum(1 for m in missions if m["id"] in done_ids)}/{len(missions)} missions ·
@@ -252,11 +315,13 @@ updated {html.escape(generated)}</p>
 <div class="level" style="--pct:{pct}%"><div class="emblem"><div>L{climb_level}</div></div>
 <div style="flex:1"><strong>Level {climb_level}/{len(zones)}</strong> · {html.escape(level["name"])} · {xp} XP
 <div class="bar"><i style="width:{pct}%"></i></div><div class="sub">{to_next}</div></div></div></header>
+{journey_html}
+{next_html}
+{explore_html}
 <section class="story">{_md_bold(catalog.get("story", ""))} Every camp you clear is a level: climb with Bob all the
 way to <strong>On-Call Ready</strong>.</section>
 {mountain(zones, set(cleared)) if zones else ""}
 {caps_html}
-{next_html}
 {career(catalog, progress, set(cleared)) if zones else ""}
 {"".join(zones_html)}
 <h3 style="margin-top:30px">Achievements</h3><div class="badges">{badges}</div>

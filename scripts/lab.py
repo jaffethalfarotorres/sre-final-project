@@ -6,11 +6,12 @@ Theme: the Road to Junior SRE. With Bob, your AI pair, you climb camp by camp fr
 Ready (the lab's last camp: you completed its on-call missions; it is practice, not a job certification). Each
 camp teaches one SRE principle. A CV skill is listed only when the mission that proves it is done.
 A mission is only marked done when a read-only check finds the evidence on your cluster or repository. The
-progress file and the passport stay on your own laptop, so professors confirm them with "lab.py verify" or a
+progress file and the passport stay on your own laptop, so a mentor can confirm them with "lab.py verify" or a
 short live demo. IBM Bob (mode "SRE Lab Guide") and Claude Code (/lab) use this script as the game engine,
 and you can run it yourself:
 
-    python3 scripts/lab.py status              # level, XP, next mission
+    python3 scripts/lab.py status              # your journey first, then level, XP, next mission
+    python3 scripts/lab.py journey             # the steps of your first journey, done marks, minutes left
     python3 scripts/lab.py missions            # every mission and whether it is done
     python3 scripts/lab.py show M05            # what to do, where the guide is, the quiz questions
     python3 scripts/lab.py check M05           # check a mission on your cluster (read-only)
@@ -18,11 +19,16 @@ and you can run it yourself:
     python3 scripts/lab.py answer M05 1 b      # answer quiz question 1 of M05 (2 attempts)
     python3 scripts/lab.py cv                  # the skills you have earned, ready for your CV
     python3 scripts/lab.py play                # open Mission Control, the visual dashboard
-    python3 scripts/lab.py verify              # re-run the checks of every recorded mission (professors)
+    python3 scripts/lab.py verify              # re-run the checks of every recorded mission (a mentor)
     python3 scripts/lab.py proof --name "Ada"  # write lab-proof/: passport, badge and evidence
 
 On Windows use "python" instead of "python3" ("python3" opens the Microsoft Store there).
 Progress is kept in .lab/progress.json.
+
+Journeys: the catalog can define short guided paths ("journeys") through existing missions, each step with the
+minutes it takes. The default journey comes first in "status", "check" suggests its next step, and finishing every
+step records the journey's achievement. Another team can define its own journey in lab/missions.json; nothing here
+names a mission id.
 """
 
 import argparse
@@ -34,6 +40,7 @@ import re
 import subprocess
 import sys
 import urllib.parse
+import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -46,6 +53,7 @@ COURSE_REPO = "jaffethalfarotorres/sre-final-project"
 ORIGINAL_DASHBOARDS = {"golden-signals.json", "llm-observability.json", "slo.json", "sre-metrics.json"}
 ORIGINAL_RUNBOOKS = {"error-budget-burn.md", "high-error-rate.md", "high-latency.md", "service-down.md"}
 ORIGINAL_POLICIES = {"workload-baseline.yaml"}
+NTFY_SECRET = ROOT / "k8s" / "alertmanager-secret.yaml"  # only its ntfy-url line is ever read
 
 
 # ---------------------------------------------------------------------------------------------- helpers
@@ -162,6 +170,49 @@ def check_dashboards_custom():
 def check_alert_fired(alertname):
     fired = prom(f'max_over_time(ALERTS{{alertname="{alertname}",alertstate="firing"}}[24h])')
     return evidence(bool(fired), f"{alertname} {'fired' if fired else 'has not fired'} in the last 24 hours")
+
+
+def _ntfy_url():
+    """The ntfy-url value of the private Alertmanager file, or None. Only that one line is read (the same regex as
+    scripts/notify_setup.py), and the value is never printed: the topic name is a secret."""
+    try:
+        text = NTFY_SECRET.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    match = re.search(r'^\s*ntfy-url:\s*"([^"]*)"', text, re.MULTILINE)
+    return match.group(1) if match else None
+
+
+def _http_get(url, timeout=10):
+    """GET a URL and return the body as text (raises OSError when offline)."""
+    with urllib.request.urlopen(url, timeout=timeout) as response:  # nosec B310: https URL from the lab's own file
+        return response.read().decode("utf-8", errors="replace")
+
+
+def check_phone_push():
+    setup = f"run {PY} scripts/notify_setup.py and subscribe to your topic in the ntfy app (docs/GUIDE.md, 6-0)"
+    parts = urllib.parse.urlsplit(_ntfy_url() or "")
+    topic = parts.path.strip("/").split("/")[0] if parts.path else ""
+    if parts.scheme not in ("http", "https") or not topic or parts.netloc.endswith(".invalid"):
+        return evidence(False, "phone push is not set up yet: " + setup)
+    try:
+        body = _http_get(f"{parts.scheme}://{parts.netloc}/{topic}/json?poll=1&since=24h", timeout=10)
+    except Exception:  # offline, VPN, proxy: never crash, never show the topic
+        return evidence(False, f"could not reach {parts.netloc} (offline, or a VPN or proxy blocks it): "
+                               "check that it opens in your browser, then try again")
+    titles = []
+    for line in body.splitlines():
+        try:
+            message = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(message, dict) and message.get("event", "message") == "message":
+            titles.append(str(message.get("title", "")))
+    firing = [t for t in titles if t.startswith("[firing]")]
+    if firing:
+        return evidence(True, f"a real alert reached your phone topic: {firing[-1][:80]}")
+    return evidence(False, f"no [firing] push in the last 24 hours ({len(titles)} other message(s)): make an alert "
+                           "fire (scripts/trigger-alert) and wait about 3 minutes")
 
 
 def check_logs_and_traces():
@@ -501,7 +552,81 @@ def climb(catalog, progress):
     return len(cleared), current, len(zones)
 
 
+def default_journey(catalog):
+    """The journey marked "default" in the catalog (or the first one), or None when the catalog has none."""
+    journeys = catalog.get("journeys") or []
+    return next((j for j in journeys if j.get("default")), journeys[0] if journeys else None)
+
+
+def journey_state(catalog, progress, journey=None):
+    """Where the student stands on a journey (the default one when none is given), or None without journeys.
+    Steps that name a mission missing from the catalog are skipped."""
+    journey = journey or default_journey(catalog)
+    if not journey:
+        return None
+    by_id = {m["id"]: m for m in catalog["missions"]}
+    done_ids = set(progress.get("missions", {}))
+    steps = [{"mission": by_id[s["mission"]], "minutes": int(s.get("minutes", 0)), "done": s["mission"] in done_ids}
+             for s in journey.get("steps", []) if s.get("mission") in by_id]
+    following = next((s for s in steps if not s["done"]), None)
+    return {"journey": journey, "steps": steps, "done": sum(1 for s in steps if s["done"]), "total": len(steps),
+            "minutes_total": sum(s["minutes"] for s in steps),
+            "minutes_left": sum(s["minutes"] for s in steps if not s["done"]),
+            "next": following, "complete": bool(steps) and following is None,
+            "completed_on": progress.get("journeys", {}).get(journey["id"])}
+
+
+def record_journeys(catalog, progress):
+    """Record every journey whose steps are all done in progress["journeys"] ({id: ISO date}); return the journeys
+    recorded just now."""
+    newly = []
+    for journey in catalog.get("journeys") or []:
+        state = journey_state(catalog, progress, journey)
+        if state["complete"] and journey["id"] not in progress.get("journeys", {}):
+            progress.setdefault("journeys", {})[journey["id"]] = datetime.now(timezone.utc).isoformat(
+                timespec="seconds")
+            newly.append(journey)
+    return newly
+
+
+def journey_achievements(catalog, progress):
+    """Achievements of the journeys recorded as complete."""
+    recorded = progress.get("journeys", {})
+    return [j["achievement"] for j in catalog.get("journeys") or [] if j["id"] in recorded and j.get("achievement")]
+
+
+def journey_skills(catalog, progress, journey):
+    """Earned CV skills that a mission of this journey helps prove."""
+    ids = {s["mission"] for s in journey.get("steps", [])}
+    return [s for _, won in skills_earned(catalog, progress) for s in won if set(s["proof"] or []) & ids]
+
+
+def keep_exploring(catalog, progress, journey=None):
+    """Plain suggestions for what to do after a journey: camps not cleared yet, portfolio projects, deeper lab
+    parts. Built from the catalog only."""
+    ids = {s["mission"] for s in (journey or {}).get("steps", [])}
+    done = set(progress.get("missions", {}))
+    cleared = set(zones_cleared(catalog, progress))
+    camps = [z["name"] for z in sorted(catalog.get("zones", []), key=lambda z: z["part"]) if z["part"] not in cleared]
+    projects = [m["title"].split(": ", 1)[-1] for m in catalog["missions"]
+                if m["kind"] == "portfolio" and m["id"] not in done]
+    guides = sorted({m["guide"].split("#")[0] for m in catalog["missions"]
+                     if m["id"] not in ids and m["guide"].startswith("docs/labs/")})
+    tips = []
+    if camps:
+        tips.append("More camps to climb: " + ", ".join(camps))
+    if projects:
+        tips.append("Portfolio projects to show in interviews: " + "; ".join(projects))
+    if guides:
+        tips.append("Deeper lab parts: " + ", ".join(guides))
+    return tips
+
+
 def next_mission(catalog, progress):
+    """The first unfinished step of the default journey, then the rest of the lab in catalog order."""
+    state = journey_state(catalog, progress)
+    if state and state["next"]:
+        return state["next"]["mission"]
     missions = catalog["missions"]
     for kinds in (("core",), ("capstone", "portfolio"), ("addon",)):
         for mission in missions:
@@ -516,6 +641,51 @@ def bar(value, total, width=24):
 
 
 # ---------------------------------------------------------------------------------------------- commands
+def print_journey_block(catalog, progress):
+    """The default journey in a few lines: name, steps done, a bar, minutes left, the next step."""
+    state = journey_state(catalog, progress)
+    if not state:
+        return
+    print(f"{state['journey']['name']}: {state['done']}/{state['total']} steps  "
+          f"[{bar(state['done'], state['total'], 18)}]  ", end="")
+    if state["complete"]:
+        print(f"complete! Badge: {state['journey'].get('achievement') or 'done'}")
+        print(f"  Keep exploring: {PY} scripts/lab.py missions")
+    else:
+        step = state["next"]
+        print(f"about {state['minutes_left']} minutes left")
+        print(f"  Next step: {step['mission']['id']} {step['mission']['title']} (about {step['minutes']} min)")
+    print()
+
+
+def cmd_journey(args):
+    catalog, progress = load_catalog(), load_progress()
+    state = journey_state(catalog, progress)
+    if not state:
+        print("This catalog has no journey. See every mission with: " + f"{PY} scripts/lab.py missions")
+        return 0
+    journey = state["journey"]
+    print(f"{journey['name']}  (about {state['minutes_total']} minutes in one sitting)")
+    if journey.get("summary"):
+        print(journey["summary"])
+    print()
+    for n, step in enumerate(state["steps"], 1):
+        mission = step["mission"]
+        mark = "x" if step["done"] else ">" if step is state["next"] else " "
+        print(f"[{mark}] {n}. {mission['id']:<5} {mission['title']:<28} {step['minutes']:>3} min")
+    print(f"\n{state['done']}/{state['total']} steps done  [{bar(state['done'], state['total'], 18)}]")
+    if state["complete"]:
+        when = (state["completed_on"] or "")[:10]
+        print(f"Journey complete{' on ' + when if when else ''}. Badge: {journey.get('achievement') or 'done'}")
+        for tip in keep_exploring(catalog, progress, journey):
+            print(f"  - {tip}")
+    else:
+        step = state["next"]["mission"]
+        print(f"About {state['minutes_left']} minutes left. Next: {step['id']} {step['title']}")
+        print(f"  Guide: {step['guide']}   Check: {PY} scripts/lab.py check {step['id']}")
+    return 0
+
+
 def cmd_status(args):
     catalog, progress = load_catalog(), load_progress()
     xp = xp_of(catalog, progress)
@@ -523,7 +693,9 @@ def cmd_status(args):
     missions = catalog["missions"]
     done, total = sum(1 for m in missions if m["id"] in progress["missions"]), len(missions)
     camp_level, camp, camps = climb(catalog, progress)
-    print(catalog.get("theme", {}).get("name", "SRE Academy lab"))
+    print_journey_block(catalog, progress)
+    theme = catalog.get("theme", {}).get("name", "SRE Academy lab")
+    print(f"Keep exploring (optional, at your own pace): {theme}" if default_journey(catalog) else theme)
     where = f"Camp {camp['part']}: {camp['name']}" if camp else "the On-Call Ready summit"
     print(f"Your climb to On-Call Ready: Level {camp_level}/{camps}   [{bar(camp_level, camps, 16)}]   "
           f"now at {where}")
@@ -533,6 +705,7 @@ def cmd_status(args):
         print(f"Next level: {following['name']} at {following['xp']} XP  [{progress_bar}]")
     print(f"Missions: {done}/{total}  [{bar(done, total)}]")
     badges = [m["achievement"] for m in catalog["missions"] if m["id"] in progress["missions"] and m["achievement"]]
+    badges += journey_achievements(catalog, progress)
     print("Achievements: " + (", ".join(badges) if badges else "none yet"))
     mission = next_mission(catalog, progress)
     if mission:
@@ -592,6 +765,7 @@ def cmd_check(args):
                 "completed": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                 "evidence": result["detail"]}
             newly.append(mission)
+    journeys_done = record_journeys(catalog, progress)
     save_progress(progress)
     for mission in newly:
         line = f"\n+{mission['xp']} XP  Mission complete: {mission['title']}"
@@ -625,8 +799,38 @@ def cmd_check(args):
               "  SUMMIT REACHED: On-Call Ready. You completed the lab's on-call missions (practice, not a job "
               f"certification).\n  Run: {PY} scripts/lab.py proof --name \"Your Name\"")
         print("=" * 60)
+    for journey in journeys_done:
+        print_journey_complete(catalog, progress, journey)
+    state = journey_state(catalog, progress)
+    if newly and state and state["next"]:
+        step = state["next"]
+        print(f"\n{state['journey']['name']}: {state['done']}/{state['total']} steps, about "
+              f"{state['minutes_left']} minutes left. Next: {step['mission']['id']} {step['mission']['title']}")
     write_mission_control()  # keep the visual dashboard current
     return 0 if all(m["id"] in progress["missions"] for m in missions) else 1
+
+
+def print_journey_complete(catalog, progress, journey):
+    """The big moment when the last step of a journey passes: badge, skills touched, what to explore next."""
+    state = journey_state(catalog, progress, journey)
+    print("\n" + "*" * 60)
+    print(f"  {journey.get('banner', 'SHIFT COMPLETE')}!  {journey['name']}")
+    print(f"  You finished all {state['total']} steps. Well done!")
+    if journey.get("achievement"):
+        print(f"  Badge unlocked: {journey['achievement']}")
+    skills = journey_skills(catalog, progress, journey)
+    if skills:
+        print("  Skills you touched today (proved by):")
+        for skill in skills:
+            print(f"    - {skill['skill']} ({proof_label(catalog, skill['proof'])})")
+    tips = keep_exploring(catalog, progress, journey)
+    if tips:
+        print("  Keep exploring (all optional, at your own pace):")
+        for tip in tips:
+            print(f"    - {tip}")
+    print(f"  See every mission: {PY} scripts/lab.py missions   Your skills: {PY} scripts/lab.py cv")
+    print(f"  Your passport: {PY} scripts/lab.py proof --name \"Your Name\"")
+    print("*" * 60)
 
 
 def write_mission_control():
@@ -719,7 +923,7 @@ def cmd_cv(args):
 
 
 def cmd_verify(args):
-    """Re-run the check of every recorded mission now (for professors). It never removes progress."""
+    """Re-run the check of every recorded mission now (for a mentor or instructor). It never removes progress."""
     catalog, progress = load_catalog(), load_progress()
     by_id = {m["id"]: m for m in catalog["missions"]}
     still = gone = 0
@@ -777,7 +981,12 @@ def cmd_proof(args):
     earned = [skill for _, won in skills_earned(catalog, progress) for skill in won]
     skills = [skill["skill"] for skill in earned]
     summit = len(zones_cleared(catalog, progress)) == len(catalog.get("zones", []))
-    badges = [m["achievement"] for m in done if m["achievement"]]
+    badges = [m["achievement"] for m in done if m["achievement"]] + journey_achievements(catalog, progress)
+    names = {j["id"]: j for j in catalog.get("journeys") or []}
+    journeys = {jid: when for jid, when in progress.get("journeys", {}).items() if jid in names}
+    journey_lines = "".join(f"- {names[jid]['name']}: completed {when[:10]}"
+                            + (f" (badge: {names[jid]['achievement']})" if names[jid].get("achievement") else "")
+                            + "\n" for jid, when in journeys.items())
     PROOF_DIR.mkdir(exist_ok=True)
     generated = datetime.now(timezone.utc).isoformat(timespec="seconds")
     record = {"name": args.name, "level": level, "xp": xp,
@@ -785,7 +994,7 @@ def cmd_proof(args):
               "skills_proof": {skill["skill"]: skill["proof"] for skill in earned if skill["proof"]},
               "repository": _origin_repo(), "missions": {m["id"]: progress["missions"][m["id"]] for m in done},
               "quiz_correct": sum(1 for v in progress["quiz"].values() if v),
-              "summit": summit}
+              "summit": summit, "journeys": journeys}
     record["sha256"] = hashlib.sha256(json.dumps(record, sort_keys=True).encode()).hexdigest()
     (PROOF_DIR / "evidence.json").write_text(json.dumps(record, indent=2), encoding="utf-8")
     badge = BADGE.format(label=f"{level}, {xp} XP", level=level, xp=xp, done=len(done),
@@ -798,7 +1007,8 @@ def cmd_proof(args):
         f"**Level:** {level} · **XP:** {xp} · **Missions:** {len(done)}/{len(catalog['missions'])} · "
         f"**Quiz answers correct:** {record['quiz_correct']}\n\n"
         f"**Achievements:** {', '.join(badges) or 'none yet'}\n\n"
-        + (SUMMIT_NOTE if summit else "") +
+        + (SUMMIT_NOTE if summit else "")
+        + (f"## Journeys completed\n\n{journey_lines}\n" if journey_lines else "") +
         "## Skills practised hands-on\n\n"
         "A skill is listed only when every mission that proves it (in brackets) passed its check.\n\n" +
         ("".join(f"- {s['skill']}" + (f" ({proof_label(catalog, s['proof'])})" if s["proof"] else "") + "\n"
@@ -821,27 +1031,29 @@ def main():
     sys.stdout.reconfigure(line_buffering=True)
     parser = argparse.ArgumentParser(description="SRE Academy Lab Game")
     sub = parser.add_subparsers(dest="command")
-    sub.add_parser("status")
-    sub.add_parser("missions")
-    show = sub.add_parser("show")
+    sub.add_parser("status", help="where you stand: your journey first, then level, XP and next mission")
+    sub.add_parser("journey", help="the steps of your first journey, with done marks and minutes left")
+    sub.add_parser("missions", help="every mission and whether it is done")
+    show = sub.add_parser("show", help="one mission: what to do, the guide, the quiz questions")
     show.add_argument("mission")
-    check = sub.add_parser("check")
+    check = sub.add_parser("check", help="check a mission on your cluster or repository (read-only)")
     check.add_argument("mission", nargs="?")
     check.add_argument("--all", action="store_true")
-    answer = sub.add_parser("answer")
+    answer = sub.add_parser("answer", help="answer a quiz question, for example: answer M05 1 b")
     answer.add_argument("mission")
     answer.add_argument("number", type=int)
     answer.add_argument("choice")
-    proof = sub.add_parser("proof")
+    proof = sub.add_parser("proof", help="write your passport, badge and evidence to lab-proof/")
     proof.add_argument("--name", required=True)
     sub.add_parser("cv", help="the skills you have earned, ready for your CV")
-    sub.add_parser("verify", help="re-run the checks of every recorded mission (professors)")
+    sub.add_parser("verify", help="re-run the checks of every recorded mission (for a mentor or instructor)")
     play = sub.add_parser("play", help="open Mission Control, the visual dashboard")
     play.add_argument("--no-open", action="store_true", help="only write the HTML file")
     args = parser.parse_args()
     if args.command == "check" and not (args.mission or args.all):
         parser.error("give a mission id or --all")
-    handler = {"status": cmd_status, "missions": cmd_missions, "show": cmd_show, "check": cmd_check,
+    handler = {"status": cmd_status, "journey": cmd_journey, "missions": cmd_missions, "show": cmd_show,
+               "check": cmd_check,
                "answer": cmd_answer, "proof": cmd_proof, "play": cmd_play,
                "cv": cmd_cv, "verify": cmd_verify}.get(args.command or "status")
     return handler(args) or 0
