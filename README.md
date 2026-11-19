@@ -13,7 +13,11 @@ You do not need a technical background. Nobody grades it. The agent does the wor
 
 ## Start here: step by step (never used IBM Bob? This is for you)
 
-You only need this page. You will not type commands: IBM Bob types them, you click **Approve** and watch. Plan **about 1 hour** the first time (most of it is waiting for downloads), on a laptop with **16 GB of memory** (8 GB works, slower) and **25 GB of free disk**.
+You only need this page. You will not type commands: IBM Bob types them, you click **Approve** and watch, and Bob explains what is happening in plain words, so you learn while it works. Ask it anything, any time ("what is Kubernetes?", "why did that alarm go off?").
+
+**What you will learn by the end:** what SRE people do all day; how a website is watched with **metrics** (numbers over time), **logs** (what happened) and **traces** (the path of one click); how an **alert** decides to wake someone up and reaches a phone; and how to work safely with an AI that proposes and you decide.
+
+Plan **about 1 hour** the first time (most of it is waiting for downloads), on a laptop with **16 GB of memory** (8 GB works, slower) and **25 GB of free disk**.
 
 **Before you start (5 minutes, once)**
 1. **Get IBM Bob.** IBMers: install it from [bob.ibm.com](https://bob.ibm.com) and sign in with your IBM account. Not at IBM? The same page has a free trial. (Another AI coding agent such as Claude Code also works: [see below](#start-with-your-ai-coding-agent).)
