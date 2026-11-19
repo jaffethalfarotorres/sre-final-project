@@ -265,11 +265,11 @@ The routing tree in `alertmanager.yaml` checks routes from top to bottom. The fi
 | --- | --- | --- |
 | `severity = "demo"` | `demo-receiver` (Slack) | Only `AlwaysFiringDemoAlert`. Repeats every 12 h. |
 | `severity = "critical"` | `awx-collect-diagnostics` (webhook) | `continue: true`, so the next route also runs. Launches the read-only AWX `collect-diagnostics` job (exercise 13 add-on). Without AWX the webhook just fails and is logged. |
-| `severity = "critical"` | `critical-notifications` (Slack + email) | `ServiceDown`, `HighErrorRate`, `SyntheticProbeFailing`, `ErrorBudgetFastBurn`. `group_wait: 10s`. |
-| `severity = "warning"` | `warning-notifications` (Slack + email) | `HighLatency`, `ErrorBudgetSlowBurn`, `ErrorBudgetTicket` and the Grafana rules. |
-| anything else | `default-notifications` (Slack) | The top-level `receiver`. |
+| `severity = "critical"` | `critical-notifications` (Slack + email + ntfy phone push) | `ServiceDown`, `HighErrorRate`, `SyntheticProbeFailing`, `ErrorBudgetFastBurn`. `group_wait: 10s`. |
+| `severity = "warning"` | `warning-notifications` (Slack + email + ntfy phone push) | `HighLatency`, `ErrorBudgetSlowBurn`, `ErrorBudgetTicket` and the Grafana rules. |
+| anything else | `default-notifications` (Slack + ntfy phone push) | The top-level `receiver`. |
 
-Secrets are never in this file. Slack and SMTP settings use `api_url_file` and `smtp_auth_password_file`, which read files mounted from the Secret `alertmanager-secret` (made from [alertmanager-secret.example.yaml](../../k8s/alertmanager-secret.example.yaml); the real file is gitignored). Alertmanager does not expand environment variables, which is why files are used.
+Secrets are never in this file. Slack, SMTP and ntfy settings use `api_url_file`, `smtp_auth_password_file` and `url_file`, which read files mounted from the Secret `alertmanager-secret` (made from [alertmanager-secret.example.yaml](../../k8s/alertmanager-secret.example.yaml); the real file is gitignored). Alertmanager does not expand environment variables, which is why files are used.
 
 Some checks cannot be written in PromQL, for example counting ERROR lines in Loki. **Grafana unified alerting** handles those. [alerting.yaml](../../k8s/config/grafana/alerting.yaml) provisions a contact point named `alertmanager` that forwards to the same Alertmanager, and a rule group `golden-signals` in folder **SRE Demo** with two rules:
 
@@ -315,7 +315,7 @@ Both carry `severity: warning` and `source: grafana`, so they follow the warning
    ```bash
    kubectl logs deployment/alertmanager -n monitoring --tail=30
    ```
-   What you should see: without Slack configured, `Notify for alerts failed` lines for `critical-notifications` (placeholder webhook) and for `awx-collect-diagnostics` (AWX not installed). That is expected. The routing worked; only delivery failed.
+   What you should see: without Slack configured, `Notify for alerts failed` lines for `critical-notifications` (placeholder webhook) and for `awx-collect-diagnostics` (AWX not installed). That is expected. The routing worked; only delivery failed. On an IBM laptop, run `python scripts\notify_setup.py` (Mac/Linux: `python3 scripts/notify_setup.py`) to get the alerts as phone pushes with no account; see [guide 6-0](../GUIDE.md#6-0-phone-push-with-ntfy-recommended-on-ibm-laptops-no-account).
 
 8. Optional: real Slack and email. Follow [GUIDE.md section 6](../GUIDE.md#6-optional-get-alerts-in-slack-and-email). In short: put your Slack webhook URL and Gmail app password in `k8s/alertmanager-secret.yaml`, put your addresses in `smtp_from`, `smtp_auth_username` and both `to:` lines of `k8s/alertmanager.yaml`, then:
    ```bash

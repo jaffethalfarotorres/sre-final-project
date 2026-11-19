@@ -336,7 +336,30 @@ The robot stops by itself. A few minutes later the error rate drops and the aler
 
 Without this step the alarms still work; you just see them in Alertmanager instead of getting a message.
 
-> **IBMers:** use a **personal** Slack workspace (create a free one at <https://slack.com/get-started>) and a **personal** Gmail. Never connect the lab to IBM Slack or IBM mail. Real passwords go in one private file, `k8s/alertmanager-secret.yaml`, which Git never uploads.
+> **IBMers:** never connect the lab to IBM Slack or IBM mail. On an IBM-managed laptop, personal Slack and personal mail are usually blocked too, so use **6-0 (phone push)**: it needs no account and works on IBM laptops. Slack and email (6a to 6e) are for personal computers.
+
+### 6-0. Phone push with ntfy (recommended on IBM laptops, no account)
+
+[ntfy](https://ntfy.sh) is a free push notification service: no sign-up, no password. The lab sends each critical and warning alert to a private "topic" (a random name only you know), and you read it in the ntfy app on your phone or in a browser.
+
+1. Connect the lab (one command):
+   ```bash
+   python3 scripts/notify_setup.py
+   ```
+   Windows PowerShell: `python scripts\notify_setup.py`
+
+   What you should see: `Phone push is ON`, your private topic name (`sre-lab-...`), and a test push called `LabConnected`.
+2. On your phone, install the free **ntfy** app (App Store or Google Play). Tap **+**, type your topic name, keep the server `ntfy.sh`, and tap **Subscribe**. No phone? Open `https://ntfy.sh/<your topic>` in a browser and keep the tab open.
+3. Make an alert fire ([step 5](#5-make-an-alert-fire)). About 3 minutes later a push arrives: `[firing] critical: HighErrorRate`, followed by `[resolved] ...` when it clears.
+4. Take a screenshot of the push (Windows: **Windows + Shift + S**; phone: the usual screenshot buttons) and save it as `docs/screenshots/notification-delivered.png`. That is the evidence for the final project's advanced alerting bonus.
+
+Good to know:
+- Send another test at any time: `python3 scripts/notify_setup.py --test`. Turn it off: `python3 scripts/notify_setup.py --off`.
+- Anyone who knows your topic name can read the pushes. Keep it to yourself, and send only lab alerts there, never IBM, client or personal data.
+- The script changes only the `ntfy-url` line of your private file `k8s/alertmanager-secret.yaml` (Git never uploads it) and restarts Alertmanager.
+- Nothing arrives? Check that `https://ntfy.sh` opens in your browser (a VPN or proxy may block it), then run `kubectl logs -n monitoring deploy/alertmanager --since=10m` and look for `ntfy` or `webhook` errors.
+
+On a personal computer you can also use Slack and email, below. Real passwords go in one private file, `k8s/alertmanager-secret.yaml`, which Git never uploads. Use a **personal** Slack workspace (create a free one at <https://slack.com/get-started>) and a **personal** Gmail.
 
 ### 6a. Get a Slack webhook (a private address that posts into a channel)
 

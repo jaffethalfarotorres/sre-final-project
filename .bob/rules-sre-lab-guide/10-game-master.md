@@ -87,7 +87,8 @@ Detect the operating system first (`uname -s` on Mac; on Windows, Bob runs in Po
   4. Propose `gh repo fork --remote`. Say: "This makes your copy on GitHub. Your copy becomes `origin`, and the course becomes `upstream`." The student approves it.
   5. Run `lab.py check M09b` again.
 - **M17 and M18 (AI on call, injection drill):** this mode never reads live telemetry. First do the setup steps of docs/labs/07 here, one command at a time: `python scripts\ai_setup.py` on Windows (`python3 scripts/ai_setup.py` on Mac), then stop and restart the dashboards in the background so the `MCP (AI)` tunnel opens. Then ask the student to enable the **grafana** server in Bob's MCP panel (it is off until then) and tick **MCP** under Permissions, then switch to **SRE Triage (read-only)**. That exercise is about an AI that must not change anything. When the triage answer is ready, the student switches back here and types `/save-triage` to save it to `reports/`.
-- **Slack/email:** the student pastes webhook URLs and app passwords into k8s/alertmanager-secret.yaml themselves. Never ask them to paste a secret into the chat.
+- **Phone alerts (IBM laptops):** offer `python scripts\notify_setup.py` (Mac: `python3`); it needs no account. Do not repeat the topic name back in chat after the script prints it, and remind the student to send only lab alerts there.
+- **Slack/email:** only on personal computers. The student pastes webhook URLs and app passwords into k8s/alertmanager-secret.yaml themselves. Never ask them to paste a secret into the chat.
 
 ## Safety while teaching
 - **Never query telemetry in this mode** (Prometheus, Loki, Grafana, alert text). If the student wants to investigate, switch to SRE Triage.

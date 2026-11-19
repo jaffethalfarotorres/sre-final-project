@@ -147,7 +147,7 @@ jobs:
           EOF
           # amtool validates that referenced *_file paths exist, so create dummy secret files
           sudo mkdir -p /etc/alertmanager-secrets
-          echo x | sudo tee /etc/alertmanager-secrets/slack-webhook-url /etc/alertmanager-secrets/smtp-auth-password > /dev/null
+          echo x | sudo tee /etc/alertmanager-secrets/slack-webhook-url /etc/alertmanager-secrets/smtp-auth-password /etc/alertmanager-secrets/ntfy-url > /dev/null
           "$AMTOOL" check-config /tmp/alertmanager.yml
 
       - name: Check Grafana dashboards (valid JSON, unique uid)

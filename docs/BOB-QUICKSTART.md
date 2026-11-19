@@ -60,7 +60,7 @@ In Bob's settings, add this deny list. Bob then refuses these commands even if y
 ### Data rules for IBMers
 - Use your IBM Bob entitlement for this lab.
 - **Never** paste client data, your w3 password, IBM tokens or screenshots of internal IBM tools into Bob or into this repository.
-- For the Slack and email alerts (section 6 of the [guide](GUIDE.md)), use a **personal** Slack workspace and a **personal** Gmail. Never IBM Slack or IBM mail.
+- To get alerts on your phone on an IBM laptop, ask Bob to run `python scripts\notify_setup.py` (ntfy: no account, section 6-0 of the [guide](GUIDE.md)). Slack and email (sections 6a-6e) need a **personal** Slack workspace and a **personal** Gmail, which IBM laptops usually block. Never IBM Slack or IBM mail.
 
 <details>
 <summary><b>On an IBM-managed laptop? Read this before the lab day</b></summary>

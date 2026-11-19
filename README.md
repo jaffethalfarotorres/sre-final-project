@@ -24,7 +24,7 @@ This table maps the official rubric to the repository. Each row links to the fil
 | 4. Grafana dashboards | 4 dashboards as code: overview, golden signals, SLO and error budget, LLM observability: [`k8s/config/grafana/dashboards/`](k8s/config/grafana/dashboards/), [`datasources.yaml`](k8s/config/grafana/datasources.yaml) | [grafana-sre-metrics.png](docs/screenshots/grafana-sre-metrics.png), [grafana-golden-signals.png](docs/screenshots/grafana-golden-signals.png), [grafana-slo.png](docs/screenshots/grafana-slo.png), [grafana-llm.png](docs/screenshots/grafana-llm.png) |
 | 5. Alertmanager | Routing by severity, inhibition, receivers for Slack, email and AWX: [`k8s/alertmanager.yaml`](k8s/alertmanager.yaml); Grafana alerts use the same routes; runbooks in [`docs/runbooks/`](docs/runbooks/) | [alertmanager-alert.png](docs/screenshots/alertmanager-alert.png) |
 | 6. Documentation | This README, the [guide](docs/GUIDE.md), the [lab parts](docs/labs/README.md), [`LICENSE.md`](LICENSE.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), comments in the code and manifests | [Screenshots](#evidence) |
-| Bonus: external notifications | Slack and email receivers in [`k8s/alertmanager.yaml`](k8s/alertmanager.yaml); setup in [guide section 6](docs/GUIDE.md#6-optional-get-alerts-in-slack-and-email) | Config only. Delivery proof: **pending** (it needs the author's own Slack webhook or SMTP account). <!-- When ready: replace this cell with [notification-delivered.png](docs/screenshots/notification-delivered.png) --> |
+| Bonus: external notifications | Phone push through [ntfy](https://ntfy.sh) (no account, works on IBM laptops: [`scripts/notify_setup.py`](scripts/notify_setup.py)), plus Slack and email receivers, all in [`k8s/alertmanager.yaml`](k8s/alertmanager.yaml); setup in [guide section 6](docs/GUIDE.md#6-optional-get-alerts-in-slack-and-email) | [notification-delivered.png](docs/screenshots/notification-delivered.png) (HighErrorRate, ErrorBudgetFastBurn and ErrorLogBurst delivered as phone pushes) |
 | Bonus: Infrastructure as Code | [`terraform/`](terraform/), [`ansible/`](ansible/), [`helm/`](helm/), Kustomize in [`k8s/`](k8s/) | [helm-deployment.png](docs/screenshots/helm-deployment.png), [helm-prometheus-targets.png](docs/screenshots/helm-prometheus-targets.png) (Helm path, earlier capture) |
 | Bonus: CI/CD | [`ci.yml`](.github/workflows/ci.yml) (tests, flake8, bandit, pip-audit, kubeconform, promtool, amtool, Terraform, Ansible) and [`cd.yml`](.github/workflows/cd.yml) (GHCR, SBOM, Trivy, cosign, provenance) | [ci-green.png](docs/screenshots/ci-green.png), and the badges above |
 
@@ -221,7 +221,9 @@ The low availability and the negative budget are expected here: Prometheus had r
 
 ![Helm Prometheus targets](docs/screenshots/helm-prometheus-targets.png)
 
-**Notification delivered to Slack or email:** pending. It needs the author's own Slack webhook or SMTP account. <!-- When ready: add ![Notification delivered](docs/screenshots/notification-delivered.png) here -->
+**Alerts delivered outside the cluster: phone push through ntfy** (captured 2026-11-19 during an alert drill, from an IBM laptop with no extra accounts; the topic shown was replaced afterwards)
+
+![Alerts delivered as phone pushes through ntfy](docs/screenshots/notification-delivered.png)
 
 ## Repository layout
 
