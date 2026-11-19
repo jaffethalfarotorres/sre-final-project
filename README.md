@@ -3,8 +3,9 @@
 [![CI](https://github.com/jaffethalfarotorres/sre-final-project/actions/workflows/ci.yml/badge.svg)](https://github.com/jaffethalfarotorres/sre-final-project/actions/workflows/ci.yml)
 [![CD](https://github.com/jaffethalfarotorres/sre-final-project/actions/workflows/cd.yml/badge.svg)](https://github.com/jaffethalfarotorres/sre-final-project/actions/workflows/cd.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE.md)
+[![Python 3.10](https://img.shields.io/badge/Python-3.10-3776AB.svg?logo=python&logoColor=white)](app/app.py)
 
-A small Kubernetes observability project for the SRE Academy final project. A Flask application exposes Prometheus metrics. Prometheus scrapes and evaluates alert rules, Alertmanager sends notifications to Slack and email, and Grafana visualizes the data. It can be deployed with plain manifests or with Helm, and it is validated by GitHub Actions.
+A small Kubernetes observability project for the SRE Academy final project. A Python 3.10 Flask application (`app/app.py`, instrumented with `prometheus_client` and tested with pytest) exposes Prometheus metrics. Prometheus scrapes and evaluates alert rules, Alertmanager sends notifications to Slack and email, and Grafana visualizes the data. It can be deployed with plain manifests or with Helm, and it is validated by GitHub Actions.
 
 ## Architecture
 
