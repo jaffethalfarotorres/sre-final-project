@@ -1,0 +1,85 @@
+# Infrastructure as Code with Ansible (SRE Academy exercise 4.1 and the infra.yaml pattern of later exercises).
+# Deploys the whole stack on Minikube, the same as scripts/deploy.sh, but declaratively and idempotently.
+#
+#   cd ansible
+#   ansible-playbook -i inventory.ini site.yml
+- name: Deploy the SRE observability stack on Minikube
+  hosts: local
+  gather_facts: false
+  vars:
+    project_dir: "{{ playbook_dir }}/.."
+    image: sre-metrics-app:1.0.0
+    deployments:
+      - {namespace: monitoring, name: prometheus}
+      - {namespace: monitoring, name: alertmanager}
+      - {namespace: monitoring, name: grafana}
+      - {namespace: monitoring, name: blackbox-exporter}
+      - {namespace: opentelemetry, name: otel-collector}
+      - {namespace: opentelemetry, name: jaeger}
+      - {namespace: opentelemetry, name: loki}
+      - {namespace: application, name: sre-metrics-app}
+
+  tasks:
+    - name: Check that the required tools are installed
+      ansible.builtin.command: "{{ item }} version"
+      loop: [docker, minikube]
+      changed_when: false
+
+    - name: Read the Minikube status
+      ansible.builtin.command: minikube status --format={{ '{{' }}.Host{{ '}}' }}
+      register: minikube_status
+      changed_when: false
+      failed_when: false
+
+    - name: Start Minikube when it is not running
+      ansible.builtin.command: minikube start --driver=docker --memory=4096
+      when: minikube_status.stdout != "Running"
+      changed_when: true
+
+    - name: Build the app image inside Minikube (works on Intel and Apple Silicon)
+      ansible.builtin.command: minikube image build -t {{ image }} .
+      args:
+        chdir: "{{ project_dir }}"
+      changed_when: true
+
+    - name: Create the gitignored Secret files from the examples when they are missing
+      ansible.builtin.copy:
+        src: "{{ project_dir }}/k8s/{{ item }}.example.yaml"
+        dest: "{{ project_dir }}/k8s/{{ item }}.yaml"
+        force: false
+        mode: "0600"
+      loop: [alertmanager-secret, grafana-secret]
+
+    - name: Give Grafana a random admin credential instead of the example placeholder
+      ansible.builtin.replace:
+        path: "{{ project_dir }}/k8s/grafana-secret.yaml"
+        regexp: "change-me-before-applying"
+        replace: "{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters', 'digits'], length=24) }}"
+
+    - name: Create the monitoring namespace for the Secrets
+      ansible.builtin.command: kubectl create namespace monitoring
+      register: namespace_result
+      changed_when: namespace_result.rc == 0
+      failed_when: namespace_result.rc != 0 and 'AlreadyExists' not in namespace_result.stderr
+
+    - name: Apply the Secrets
+      ansible.builtin.command: kubectl apply -f {{ project_dir }}/k8s/{{ item }}.yaml
+      loop: [alertmanager-secret, grafana-secret]
+      register: secret_result
+      changed_when: "'unchanged' not in secret_result.stdout"
+
+    - name: Apply every manifest with Kustomize
+      ansible.builtin.command: kubectl apply -k {{ project_dir }}/k8s
+      register: apply_result
+      changed_when: "'configured' in apply_result.stdout or 'created' in apply_result.stdout"
+
+    - name: Wait for each Deployment to be ready
+      ansible.builtin.command: kubectl rollout status deployment/{{ item.name }} -n {{ item.namespace }} --timeout=300s
+      loop: "{{ deployments }}"
+      loop_control:
+        label: "{{ item.namespace }}/{{ item.name }}"
+      changed_when: false
+
+    - name: Show how to open the dashboards
+      ansible.builtin.debug:
+        msg: "Done. Run ./scripts/dashboards.sh (Mac/WSL2) or scripts\\dashboards.ps1 (Windows) to open Grafana."

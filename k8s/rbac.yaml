@@ -1,3 +1,4 @@
+# Prometheus service discovery and cAdvisor scraping (SRE Academy exercises 7 and 11).
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -10,8 +11,10 @@ metadata:
   name: prometheus-discovery
 rules:
   - apiGroups: [""]
-    resources: ["nodes", "nodes/proxy", "services", "endpoints", "pods"]
+    resources: ["nodes", "nodes/proxy", "nodes/metrics", "services", "endpoints", "pods"]
     verbs: ["get", "list", "watch"]
+  - nonResourceURLs: ["/metrics", "/metrics/cadvisor"]
+    verbs: ["get"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

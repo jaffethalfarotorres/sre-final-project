@@ -1,0 +1,33 @@
+# Least privilege for AWX jobs (they run with the "awx" service account in the task pod):
+# read pods, events, logs and deployments in the application namespace, and patch only the
+# app Deployment (needed by the human-approved restart runbook).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: awx-runbooks
+  namespace: application
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "events"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    resourceNames: ["sre-metrics-app"]
+    verbs: ["patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: awx-runbooks
+  namespace: application
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: awx-runbooks
+subjects:
+  - kind: ServiceAccount
+    name: awx
+    namespace: awx

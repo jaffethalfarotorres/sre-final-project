@@ -1,0 +1,89 @@
+name: Project automation
+
+# Triage and traceability for GitHub Projects (SRE Academy topics 4 and 5).
+# - New issues get the "needs-triage" label (GitHub creates the label if it does not exist).
+# - Merged pull requests get a comment listing the issues they close or reference.
+# Uses only the built-in GITHUB_TOKEN; no extra secrets.
+#
+# pull_request_target (not pull_request) so the comment also works for merged PRs from forks.
+# SAFE ONLY BECAUSE this workflow never checks out or runs PR code, and reads the PR body through
+# context.payload inside JavaScript (never ${{ }} interpolation). Never add actions/checkout here.
+on:
+  issues:
+    types: [opened]
+  pull_request_target:
+    types: [closed]
+
+permissions: {}
+
+jobs:
+  triage-label:
+    name: Label new issues
+    if: github.event_name == 'issues'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ['needs-triage'],
+            });
+
+  merged-pr-summary:
+    name: Comment linked issues on merged PRs
+    if: github.event_name == 'pull_request_target' && github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+      pull-requests: read
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const { owner, repo } = context.repo;
+
+            // Issues closed by this PR (Fixes/Closes/Resolves #N, or linked in the sidebar).
+            const result = await github.graphql(
+              `query($owner: String!, $repo: String!, $number: Int!) {
+                repository(owner: $owner, name: $repo) {
+                  pullRequest(number: $number) {
+                    closingIssuesReferences(first: 50) { nodes { number title } }
+                  }
+                }
+              }`,
+              { owner, repo, number: pr.number }
+            );
+            const closing = result.repository.pullRequest.closingIssuesReferences.nodes;
+            const closingNumbers = new Set(closing.map(i => i.number));
+
+            // Other #N mentions in the PR description that do not close an issue.
+            const body = (pr.body || '').replace(/<!--[\s\S]*?-->/g, '');  // ignore template comments
+            const mentioned = [...new Set([...body.matchAll(/(?:^|[^\w&])#(\d+)\b/g)].map(m => Number(m[1])))]
+              .filter(n => n !== pr.number && !closingNumbers.has(n));
+
+            let message = '### Merged: linked issues\n\n';
+            if (closing.length === 0 && mentioned.length === 0) {
+              message += 'No linked issues found. Use `Fixes #<issue>` in the PR description to link one.';
+            } else {
+              if (closing.length) {
+                message += '**Closed by this PR**\n' + closing.map(i => `- #${i.number} ${i.title}`).join('\n') + '\n\n';
+              }
+              if (mentioned.length) {
+                message += '**Referenced**\n' + mentioned.map(n => `- #${n}`).join('\n') + '\n';
+              }
+            }
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: pr.number,
+              body: message,
+            });

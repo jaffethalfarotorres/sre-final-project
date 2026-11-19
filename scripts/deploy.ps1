@@ -23,7 +23,14 @@ if ($Helm) {
 }
 
 # Docker must be running before Minikube can start. Start Docker Desktop if it is installed.
-function Test-Docker { docker info *> $null; return ($LASTEXITCODE -eq 0) }
+function Test-Docker {
+    # A failing native command must not stop the script here (Windows PowerShell 5.1 behavior).
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    docker info 2>$null | Out-Null
+    $ErrorActionPreference = $previous
+    return ($LASTEXITCODE -eq 0)
+}
 if (-not (Test-Docker)) {
     $desktop = Join-Path $env:ProgramFiles "Docker\Docker\Docker Desktop.exe"
     if (-not (Test-Path $desktop)) { $desktop = Join-Path $env:LOCALAPPDATA "Programs\DockerDesktop\Docker Desktop.exe" }
@@ -55,8 +62,12 @@ if (-not (Test-Path $GrafanaSecretFile)) {
     Write-Host "Created $GrafanaSecretFile with a random Grafana admin credential."
 }
 
-if ((minikube status -p minikube --format='{{.Host}}' 2>$null) -ne 'Running') {
-    minikube start --driver=docker
+$ErrorActionPreference = "Continue"
+$minikubeHost = minikube status -p minikube --format='{{.Host}}' 2>$null
+$ErrorActionPreference = "Stop"
+if ($minikubeHost -ne 'Running') {
+    # 4 GB is enough for the full observability stack (see docs/GUIDE.md for the add-ons).
+    minikube start --driver=docker --memory=4096
 }
 
 minikube image build -t sre-metrics-app:1.0.0 .
@@ -90,24 +101,19 @@ if ($Helm) {
     Write-Host "  kubectl port-forward -n application service/sre-metrics-app 5000:5000"
 }
 else {
-    Write-Host "Deploying via raw Kubernetes manifests..."
-    kubectl apply -f k8s/prometheus.yaml
-    kubectl apply -f k8s/rbac.yaml
+    Write-Host "Deploying the full stack with Kustomize (kubectl apply -k k8s)..."
+    kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
     kubectl apply -f $SecretFile
     kubectl apply -f $GrafanaSecretFile
-    kubectl apply -f k8s/alertmanager.yaml
-    kubectl apply -f k8s/grafana.yaml
-    kubectl apply -f k8s/application.yaml
+    kubectl apply -k k8s
 
-    kubectl rollout status deployment/sre-metrics-app -n application --timeout=180s
-    kubectl rollout status deployment/prometheus -n monitoring --timeout=180s
-    kubectl rollout status deployment/alertmanager -n monitoring --timeout=180s
-    kubectl rollout status deployment/grafana -n monitoring --timeout=180s
+    foreach ($d in "monitoring/prometheus", "monitoring/alertmanager", "monitoring/grafana", "monitoring/blackbox-exporter",
+        "opentelemetry/otel-collector", "opentelemetry/jaeger", "opentelemetry/loki", "application/sre-metrics-app") {
+        $ns, $name = $d.Split("/")
+        kubectl rollout status "deployment/$name" -n $ns --timeout=300s
+    }
 
-    Write-Host "Deployment complete. Use separate terminals for:"
-    Write-Host "  kubectl port-forward -n monitoring service/grafana 3000:3000"
-    Write-Host "  kubectl port-forward -n monitoring service/prometheus 9090:9090"
-    Write-Host "  kubectl port-forward -n monitoring service/alertmanager 9093:9093"
+    Write-Host "Deployment complete."
 }
 
 Write-Host "Grafana login: user admin, credential stored in k8s/grafana-secret.yaml (admin-password)."

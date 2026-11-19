@@ -1,0 +1,88 @@
+# Grafana unified alerting as code (SRE Academy exercise 12).
+# Grafana evaluates rules that Prometheus cannot (for example LogQL over Loki logs and span metrics)
+# and forwards them to the same Alertmanager, so every alert uses one routing tree (Slack/email).
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: alertmanager
+    receivers:
+      - uid: alertmanager-contact-point
+        type: prometheus-alertmanager
+        settings:
+          url: http://alertmanager.monitoring.svc.cluster.local:9093
+
+policies:
+  - orgId: 1
+    receiver: alertmanager
+    group_by: ["grafana_folder", "alertname"]
+
+groups:
+  - orgId: 1
+    name: golden-signals
+    folder: SRE Demo
+    interval: 1m
+    rules:
+      - uid: traces-p95-latency
+        title: StoreLatencyFromTraces
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: {from: 600, to: 0}
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: histogram_quantile(0.95, sum by (le) (rate(otel_collector_span_metrics_duration_milliseconds_bucket{span_name="GET /store"}[5m])))
+          - refId: B
+            datasourceUid: __expr__
+            model: {refId: B, type: reduce, expression: A, reducer: last}
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: {type: gt, params: [500]}
+        noDataState: OK
+        execErrState: OK
+        for: 2m
+        labels:
+          severity: warning
+          source: grafana
+        annotations:
+          summary: "p95 latency of GET /store measured from traces is above 500 ms"
+          runbook_url: "https://github.com/jaffethalfarotorres/sre-final-project/blob/main/docs/runbooks/high-latency.md"
+
+      - uid: loki-error-logs
+        title: ErrorLogBurst
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: {from: 300, to: 0}
+            datasourceUid: loki
+            model:
+              refId: A
+              queryType: instant
+              expr: sum(count_over_time({service_name="sre-metrics-app"} | severity_text="ERROR" [5m]))
+          - refId: B
+            datasourceUid: __expr__
+            model: {refId: B, type: reduce, expression: A, reducer: last}
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: {type: gt, params: [100]}
+        noDataState: OK
+        execErrState: OK
+        for: 1m
+        labels:
+          severity: warning
+          source: grafana
+        annotations:
+          summary: "More than 100 ERROR log lines from sre-metrics-app in 5 minutes (Loki)"
+          runbook_url: "https://github.com/jaffethalfarotorres/sre-final-project/blob/main/docs/runbooks/high-error-rate.md"

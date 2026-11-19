@@ -1,0 +1,61 @@
+name: Bug report
+description: Something in the app, the monitoring stack or the automation does not work as expected.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. For an outage or a fired alert, use the **Incident follow-up** form instead.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Flask app (app/)
+        - Kubernetes manifests (k8s/)
+        - Helm chart (helm/)
+        - Prometheus / Alertmanager / Grafana
+        - OpenTelemetry / Loki / Jaeger
+        - Ansible runbooks
+        - Terraform
+        - GitOps / ArgoCD
+        - Chaos experiments
+        - CI/CD workflows
+        - Docs
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the problem and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. kubectl apply -k k8s/
+        2. curl http://localhost:5000/store
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs, metrics or traces
+      description: Paste log lines, PromQL results or a trace id. Remove any secrets first.
+      render: shell
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      placeholder: v1.0.0 or a commit SHA
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: kind / minikube / Docker Desktop, Kubernetes version, OS

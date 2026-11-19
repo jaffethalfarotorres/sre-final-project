@@ -1,0 +1,162 @@
+# Chaos engineering (SRE Academy exercise 19): an Argo Workflow runs a LitmusChaos pod-delete experiment
+# against sre-metrics-app and checks the hypothesis "users keep getting HTTP 200 while pods are killed".
+#
+#   Steady state  : the app answers 200 on / (checked continuously by an httpProbe).
+#   Fault         : delete 50% of the app pods every 10 s for 30 s.
+#   Expected      : Kubernetes replaces the pods, 2 replicas + readiness probes keep the Service up,
+#                   the probe never fails, and the ChaosResult verdict is Pass.
+#
+# Run it with:  python scripts/chaos_test.py   (installs Argo Workflows and LitmusChaos if needed)
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: pod-delete-chaos-
+  namespace: litmus
+  labels:
+    app.kubernetes.io/part-of: sre-final-project
+spec:
+  entrypoint: chaos
+  serviceAccountName: chaos-workflow
+  ttlStrategy:
+    secondsAfterCompletion: 3600
+  templates:
+    - name: chaos
+      steps:
+        - - name: install-experiment
+            template: install-experiment
+        - - name: run-chaos
+            template: run-chaos
+        - - name: check-verdict
+            template: check-verdict
+        - - name: cleanup
+            template: cleanup
+
+    # Step 1: the pod-delete fault definition from the LitmusChaos hub (version 3.0.0).
+    - name: install-experiment
+      resource:
+        action: apply
+        manifest: |
+          apiVersion: litmuschaos.io/v1alpha1
+          kind: ChaosExperiment
+          metadata:
+            name: pod-delete
+            namespace: litmus
+            labels:
+              name: pod-delete
+              app.kubernetes.io/part-of: litmus
+              app.kubernetes.io/component: chaosexperiment
+              app.kubernetes.io/version: 3.0.0
+          spec:
+            definition:
+              scope: Cluster
+              permissions:
+                - apiGroups: [""]
+                  resources: ["pods", "events"]
+                  verbs: ["create", "list", "get", "patch", "update", "delete", "deletecollection"]
+                - apiGroups: [""]
+                  resources: ["pods/log", "pods/exec"]
+                  verbs: ["get", "list", "watch", "create"]
+                - apiGroups: ["batch"]
+                  resources: ["jobs"]
+                  verbs: ["create", "list", "get", "delete", "deletecollection"]
+                - apiGroups: ["litmuschaos.io"]
+                  resources: ["chaosengines", "chaosexperiments", "chaosresults"]
+                  verbs: ["create", "list", "get", "patch", "update", "delete"]
+              image: litmuschaos/go-runner:3.0.0
+              imagePullPolicy: IfNotPresent
+              command: ["/bin/bash"]
+              args: ["-c", "./experiments -name pod-delete"]
+              env:
+                - name: TOTAL_CHAOS_DURATION
+                  value: "30"
+                - name: RAMP_TIME
+                  value: "0"
+                - name: FORCE
+                  value: "true"
+                - name: CHAOS_INTERVAL
+                  value: "10"
+                - name: PODS_AFFECTED_PERC
+                  value: "50"
+                - name: LIB
+                  value: litmus
+                - name: TARGET_PODS
+                  value: ""
+                - name: SEQUENCE
+                  value: parallel
+              labels:
+                name: pod-delete
+                app.kubernetes.io/part-of: litmus
+                app.kubernetes.io/component: experiment-job
+                app.kubernetes.io/version: 3.0.0
+
+    # Step 2: start the experiment and wait until LitmusChaos marks it completed.
+    - name: run-chaos
+      resource:
+        action: create
+        successCondition: status.engineStatus == completed
+        manifest: |
+          apiVersion: litmuschaos.io/v1alpha1
+          kind: ChaosEngine
+          metadata:
+            name: sre-metrics-app-pod-delete
+            namespace: litmus
+          spec:
+            engineState: active
+            annotationCheck: "false"
+            appinfo:
+              appns: application
+              applabel: app=sre-metrics-app
+              appkind: deployment
+            chaosServiceAccount: chaos-runner
+            jobCleanUpPolicy: delete
+            experiments:
+              - name: pod-delete
+                spec:
+                  components:
+                    env:
+                      - name: TOTAL_CHAOS_DURATION
+                        value: "30"
+                      - name: CHAOS_INTERVAL
+                        value: "10"
+                      - name: PODS_AFFECTED_PERC
+                        value: "50"
+                  probe:
+                    - name: app-keeps-answering
+                      type: httpProbe
+                      mode: Continuous
+                      httpProbe/inputs:
+                        url: http://sre-metrics-app.application.svc.cluster.local:5000/
+                        method:
+                          get:
+                            criteria: ==
+                            responseCode: "200"
+                      runProperties:
+                        probeTimeout: 5s
+                        interval: 2s
+                        retry: 2
+                        probePollingInterval: 2s
+
+    # Step 3: the experiment passes only if the probe never failed (hypothesis confirmed).
+    - name: check-verdict
+      resource:
+        action: get
+        successCondition: status.experimentStatus.verdict == Pass
+        failureCondition: status.experimentStatus.verdict == Fail
+        manifest: |
+          apiVersion: litmuschaos.io/v1alpha1
+          kind: ChaosResult
+          metadata:
+            name: sre-metrics-app-pod-delete-pod-delete
+            namespace: litmus
+
+    # Step 4: remove the engine so the experiment can be run again.
+    - name: cleanup
+      resource:
+        action: delete
+        flags: ["--ignore-not-found"]
+        manifest: |
+          apiVersion: litmuschaos.io/v1alpha1
+          kind: ChaosEngine
+          metadata:
+            name: sre-metrics-app-pod-delete
+            namespace: litmus

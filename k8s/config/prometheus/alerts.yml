@@ -1,0 +1,53 @@
+groups:
+  - name: sre-metrics-app-slo
+    rules:
+      - alert: ServiceDown
+        expr: up{namespace="application"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service sre-metrics-app is down"
+          description: "Target sre-metrics-app on {{ $labels.instance }} is unreachable (up == 0)."
+          runbook_url: "https://github.com/jaffethalfarotorres/sre-final-project/blob/main/docs/runbooks/service-down.md"
+
+      - alert: HighErrorRate
+        expr: (sum(rate(http_requests_total{namespace="application", status=~"5.."}[2m])) / sum(rate(http_requests_total{namespace="application"}[2m]))) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High HTTP error rate (>5%) on sre-metrics-app"
+          description: "HTTP 5xx error rate is {{ $value | humanizePercentage }} (threshold > 5%) over the last 2 minutes."
+          runbook_url: "https://github.com/jaffethalfarotorres/sre-final-project/blob/main/docs/runbooks/high-error-rate.md"
+
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{namespace="application"}[2m])) by (le)) > 0.5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High p95 latency (>500ms) on sre-metrics-app"
+          description: "p95 response latency is {{ $value | humanizeDuration }} (threshold > 500ms) over the last 2 minutes."
+          runbook_url: "https://github.com/jaffethalfarotorres/sre-final-project/blob/main/docs/runbooks/high-latency.md"
+
+      - alert: SyntheticProbeFailing
+        expr: avg_over_time(probe_success{instance=~".*:5000/"}[2m]) < 0.9
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Synthetic check of sre-metrics-app is failing"
+          description: "The blackbox exporter could not reach {{ $labels.instance }} successfully in the last 2 minutes."
+          runbook_url: "https://github.com/jaffethalfarotorres/sre-final-project/blob/main/docs/runbooks/service-down.md"
+
+  - name: demo
+    rules:
+      - alert: AlwaysFiringDemoAlert
+        expr: vector(1)
+        for: 1m
+        labels:
+          severity: demo
+        annotations:
+          summary: "Demonstration alert for Alertmanager verification"
+          description: "Continuous demo alert verifying Prometheus-to-Alertmanager alerting pipeline."

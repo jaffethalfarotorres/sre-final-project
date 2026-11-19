@@ -1,0 +1,47 @@
+{
+  "title": "SRE Metrics Demo",
+  "uid": "sre-metrics-demo",
+  "description": "Start here: the four basic app signals, with links to the golden signals and SLO dashboards.",
+  "editable": true,
+  "schemaVersion": 39,
+  "version": 2,
+  "time": {"from": "now-30m", "to": "now"},
+  "refresh": "10s",
+  "links": [
+    {"title": "Golden Signals", "type": "link", "url": "/d/golden-signals/golden-signals"},
+    {"title": "SLO & Error Budget", "type": "link", "url": "/d/slo-error-budget/slo-and-error-budget"}
+  ],
+  "panels": [
+    {
+      "id": 1, "type": "timeseries", "title": "Store Request Rate",
+      "description": "Requests per second to /store, sent by the traffic generator.",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "targets": [{"refId": "A", "expr": "sum(rate(http_requests_total{endpoint=\"/store\"}[1m]))", "legendFormat": "requests/s"}]
+    },
+    {
+      "id": 2, "type": "timeseries", "title": "Store Latency p95",
+      "description": "95% of /store requests are faster than this. The HighLatency alert fires above 0.5 s.",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "targets": [{"refId": "A", "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{endpoint=\"/store\"}[5m])) by (le))", "legendFormat": "p95"}]
+    },
+    {
+      "id": 3, "type": "timeseries", "title": "Error Rate (5xx, all endpoints)",
+      "description": "Failed requests per second. Run scripts/trigger-alert to make it climb.",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "targets": [{"refId": "A", "expr": "sum by (endpoint) (rate(http_requests_total{namespace=\"application\",status=~\"5..\"}[1m]))", "legendFormat": "{{endpoint}}"}]
+    },
+    {
+      "id": 4, "type": "stat", "title": "Total Store Requests",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "targets": [{"refId": "A", "expr": "sum(http_requests_total{endpoint=\"/store\"})"}]
+    }
+  ]
+}

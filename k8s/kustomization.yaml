@@ -1,0 +1,55 @@
+# Applies the whole stack with one command:  kubectl apply -k k8s
+#
+# Config files under k8s/config/ become ConfigMaps here. Kustomize adds a content hash to each
+# ConfigMap name and updates the Deployments that use it, so changing a config file automatically
+# rolls out the affected pods (the SRE Academy "ConfigMap changes do not reach running pods" pitfall).
+# The two Secrets (alertmanager-secret, grafana-admin-credentials) are applied separately by the
+# deploy scripts because their real files are gitignored.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - prometheus.yaml
+  - rbac.yaml
+  - alertmanager.yaml
+  - grafana.yaml
+  - blackbox.yaml
+  - observability.yaml
+  - application.yaml
+
+configMapGenerator:
+  - name: prometheus-config
+    namespace: monitoring
+    files:
+      - config/prometheus/prometheus.yml
+  - name: prometheus-rules
+    namespace: monitoring
+    files:
+      - config/prometheus/alerts.yml
+      - config/prometheus/slo.yml
+  - name: grafana-datasources
+    namespace: monitoring
+    files:
+      - config/grafana/datasources.yaml
+  - name: grafana-dashboard-provider
+    namespace: monitoring
+    files:
+      - config/grafana/dashboard-provider.yaml
+  - name: grafana-alerting
+    namespace: monitoring
+    files:
+      - config/grafana/alerting.yaml
+  - name: grafana-dashboards
+    namespace: monitoring
+    files:
+      - config/grafana/dashboards/sre-metrics.json
+      - config/grafana/dashboards/golden-signals.json
+      - config/grafana/dashboards/slo.json
+  - name: otel-collector-config
+    namespace: opentelemetry
+    files:
+      - config.yaml=config/otel-collector.yaml
+  - name: loki-config
+    namespace: opentelemetry
+    files:
+      - config/loki.yaml

@@ -1,0 +1,89 @@
+name: Incident follow-up
+description: Track an incident and its postmortem action items (blameless).
+title: "[Incident]: "
+labels: ["incident"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form after an alert or outage to track the postmortem and its action items.
+        Write the full postmortem from [docs/POSTMORTEM-TEMPLATE.md](https://github.com/jaffethalfarotorres/sre-final-project/blob/main/docs/POSTMORTEM-TEMPLATE.md)
+        and follow [docs/INCIDENT-RESPONSE.md](https://github.com/jaffethalfarotorres/sre-final-project/blob/main/docs/INCIDENT-RESPONSE.md) while the incident is open.
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - Sev-1 (service down or SLO badly breached)
+        - Sev-2 (degraded, error budget burning fast)
+        - Sev-3 (minor, no user-visible SLO impact)
+    validations:
+      required: true
+  - type: input
+    id: alert
+    attributes:
+      label: Alert name
+      description: The alert that fired, or "none (reported manually)".
+      placeholder: HighErrorRate, HighLatency, ServiceDown, SyntheticProbeFailing, ErrorBudgetFastBurn, ErrorBudgetSlowBurn, ErrorBudgetExhausted, StoreLatencyFromTraces, ErrorLogBurst
+    validations:
+      required: false
+  - type: input
+    id: started
+    attributes:
+      label: Start time (UTC)
+      placeholder: YYYY-MM-DD HH:MM
+    validations:
+      required: true
+  - type: input
+    id: ttd
+    attributes:
+      label: Time to detect (TTD)
+      description: From problem start to alert firing.
+      placeholder: 5 min
+  - type: input
+    id: tta
+    attributes:
+      label: Time to acknowledge (TTA)
+      description: From alert firing to on-call acknowledgement.
+      placeholder: 3 min
+  - type: input
+    id: ttr
+    attributes:
+      label: Time to resolve (TTR)
+      description: From problem start to alert resolved.
+      placeholder: 22 min
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary and impact
+      description: What users experienced, for how long, and how much error budget was spent.
+    validations:
+      required: true
+  - type: textarea
+    id: root-cause
+    attributes:
+      label: Root cause (5 Whys)
+  - type: textarea
+    id: actions
+    attributes:
+      label: Action items
+      description: One per line with an owner. Open a separate issue for larger items and link it here.
+      value: |
+        - [ ] Update the runbook in docs/runbooks/
+        - [ ] Tune or add the alert in k8s/config/prometheus/
+        - [ ] Add a regression test or chaos experiment
+    validations:
+      required: true
+  - type: input
+    id: postmortem
+    attributes:
+      label: Postmortem document
+      description: Link to the completed postmortem.
+      placeholder: docs/postmortems/YYYY-MM-DD-short-title.md
+  - type: checkboxes
+    id: blameless
+    attributes:
+      label: Blameless review
+      options:
+        - label: The write-up describes systems and processes, not individuals.
+          required: true

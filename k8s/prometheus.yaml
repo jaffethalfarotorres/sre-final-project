@@ -1,101 +1,10 @@
+# Prometheus: pulls metrics from the app, the OpenTelemetry Collector, cAdvisor and the blackbox
+# exporter, evaluates alert and SLO rules, and sends firing alerts to Alertmanager.
+# Its configuration lives in k8s/config/prometheus/ and is turned into ConfigMaps by kustomization.yaml.
 apiVersion: v1
 kind: Namespace
 metadata:
   name: monitoring
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: prometheus-config
-  namespace: monitoring
-data:
-  prometheus.yml: |
-    global:
-      scrape_interval: 10s
-      evaluation_interval: 10s
-    alerting:
-      alertmanagers:
-        - static_configs:
-            - targets: ["alertmanager.monitoring.svc.cluster.local:9093"]
-    rule_files:
-      - /etc/prometheus/rules/*.yml
-      - /etc/prometheus/rules/*.yaml
-    scrape_configs:
-      - job_name: prometheus
-        static_configs:
-          - targets: ["localhost:9090"]
-      - job_name: kubernetes-pods
-        kubernetes_sd_configs:
-          - role: pod
-        relabel_configs:
-          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
-            action: keep
-            regex: "true"
-          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
-            action: replace
-            target_label: __metrics_path__
-            regex: (.+)
-          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
-            action: replace
-            regex: (.+):(?:\d+);(\d+)
-            replacement: $1:$2
-            target_label: __address__
-          - action: labelmap
-            regex: __meta_kubernetes_pod_label_(.+)
-          - source_labels: [__meta_kubernetes_namespace]
-            action: replace
-            target_label: namespace
-          - source_labels: [__meta_kubernetes_pod_name]
-            action: replace
-            target_label: pod
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: prometheus-rules
-  namespace: monitoring
-data:
-  alerts.yml: |
-    groups:
-      - name: sre-metrics-app-slo
-        rules:
-          - alert: ServiceDown
-            expr: up{namespace="application"} == 0
-            for: 1m
-            labels:
-              severity: critical
-            annotations:
-              summary: "Service sre-metrics-app is down"
-              description: "Target sre-metrics-app on {{ $labels.instance }} is unreachable (up == 0)."
-
-          - alert: HighErrorRate
-            expr: (sum(rate(http_requests_total{namespace="application", status=~"5.."}[2m])) / sum(rate(http_requests_total{namespace="application"}[2m]))) > 0.05
-            for: 2m
-            labels:
-              severity: critical
-            annotations:
-              summary: "High HTTP error rate (>5%) on sre-metrics-app"
-              description: "HTTP 5xx error rate is {{ $value | humanizePercentage }} (threshold > 5%) over the last 2 minutes."
-
-          - alert: HighLatency
-            expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{namespace="application"}[2m])) by (le)) > 0.5
-            for: 2m
-            labels:
-              severity: warning
-            annotations:
-              summary: "High p95 latency (>500ms) on sre-metrics-app"
-              description: "p95 response latency is {{ $value | humanizeDuration }} (threshold > 500ms) over the last 2 minutes."
-
-      - name: demo
-        rules:
-          - alert: AlwaysFiringDemoAlert
-            expr: vector(1)
-            for: 1m
-            labels:
-              severity: demo
-            annotations:
-              summary: "Demonstration alert for Alertmanager verification"
-              description: "Continuous demo alert verifying Prometheus-to-Alertmanager alerting pipeline."
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -119,15 +28,17 @@ spec:
           args:
             - --config.file=/etc/prometheus/prometheus.yml
             - --storage.tsdb.path=/prometheus
+            - --storage.tsdb.retention.time=7d
+            - --web.enable-lifecycle
           ports:
             - containerPort: 9090
           resources:
             requests:
               cpu: 100m
-              memory: 128Mi
+              memory: 192Mi
             limits:
               cpu: 500m
-              memory: 512Mi
+              memory: 768Mi
           livenessProbe:
             httpGet:
               path: /-/healthy
@@ -146,6 +57,8 @@ spec:
               subPath: prometheus.yml
             - name: rules
               mountPath: /etc/prometheus/rules
+            - name: data
+              mountPath: /prometheus
       volumes:
         - name: config
           configMap:
@@ -153,6 +66,8 @@ spec:
         - name: rules
           configMap:
             name: prometheus-rules
+        - name: data
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service

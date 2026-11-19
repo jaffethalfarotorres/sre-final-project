@@ -32,6 +32,17 @@ data:
           receiver: 'demo-receiver'
           repeat_interval: 12h
 
+        # Incident automation (SRE Academy exercise 13): every critical alert also launches the
+        # read-only "collect-diagnostics" AWX job, then continues to the human notifications below.
+        # Remediation (restart) is never automatic: a person launches it after reading the report.
+        # Harmless without AWX: the webhook just fails and Alertmanager logs it.
+        - matchers:
+            - severity = "critical"
+          receiver: 'awx-collect-diagnostics'
+          group_wait: 10s
+          repeat_interval: 1h
+          continue: true
+
         # ServiceDown, HighErrorRate: Slack + email, fast dispatch
         - matchers:
             - severity = "critical"
@@ -46,6 +57,16 @@ data:
           repeat_interval: 3h
 
     receivers:
+      - name: 'awx-collect-diagnostics'
+        webhook_configs:
+          - url: 'http://awx-service.awx.svc.cluster.local/api/v2/job_templates/collect-diagnostics++Default/launch/'
+            send_resolved: false
+            http_config:
+              authorization:
+                type: Bearer
+                # Written by scripts/awx_setup.py into the optional "awx-webhook-token" Secret.
+                credentials_file: /etc/awx/token
+
       - name: 'critical-notifications'
         slack_configs:
           - channel: '#sre-alerts'
@@ -145,7 +166,15 @@ spec:
             - name: alertmanager-secrets
               mountPath: /etc/alertmanager-secrets
               readOnly: true
+            - name: awx-webhook-token
+              mountPath: /etc/awx
+              readOnly: true
       volumes:
+        # Optional: only exists after the AWX add-on is set up (scripts/awx_setup.py).
+        - name: awx-webhook-token
+          secret:
+            secretName: awx-webhook-token
+            optional: true
         - name: config
           configMap:
             name: alertmanager-config

@@ -1,0 +1,95 @@
+{
+  "title": "Golden Signals",
+  "uid": "golden-signals",
+  "description": "The four golden signals of sre-metrics-app (SRE Academy exercise 11): latency, traffic, errors and saturation, from app metrics, traces (spanmetrics), cAdvisor and Loki logs.",
+  "editable": true,
+  "schemaVersion": 39,
+  "version": 1,
+  "time": {"from": "now-30m", "to": "now"},
+  "refresh": "10s",
+  "panels": [
+    {"id": 100, "type": "row", "title": "Latency", "collapsed": false, "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0}, "panels": []},
+    {
+      "id": 1, "type": "timeseries", "title": "p50 / p95 / p99 latency (app metrics)",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 1},
+      "targets": [
+        {"refId": "A", "expr": "histogram_quantile(0.50, sum by (le) (rate(http_request_duration_seconds_bucket{namespace=\"application\",endpoint=\"/store\"}[5m])))", "legendFormat": "p50"},
+        {"refId": "B", "expr": "histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{namespace=\"application\",endpoint=\"/store\"}[5m])))", "legendFormat": "p95"},
+        {"refId": "C", "expr": "histogram_quantile(0.99, sum by (le) (rate(http_request_duration_seconds_bucket{namespace=\"application\",endpoint=\"/store\"}[5m])))", "legendFormat": "p99"}
+      ]
+    },
+    {
+      "id": 2, "type": "timeseries", "title": "p95 latency per span (from traces, spanmetrics)",
+      "description": "Built by the OpenTelemetry Collector spanmetrics connector from every trace span.",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "ms"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 1},
+      "targets": [{"refId": "A", "expr": "histogram_quantile(0.95, sum by (le, span_name) (rate(otel_collector_span_metrics_duration_milliseconds_bucket[5m])))", "legendFormat": "{{span_name}}"}]
+    },
+    {"id": 101, "type": "row", "title": "Traffic", "collapsed": false, "gridPos": {"h": 1, "w": 24, "x": 0, "y": 9}, "panels": []},
+    {
+      "id": 3, "type": "timeseries", "title": "Requests per second by endpoint",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 10},
+      "targets": [{"refId": "A", "expr": "sum by (endpoint) (rate(http_requests_total{namespace=\"application\"}[1m]))", "legendFormat": "{{endpoint}}"}]
+    },
+    {
+      "id": 4, "type": "timeseries", "title": "Network bytes per pod (cAdvisor)",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "Bps"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 10},
+      "targets": [
+        {"refId": "A", "expr": "sum by (pod) (rate(container_network_receive_bytes_total{namespace=\"application\"}[5m]))", "legendFormat": "rx {{pod}}"},
+        {"refId": "B", "expr": "sum by (pod) (rate(container_network_transmit_bytes_total{namespace=\"application\"}[5m]))", "legendFormat": "tx {{pod}}"}
+      ]
+    },
+    {"id": 102, "type": "row", "title": "Errors", "collapsed": false, "gridPos": {"h": 1, "w": 24, "x": 0, "y": 18}, "panels": []},
+    {
+      "id": 5, "type": "timeseries", "title": "Error ratio (5xx / all requests)",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "percentunit", "max": 1, "min": 0}, "overrides": []},
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 19},
+      "targets": [{"refId": "A", "expr": "sum(rate(http_requests_total{namespace=\"application\",status=~\"5..\"}[2m])) / sum(rate(http_requests_total{namespace=\"application\"}[2m]))", "legendFormat": "error ratio"}]
+    },
+    {
+      "id": 6, "type": "timeseries", "title": "Failed spans per second (from traces)",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 19},
+      "targets": [{"refId": "A", "expr": "sum by (span_name) (rate(otel_collector_span_metrics_calls_total{status_code=\"STATUS_CODE_ERROR\"}[5m]))", "legendFormat": "{{span_name}}"}]
+    },
+    {
+      "id": 7, "type": "timeseries", "title": "ERROR log lines per minute (Loki)",
+      "datasource": {"type": "loki", "uid": "loki"},
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 19},
+      "targets": [{"refId": "A", "expr": "sum(count_over_time({service_name=\"sre-metrics-app\"} | severity_text=\"ERROR\" [1m]))", "legendFormat": "errors/min"}]
+    },
+    {"id": 103, "type": "row", "title": "Saturation", "collapsed": false, "gridPos": {"h": 1, "w": 24, "x": 0, "y": 27}, "panels": []},
+    {
+      "id": 8, "type": "timeseries", "title": "CPU used per pod (cores, cAdvisor)",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 28},
+      "targets": [{"refId": "A", "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=~\"application|monitoring|opentelemetry\",container!=\"\"}[5m]))", "legendFormat": "{{pod}}"}]
+    },
+    {
+      "id": 9, "type": "timeseries", "title": "Memory working set per pod (cAdvisor)",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "bytes"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 28},
+      "targets": [{"refId": "A", "expr": "sum by (pod) (container_memory_working_set_bytes{namespace=~\"application|monitoring|opentelemetry\",container!=\"\"})", "legendFormat": "{{pod}}"}]
+    },
+    {"id": 104, "type": "row", "title": "Logs (click a line to open its trace)", "collapsed": false, "gridPos": {"h": 1, "w": 24, "x": 0, "y": 36}, "panels": []},
+    {
+      "id": 10, "type": "logs", "title": "sre-metrics-app logs (Loki)",
+      "datasource": {"type": "loki", "uid": "loki"},
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 37},
+      "options": {"showTime": true, "wrapLogMessage": true, "sortOrder": "Descending", "enableLogDetails": true},
+      "targets": [{"refId": "A", "expr": "{service_name=\"sre-metrics-app\"}"}]
+    }
+  ]
+}

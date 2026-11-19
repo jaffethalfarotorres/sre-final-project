@@ -1,7 +1,8 @@
 # Opens Grafana, Prometheus, Alertmanager and the app in your browser with one command (Windows PowerShell).
 # Keep this window open; press Ctrl+C to close the tunnels.
 # Usage: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\dashboards.ps1
-$ErrorActionPreference = "Stop"
+# "Continue": in Windows PowerShell 5.1 a kubectl check that fails on purpose must not stop the script.
+$ErrorActionPreference = "Continue"
 Set-Location (Split-Path $PSScriptRoot -Parent)
 
 # Raw manifests and Helm use different Service names; detect which one is installed.

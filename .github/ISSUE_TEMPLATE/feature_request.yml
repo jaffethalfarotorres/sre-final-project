@@ -1,0 +1,40 @@
+name: Feature request
+description: Suggest an improvement to the app, observability, reliability or automation.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or motivation
+      description: What is hard today, or which reliability gap does this close?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      multiple: true
+      options:
+        - Application
+        - Observability (metrics, logs, traces)
+        - SLOs and alerting
+        - Infrastructure as code
+        - CI/CD and GitOps
+        - Chaos engineering
+        - Documentation
+  - type: textarea
+    id: slo-impact
+    attributes:
+      label: SLO and operational impact
+      description: Effect on SLIs, alerts, runbooks or on-call load.

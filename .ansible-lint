@@ -1,0 +1,12 @@
+# ansible-lint settings (used by CI with --profile production).
+# The diagnostics runbook builds a Markdown report with long Jinja lines; wrapping them would change
+# the report layout, so line length is the only rule relaxed here.
+skip_list:
+  - yaml[line-length]
+exclude_paths:
+  - .github/
+  - helm/
+  - k8s/
+  - gitops/
+  - chaos/
+  - awx/

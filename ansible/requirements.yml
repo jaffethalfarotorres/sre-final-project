@@ -1,0 +1,7 @@
+# Ansible collections used by the runbooks. Install with:
+#   ansible-galaxy collection install -r ansible/requirements.yml
+#   pip install kubernetes
+# AWX reads this file automatically when it syncs the project.
+collections:
+  - name: kubernetes.core
+    version: "5.5.0"

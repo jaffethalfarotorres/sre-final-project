@@ -27,3 +27,11 @@ secrets/
 # Internal working notes (not part of the published project)
 sre-final-project-completion-plan.md
 HANDOFF-claude-code.md
+
+# Terraform local state and provider cache (the lock file is committed)
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.*
+
+# Incident reports written by the Ansible diagnostics runbook
+reports/

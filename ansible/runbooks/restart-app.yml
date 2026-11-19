@@ -1,0 +1,43 @@
+# Remediation runbook (SRE Academy exercise 13): restart the app with a zero-downtime rolling restart
+# and confirm it is healthy again. Use it when pods are stuck or leaking memory.
+# Same as `kubectl rollout restart`, written with the kubernetes.core collection so it also runs in AWX.
+#
+#   ansible-playbook -i ansible/inventory.ini ansible/runbooks/restart-app.yml
+- name: Rolling restart of sre-metrics-app
+  hosts: local
+  gather_facts: true
+  vars:
+    namespace: application
+    app: sre-metrics-app
+
+  tasks:
+    - name: Trigger a rolling restart (new pods start before old ones stop)
+      kubernetes.core.k8s:
+        kind: Deployment
+        name: "{{ app }}"
+        namespace: "{{ namespace }}"
+        state: patched
+        definition:
+          spec:
+            template:
+              metadata:
+                annotations:
+                  kubectl.kubernetes.io/restartedAt: "{{ ansible_date_time.iso8601 }}"
+
+    - name: Wait until every pod runs the new template and is ready
+      kubernetes.core.k8s_info:
+        kind: Deployment
+        name: "{{ app }}"
+        namespace: "{{ namespace }}"
+      register: deployment
+      retries: 36
+      delay: 5
+      until: >-
+        deployment.resources | length > 0 and
+        deployment.resources[0].status.updatedReplicas | default(0) == deployment.resources[0].spec.replicas and
+        deployment.resources[0].status.readyReplicas | default(0) == deployment.resources[0].spec.replicas and
+        deployment.resources[0].status.replicas | default(0) == deployment.resources[0].spec.replicas
+
+    - name: Report the result
+      ansible.builtin.debug:
+        msg: "{{ app }} restarted: {{ deployment.resources[0].status.readyReplicas }} of {{ deployment.resources[0].spec.replicas }} pods ready."

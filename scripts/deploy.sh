@@ -54,7 +54,8 @@ fi
 
 
 if [[ "$(minikube status -p minikube --format='{{.Host}}' 2>/dev/null || true)" != "Running" ]]; then
-  minikube start --driver=docker
+  # 4 GB is enough for the full observability stack (see docs/GUIDE.md for the add-ons).
+  minikube start --driver=docker --memory=4096
 fi
 
 minikube image build -t sre-metrics-app:1.0.0 .
@@ -89,26 +90,18 @@ Helm deployment complete. Use separate terminals for:
   kubectl port-forward -n application service/sre-metrics-app 5000:5000
 EOF
 else
-  echo "Deploying via raw Kubernetes manifests..."
-  kubectl apply -f k8s/prometheus.yaml
-  kubectl apply -f k8s/rbac.yaml
+  echo "Deploying the full stack with Kustomize (kubectl apply -k k8s)..."
+  kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
   kubectl apply -f "$SECRET_FILE"
   kubectl apply -f "$GRAFANA_SECRET_FILE"
-  kubectl apply -f k8s/alertmanager.yaml
-  kubectl apply -f k8s/grafana.yaml
-  kubectl apply -f k8s/application.yaml
+  kubectl apply -k k8s
 
-  kubectl rollout status deployment/sre-metrics-app -n application --timeout=180s
-  kubectl rollout status deployment/prometheus -n monitoring --timeout=180s
-  kubectl rollout status deployment/alertmanager -n monitoring --timeout=180s
-  kubectl rollout status deployment/grafana -n monitoring --timeout=180s
+  for deployment in monitoring/prometheus monitoring/alertmanager monitoring/grafana monitoring/blackbox-exporter \
+    opentelemetry/otel-collector opentelemetry/jaeger opentelemetry/loki application/sre-metrics-app; do
+    kubectl rollout status "deployment/${deployment#*/}" -n "${deployment%%/*}" --timeout=300s
+  done
 
-  cat <<'EOF'
-Deployment complete. Use separate terminals for:
-  kubectl port-forward -n monitoring service/grafana 3000:3000
-  kubectl port-forward -n monitoring service/prometheus 9090:9090
-  kubectl port-forward -n monitoring service/alertmanager 9093:9093
-EOF
+  echo "Deployment complete."
 fi
 
 echo "Grafana login: user admin, credential stored in k8s/grafana-secret.yaml (admin-password)."

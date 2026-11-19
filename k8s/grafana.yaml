@@ -1,84 +1,9 @@
-# The Grafana admin Secret "grafana-admin-credentials" is NOT defined here.
-# Create it from k8s/grafana-secret.example.yaml (see the README); the real file is gitignored.
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: grafana-provisioning
-  namespace: monitoring
-data:
-  datasources.yaml: |
-    apiVersion: 1
-    datasources:
-      - name: Prometheus
-        uid: prometheus
-        type: prometheus
-        access: proxy
-        url: http://prometheus.monitoring.svc.cluster.local:9090
-        isDefault: true
-  dashboards.yaml: |
-    apiVersion: 1
-    providers:
-      - name: default
-        orgId: 1
-        folder: SRE Demo
-        type: file
-        options:
-          path: /var/lib/grafana/dashboards
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: grafana-dashboard
-  namespace: monitoring
-data:
-  sre-metrics.json: |
-    {
-      "annotations": {"list": []},
-      "editable": true,
-      "panels": [
-        {
-          "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []},
-          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
-          "id": 1,
-          "targets": [{"expr": "sum(rate(http_requests_total{endpoint=\"/store\"}[1m]))", "refId": "A"}],
-          "title": "Store Request Rate",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
-          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
-          "id": 2,
-          "targets": [{"expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{endpoint=\"/store\"}[5m])) by (le))", "refId": "A"}],
-          "title": "Store Latency p95",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []},
-          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
-          "id": 3,
-          "targets": [{"expr": "sum(rate(http_requests_total{endpoint=\"/store\",status=\"500\"}[1m])) or vector(0)", "refId": "A"}],
-          "title": "Store Error Rate (5xx)",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
-          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
-          "id": 4,
-          "targets": [{"expr": "sum(http_requests_total{endpoint=\"/store\"})", "refId": "A"}],
-          "title": "Total Store Requests",
-          "type": "stat"
-        }
-      ],
-      "schemaVersion": 39,
-      "title": "SRE Metrics Demo",
-      "uid": "sre-metrics-demo",
-      "version": 1
-    }
----
+# Grafana with everything provisioned as code (SRE Academy exercises 6, 11 and 12):
+#   datasources  k8s/config/grafana/datasources.yaml  (Prometheus, Loki, Jaeger, Alertmanager)
+#   dashboards   k8s/config/grafana/dashboards/*.json  (SRE overview, golden signals, SLO)
+#   alerting     k8s/config/grafana/alerting.yaml      (Grafana-managed rules sent to Alertmanager)
+# The admin Secret "grafana-admin-credentials" is created by the deploy script from
+# k8s/grafana-secret.example.yaml; the real file is gitignored.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -110,18 +35,22 @@ spec:
                 secretKeyRef:
                   name: grafana-admin-credentials
                   key: admin-password
+            - name: GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH
+              value: /var/lib/grafana/dashboards/sre-metrics.json
+            - name: GF_ANALYTICS_REPORTING_ENABLED
+              value: "false"
           resources:
             requests:
               cpu: 100m
               memory: 128Mi
             limits:
-              cpu: 300m
-              memory: 256Mi
+              cpu: 500m
+              memory: 384Mi
           livenessProbe:
             httpGet:
               path: /api/health
               port: 3000
-            initialDelaySeconds: 15
+            initialDelaySeconds: 30
             periodSeconds: 20
           readinessProbe:
             httpGet:
@@ -130,21 +59,27 @@ spec:
             initialDelaySeconds: 5
             periodSeconds: 10
           volumeMounts:
-            - name: provisioning
-              mountPath: /etc/grafana/provisioning/datasources/datasources.yaml
-              subPath: datasources.yaml
-            - name: provisioning
-              mountPath: /etc/grafana/provisioning/dashboards/dashboards.yaml
-              subPath: dashboards.yaml
-            - name: dashboard
+            - name: datasources
+              mountPath: /etc/grafana/provisioning/datasources
+            - name: dashboard-provider
+              mountPath: /etc/grafana/provisioning/dashboards
+            - name: alerting
+              mountPath: /etc/grafana/provisioning/alerting
+            - name: dashboards
               mountPath: /var/lib/grafana/dashboards
       volumes:
-        - name: provisioning
+        - name: datasources
           configMap:
-            name: grafana-provisioning
-        - name: dashboard
+            name: grafana-datasources
+        - name: dashboard-provider
           configMap:
-            name: grafana-dashboard
+            name: grafana-dashboard-provider
+        - name: alerting
+          configMap:
+            name: grafana-alerting
+        - name: dashboards
+          configMap:
+            name: grafana-dashboards
 ---
 apiVersion: v1
 kind: Service

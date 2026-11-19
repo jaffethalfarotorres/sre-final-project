@@ -1,0 +1,47 @@
+# Explicit UIDs let dashboards and alert rules reference each datasource reliably.
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus.monitoring.svc.cluster.local:9090
+    isDefault: true
+    jsonData:
+      # From a latency point in a panel, jump to an example trace in Jaeger.
+      exemplarTraceIdDestinations: []
+
+  - name: Loki
+    uid: loki
+    type: loki
+    access: proxy
+    url: http://loki.opentelemetry.svc.cluster.local:3100
+    jsonData:
+      # Every log line exported by the app carries its trace_id; this adds a link to the trace.
+      derivedFields:
+        - name: TraceID
+          matcherType: label
+          matcherRegex: trace_id
+          datasourceUid: jaeger
+          url: "$${__value.raw}"
+
+  - name: Jaeger
+    uid: jaeger
+    type: jaeger
+    access: proxy
+    url: http://jaeger.opentelemetry.svc.cluster.local:16686
+    jsonData:
+      # From a span in a trace, jump to the logs written during that request.
+      tracesToLogsV2:
+        datasourceUid: loki
+        filterByTraceID: true
+        spanStartTimeShift: "-5m"
+        spanEndTimeShift: "5m"
+
+  - name: Alertmanager
+    uid: alertmanager
+    type: alertmanager
+    access: proxy
+    url: http://alertmanager.monitoring.svc.cluster.local:9093
+    jsonData:
+      implementation: prometheus

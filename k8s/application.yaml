@@ -9,7 +9,17 @@ metadata:
   name: sre-metrics-app
   namespace: application
 spec:
-  replicas: 1
+  # Two replicas so a pod can be lost (chaos test, rolling update) without downtime.
+  replicas: 2
+  # Rolling update (SRE Academy exercise 18): start one new pod before removing an old one and never
+  # drop below the desired count. A broken image stays stuck in the new pod while old pods keep serving;
+  # undo it with: kubectl rollout undo deployment/sre-metrics-app -n application
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  revisionHistoryLimit: 5
   selector:
     matchLabels:
       app: sre-metrics-app
@@ -22,19 +32,37 @@ spec:
         prometheus.io/path: "/metrics"
         prometheus.io/port: "5000"
     spec:
+      # Least privilege (checked by the Kyverno policies in policy/): non-root, no privilege escalation.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: app
           image: sre-metrics-app:1.0.0
           imagePullPolicy: Never
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           ports:
             - containerPort: 5000
+          env:
+            # Traces and logs go to the OpenTelemetry Collector over OTLP/gRPC.
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://otel-collector.opentelemetry.svc.cluster.local:4317
+            - name: OTEL_SERVICE_NAME
+              value: sre-metrics-app
+            - name: APP_VERSION
+              value: "1.0.0"
           resources:
             requests:
               cpu: 50m
-              memory: 64Mi
+              memory: 96Mi
             limits:
-              cpu: 250m
-              memory: 128Mi
+              cpu: 300m
+              memory: 256Mi
           # Generous timeouts: a busy Minikube node can delay responses.
           livenessProbe:
             httpGet:
@@ -80,16 +108,27 @@ spec:
       labels:
         app: traffic-generator
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 100
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: curl
           image: curlimages/curl:8.10.1
           command: ["/bin/sh", "-c"]
+          # A user every 2 s on /store, plus an occasional /ask call for the LLM observability lab.
           args:
             - >-
-              while true; do
+              i=0; while true; do
                 curl -s -o /dev/null http://sre-metrics-app:5000/store;
+                i=$((i+1)); if [ $((i % 15)) -eq 0 ]; then curl -s -o /dev/null http://sre-metrics-app:5000/ask; fi;
                 sleep 2;
               done
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           resources:
             requests:
               cpu: 10m

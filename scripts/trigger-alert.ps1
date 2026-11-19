@@ -1,6 +1,7 @@
 # Sends a burst of failing requests to /error and waits until the HighErrorRate alert fires (Windows PowerShell).
 # Usage: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\trigger-alert.ps1
-$ErrorActionPreference = "Stop"
+# "Continue": in Windows PowerShell 5.1 a kubectl check that fails on purpose must not stop the script.
+$ErrorActionPreference = "Continue"
 
 kubectl get service kube-prometheus-stack-alertmanager -n monitoring *> $null
 $amService = if ($LASTEXITCODE -eq 0) { "kube-prometheus-stack-alertmanager" } else { "alertmanager" }

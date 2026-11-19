@@ -1,0 +1,21 @@
+# AWX (SRE Academy exercise 13), installed with the official AWX Operator.
+#   kubectl apply -k awx        (scripts/awx_setup.py does this and configures AWX for you)
+# Needs about 2.5 GB of free memory in Minikube on top of the observability stack.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: awx
+
+resources:
+  - github.com/ansible/awx-operator/config/default?ref=2.19.1
+# awx.yaml (the AWX instance) and rbac.yaml (permissions in the application namespace) are applied
+# separately by scripts/awx_setup.py: the first needs the operator's CRD, the second another namespace.
+
+images:
+  - name: quay.io/ansible/awx-operator
+    newTag: 2.19.1
+  # The operator manifests point at gcr.io/kubebuilder/kube-rbac-proxy, which was removed from that
+  # registry. The same upstream image is published on quay.io, so redirect it (a real supply-chain
+  # lesson: pinned images can still disappear; mirror what you depend on).
+  - name: gcr.io/kubebuilder/kube-rbac-proxy
+    newName: quay.io/brancz/kube-rbac-proxy
+    newTag: v0.15.0

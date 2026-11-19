@@ -1,0 +1,122 @@
+# Runbook automation (SRE Academy exercise 13 and topic 6): collect the evidence an on-call engineer needs
+# in the first minutes of an incident and save it as a report. Shortens Time To Resolve (TTR).
+#
+# Uses the kubernetes.core collection (not the kubectl binary), so it runs the same:
+#   - on your computer:  ansible-galaxy collection install -r ansible/requirements.yml
+#                        pip install kubernetes
+#                        ansible-playbook -i ansible/inventory.ini ansible/runbooks/collect-diagnostics.yml
+#   - in AWX, as the "Collect diagnostics" job template, started by hand or by an alert (see awx/README.md)
+- name: Collect incident diagnostics for sre-metrics-app
+  hosts: local
+  gather_facts: true
+  vars:
+    namespace: application
+    app: sre-metrics-app
+    # Reachable from inside the cluster (AWX). From a laptop the request fails and the report says so.
+    alertmanager_url: http://alertmanager.monitoring.svc.cluster.local:9093
+    report_dir: "{{ playbook_dir }}/../../reports"
+    report_file: "{{ report_dir }}/incident-{{ ansible_date_time.iso8601_basic_short }}.md"
+
+  tasks:
+    - name: Read the app pods
+      kubernetes.core.k8s_info:
+        kind: Pod
+        namespace: "{{ namespace }}"
+        label_selectors: ["app={{ app }}"]
+      register: pods
+
+    - name: Read recent events in the namespace
+      kubernetes.core.k8s_info:
+        kind: Event
+        namespace: "{{ namespace }}"
+      register: events
+
+    - name: Read the Deployment (replicas, image, rollout state)
+      kubernetes.core.k8s_info:
+        kind: Deployment
+        name: "{{ app }}"
+        namespace: "{{ namespace }}"
+      register: deployment
+
+    - name: Read the last 30 log lines of each app pod
+      kubernetes.core.k8s_log:
+        name: "{{ item.metadata.name }}"
+        namespace: "{{ namespace }}"
+        tail_lines: 30
+      loop: "{{ pods.resources }}"
+      loop_control:
+        label: "{{ item.metadata.name }}"
+      register: logs
+      failed_when: false
+
+    - name: Read the alerts firing in Alertmanager
+      ansible.builtin.uri:
+        url: "{{ alertmanager_url }}/api/v2/alerts"
+        return_content: true
+        timeout: 5
+      register: alerts
+      failed_when: false
+
+    - name: Make sure the report folder exists
+      ansible.builtin.file:
+        path: "{{ report_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Write the incident diagnostics report
+      ansible.builtin.copy:
+        dest: "{{ report_file }}"
+        mode: "0644"
+        content: |
+          # Incident diagnostics: {{ app }}
+          Collected at {{ ansible_date_time.iso8601 }} by the collect-diagnostics runbook.
+
+          ## Firing alerts
+          {% if alerts.json is defined %}
+          {% for alert in alerts.json %}
+          - {{ alert.labels.alertname }} ({{ alert.labels.severity | default('none') }}): {{ alert.annotations.summary | default('') }}
+          {% else %}
+          - none
+          {% endfor %}
+          {% else %}
+          - Alertmanager not reachable from here ({{ alertmanager_url }}); check Grafana or Alertmanager directly.
+          {% endif %}
+
+          ## Deployment
+          {% for d in deployment.resources %}
+          - Image: {{ d.spec.template.spec.containers[0].image }}
+          - Replicas: {{ d.status.readyReplicas | default(0) }} ready of {{ d.spec.replicas }} desired, {{ d.status.updatedReplicas | default(0) }} on the latest version
+          - Revision: {{ d.metadata.annotations['deployment.kubernetes.io/revision'] | default('?') }}
+          {% endfor %}
+
+          ## Pods
+          | Pod | Phase | Ready | Restarts | Started |
+          | --- | --- | --- | --- | --- |
+          {% for p in pods.resources %}
+          | {{ p.metadata.name }} | {{ p.status.phase }} | {{ (p.status.containerStatuses | default([{}]))[0].ready | default(false) }} | {{ (p.status.containerStatuses | default([{}]))[0].restartCount | default(0) }} | {{ p.status.startTime | default('') }} |
+          {% endfor %}
+
+          ## Recent warning events
+          {% for e in (events.resources | selectattr('type', 'equalto', 'Warning') | list)[-15:] %}
+          - {{ e.lastTimestamp | default(e.eventTime) }} {{ e.involvedObject.name }}: {{ e.reason }} - {{ e.message }}
+          {% else %}
+          - none
+          {% endfor %}
+
+          ## Recent logs
+          {% for result in logs.results %}
+          ### {{ result.item.metadata.name }}
+          ```
+          {{ result.log | default('(no logs)') }}
+          ```
+          {% endfor %}
+
+    - name: Tell the on-call engineer where the report is
+      ansible.builtin.debug:
+        msg: "Diagnostics saved to {{ report_file }}"
+
+    # In AWX the job runs in a temporary container, so the report is also printed into the job output.
+    - name: Print the report into the job output
+      ansible.builtin.debug:
+        msg: "{{ lookup('ansible.builtin.file', report_file).splitlines() }}"
+      when: print_report | default(false) | bool

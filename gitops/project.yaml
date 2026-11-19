@@ -1,0 +1,24 @@
+# GitOps with ArgoCD (SRE Academy exercise 17): an AppProject limits what Applications in it may
+# deploy (which Git repo, which namespaces, which kinds of objects).
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: sre-project
+  namespace: argocd
+spec:
+  description: SRE final project, deployed from Git
+  sourceRepos:
+    - https://github.com/jaffethalfarotorres/sre-final-project
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: gitops-*
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+  namespaceResourceWhitelist:
+    - group: apps
+      kind: Deployment
+    - group: ""
+      kind: Service
+    - group: ""
+      kind: ConfigMap

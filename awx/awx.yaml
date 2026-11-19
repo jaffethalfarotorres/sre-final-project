@@ -1,0 +1,29 @@
+# The AWX instance, sized for a laptop. Applied after the operator is running (the AWX kind must exist).
+apiVersion: awx.ansible.com/v1beta1
+kind: AWX
+metadata:
+  name: awx
+  namespace: awx
+spec:
+  service_type: ClusterIP
+  admin_user: admin
+  web_resource_requirements:
+    requests: {cpu: 100m, memory: 512Mi}
+    limits: {memory: 1536Mi}
+  task_resource_requirements:
+    requests: {cpu: 100m, memory: 384Mi}
+    limits: {memory: 1Gi}
+  ee_resource_requirements:
+    requests: {cpu: 50m, memory: 128Mi}
+    limits: {memory: 768Mi}
+  redis_resource_requirements:
+    requests: {cpu: 25m, memory: 32Mi}
+  rsyslog_resource_requirements:
+    requests: {cpu: 25m, memory: 32Mi}
+  init_container_resource_requirements:
+    requests: {cpu: 25m, memory: 64Mi}
+  postgres_resource_requirements:
+    requests: {cpu: 50m, memory: 128Mi}
+  postgres_storage_requirements:
+    requests:
+      storage: 2Gi

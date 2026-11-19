@@ -1,0 +1,51 @@
+# OpenTelemetry Collector pipeline (SRE Academy exercises 8-10).
+#   traces : app --OTLP--> collector --> Jaeger (storage + UI)
+#                                    \-> spanmetrics connector (turns spans into RED metrics)
+#   metrics: spanmetrics --> Prometheus exporter on :9464 (scraped by Prometheus)
+#   logs   : app --OTLP--> collector --> Loki native OTLP endpoint
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 200
+  batch: {}
+
+connectors:
+  spanmetrics:
+    namespace: span.metrics
+    metrics_flush_interval: 15s
+
+exporters:
+  otlp/jaeger:
+    endpoint: jaeger.opentelemetry.svc.cluster.local:4317
+    tls:
+      insecure: true
+  otlphttp/loki:
+    endpoint: http://loki.opentelemetry.svc.cluster.local:3100/otlp
+    tls:
+      insecure: true
+  prometheus:
+    endpoint: 0.0.0.0:9464
+    namespace: otel_collector
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlp/jaeger, spanmetrics]
+    metrics:
+      receivers: [spanmetrics]
+      processors: [memory_limiter, batch]
+      exporters: [prometheus]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlphttp/loki]

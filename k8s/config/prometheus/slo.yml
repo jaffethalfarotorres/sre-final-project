@@ -1,0 +1,83 @@
+# Service Level Objectives for sre-metrics-app (SRE Academy topic 0). See docs/SLO.md.
+#
+# SLI availability : share of HTTP requests that did not return 5xx.
+# SLO availability : 90% over 30 days. The demo app fails ~5% of /store calls ON PURPOSE, so a
+#                    realistic 99.9% target would always be breached; 90% leaves a visible budget.
+# SLI latency      : share of /store requests served in under 500 ms.
+# SLO latency      : 95% over 30 days.
+# Error budget     : 1 - SLO (10% of requests for availability, 5% for latency).
+# Burn rate        : how fast the budget is spent. 1 = exactly on budget for the 30-day window.
+groups:
+  - name: slo-recording-rules
+    interval: 30s
+    rules:
+      - record: slo:availability:target
+        expr: vector(0.90)
+      - record: slo:latency:target
+        expr: vector(0.95)
+
+      # Availability SLI over several windows
+      - record: sli:availability:ratio_rate5m
+        expr: sum(rate(http_requests_total{namespace="application", status!~"5.."}[5m])) / sum(rate(http_requests_total{namespace="application"}[5m]))
+      - record: sli:availability:ratio_rate1h
+        expr: sum(rate(http_requests_total{namespace="application", status!~"5.."}[1h])) / sum(rate(http_requests_total{namespace="application"}[1h]))
+      - record: sli:availability:ratio_rate6h
+        expr: sum(rate(http_requests_total{namespace="application", status!~"5.."}[6h])) / sum(rate(http_requests_total{namespace="application"}[6h]))
+      - record: sli:availability:ratio_rate30d
+        expr: sum(rate(http_requests_total{namespace="application", status!~"5.."}[30d])) / sum(rate(http_requests_total{namespace="application"}[30d]))
+
+      # Latency SLI: requests to /store faster than 500 ms
+      - record: sli:latency:ratio_rate5m
+        expr: sum(rate(http_request_duration_seconds_bucket{namespace="application", endpoint="/store", le="0.5"}[5m])) / sum(rate(http_request_duration_seconds_count{namespace="application", endpoint="/store"}[5m]))
+      - record: sli:latency:ratio_rate30d
+        expr: sum(rate(http_request_duration_seconds_bucket{namespace="application", endpoint="/store", le="0.5"}[30d])) / sum(rate(http_request_duration_seconds_count{namespace="application", endpoint="/store"}[30d]))
+
+      # Burn rates: observed error ratio divided by the allowed error ratio (the error budget)
+      - record: slo:availability:burn_rate5m
+        expr: (1 - sli:availability:ratio_rate5m) / (1 - 0.90)
+      - record: slo:availability:burn_rate1h
+        expr: (1 - sli:availability:ratio_rate1h) / (1 - 0.90)
+      - record: slo:availability:burn_rate6h
+        expr: (1 - sli:availability:ratio_rate6h) / (1 - 0.90)
+
+      # Remaining error budget for the 30-day window (1 = untouched, 0 = spent, < 0 = SLO breached)
+      - record: slo:availability:error_budget_remaining
+        expr: 1 - ((1 - sli:availability:ratio_rate30d) / (1 - 0.90))
+      - record: slo:latency:error_budget_remaining
+        expr: 1 - ((1 - sli:latency:ratio_rate30d) / (1 - 0.95))
+
+  - name: slo-alerts
+    rules:
+      # Multi-window burn-rate alerts: a long window proves the problem is real, a short window
+      # proves it is still happening. Fast burn pages; slow burn opens a ticket.
+      - alert: ErrorBudgetFastBurn
+        expr: slo:availability:burn_rate5m > 6 and slo:availability:burn_rate1h > 1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "sre-metrics-app is burning its error budget fast"
+          description: "5-minute burn rate is {{ $value | printf \"%.1f\" }}x. At this pace the 30-day budget runs out within days."
+          runbook_url: "https://github.com/jaffethalfarotorres/sre-final-project/blob/main/docs/runbooks/error-budget-burn.md"
+
+      - alert: ErrorBudgetSlowBurn
+        expr: slo:availability:burn_rate6h > 1 and slo:availability:burn_rate1h > 1
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "sre-metrics-app error budget is being spent faster than planned"
+          description: "6-hour burn rate is above 1x: the SLO will be missed if this continues."
+          runbook_url: "https://github.com/jaffethalfarotorres/sre-final-project/blob/main/docs/runbooks/error-budget-burn.md"
+
+      # Only meaningful once the 30-day window holds real history: on a fresh cluster a single drill
+      # would look like a whole month of failures. 100,000 requests is about 2-3 days of demo traffic.
+      - alert: ErrorBudgetExhausted
+        expr: slo:availability:error_budget_remaining < 0 and on() sum(increase(http_requests_total{namespace="application"}[30d])) > 100000
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "sre-metrics-app has used its whole 30-day error budget"
+          description: "Freeze feature deployments and focus on reliability (see docs/SLO.md, error budget policy)."
+          runbook_url: "https://github.com/jaffethalfarotorres/sre-final-project/blob/main/docs/runbooks/error-budget-burn.md"

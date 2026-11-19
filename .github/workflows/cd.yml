@@ -1,55 +1,191 @@
 name: CD
 
-# Builds a version-tagged image and pushes it to Docker Hub, then smoke-tests it on a kind cluster.
-# Required repository secrets: DOCKERHUB_USERNAME, DOCKERHUB_TOKEN.
-# Runs on version tags (git tag v1.0.0 && git push --tags) or manually from the Actions tab.
+# Continuous Delivery (SRE Academy exercises 3 and 16).
+# Runs on version tags (git tag v1.0.0 && git push origin v1.0.0) or manually from the Actions tab.
+#   publish      multi-arch image (linux/amd64 + linux/arm64) pushed to GitHub Container Registry with
+#                GITHUB_TOKEN, and also to Docker Hub when the optional DOCKERHUB_USERNAME and
+#                DOCKERHUB_TOKEN repository secrets are set
+#   smoke-test   runs the image without an OpenTelemetry endpoint, then deploys the Helm chart on kind
+#                and checks /, /store and /metrics
+#   helm-chart   packages the Helm chart; on a tag it attaches the .tgz to a GitHub Release
+#   supply chain SBOM (Syft), vulnerability gate (Trivy), keyless signature + SBOM attestation (cosign),
+#                SLSA build provenance (GitHub attestations)
 on:
   push:
-    tags: ["v*"]
+    tags: ["v[0-9]+.[0-9]+.[0-9]+*"]
   workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write      # keyless signing with Sigstore (cosign) and provenance attestations
+  attestations: write
+
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   publish:
     name: Build and push image
     runs-on: ubuntu-latest
+    env:
+      # Secrets cannot be used in step "if:" conditions, so they are mapped to env first.
+      # Both are optional: without them the image is only pushed to GHCR.
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
+      - name: Work out the image names (registry paths must be lowercase)
+        id: names
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          {
+            echo "images<<EOF"
+            echo "ghcr.io/${owner}/sre-metrics-app"
+            if [ -n "$DOCKERHUB_USERNAME" ] && [ -n "$DOCKERHUB_TOKEN" ]; then
+              echo "docker.io/${DOCKERHUB_USERNAME,,}/sre-metrics-app"
+            fi
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
 
-      - uses: docker/login-action@v3
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Log in to Docker Hub
+        if: env.DOCKERHUB_USERNAME != '' && env.DOCKERHUB_TOKEN != ''
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKERHUB_USERNAME }}
+          password: ${{ env.DOCKERHUB_TOKEN }}
+
+      # Tags: 1.2.3, 1.2, sha-abc1234 and latest (latest is added for semver tags by the default
+      # flavor latest=auto, and for manual runs on the default branch).
       - id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.DOCKERHUB_USERNAME }}/sre-metrics-app
+          images: ${{ steps.names.outputs.images }}
           tags: |
             type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
             type=sha
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - uses: docker/build-push-action@v6
+      - name: Build and push (linux/amd64 + linux/arm64)
+        id: build
+        uses: docker/build-push-action@v6
         with:
           context: .
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ---- Software supply chain security (SRE Academy 2027, module M19) ----
+      - name: Image reference by digest (immutable)
+        id: ref
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/sre-metrics-app@${{ steps.build.outputs.digest }}" >> "$GITHUB_OUTPUT"
+
+      - name: Generate an SBOM (Syft, SPDX JSON)
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ steps.ref.outputs.image }}
+          format: spdx-json
+          output-file: sbom.spdx.json
+
+      - name: Scan the image for known vulnerabilities (Trivy; fails on fixable CRITICAL)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ steps.ref.outputs.image }}
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          format: table
+
+      - uses: sigstore/cosign-installer@v3
+
+      - name: Sign the image and attach the SBOM (keyless, GitHub OIDC)
+        run: |
+          cosign sign --yes "${{ steps.ref.outputs.image }}"
+          cosign attest --yes --type spdxjson --predicate sbom.spdx.json "${{ steps.ref.outputs.image }}"
+
+      - name: Build provenance attestation (SLSA)
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ghcr.io/${{ github.repository_owner }}/sre-metrics-app
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+      - name: Summary
+        run: |
+          {
+            echo "### Published image tags"
+            echo '```'
+            echo "${{ steps.meta.outputs.tags }}"
+            echo '```'
+            echo "Digest: \`${{ steps.build.outputs.digest }}\`"
+            echo ""
+            echo "Verify the signature:"
+            echo '```'
+            echo "cosign verify ${{ steps.ref.outputs.image }} \\"
+            echo "  --certificate-identity-regexp 'https://github.com/${{ github.repository }}/.*' \\"
+            echo "  --certificate-oidc-issuer https://token.actions.githubusercontent.com"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
   smoke-test:
-    name: kind smoke test
+    name: Smoke test (docker + kind)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: helm/kind-action@v1
+      - name: Build the image
+        run: docker build -t sre-metrics-app:smoke .
 
-      - name: Build and load image into kind
+      # No OTEL_EXPORTER_OTLP_ENDPOINT is set: the app must still serve traffic and metrics
+      # when no OpenTelemetry Collector exists (tracing is optional, not a dependency).
+      - name: Run the container without an OpenTelemetry endpoint
         run: |
-          docker build -t sre-metrics-app:smoke .
-          kind load docker-image sre-metrics-app:smoke
+          docker run -d --name smoke -p 5001:5000 sre-metrics-app:smoke
+          for _ in $(seq 1 20); do
+            curl -sf http://localhost:5001/ > /dev/null && break
+            sleep 1
+          done
+          curl -sf http://localhost:5001/
+          for _ in $(seq 1 5); do curl -s -o /dev/null http://localhost:5001/store; done
+          curl -sf http://localhost:5001/metrics | grep http_requests_total
+          if docker exec smoke env | grep -q '^OTEL_EXPORTER_OTLP_ENDPOINT='; then
+            echo "::error::OTEL_EXPORTER_OTLP_ENDPOINT should not be set in this test"
+            exit 1
+          fi
+          if [ "$(docker inspect -f '{{.State.Running}}' smoke)" != "true" ]; then
+            echo "::error::the container stopped"
+            exit 1
+          fi
+          echo "--- container logs ---"
+          docker logs smoke 2>&1 | tail -20
+          docker rm -f smoke
+
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.16.2
+
+      - uses: helm/kind-action@v1
+        with:
+          cluster_name: smoke
+
+      - name: Load the image into kind
+        run: kind load docker-image sre-metrics-app:smoke --name smoke
 
       - name: Deploy the app chart without the Prometheus Operator CRDs
         run: |
@@ -59,9 +195,55 @@ jobs:
             --set serviceMonitor.enabled=false
           kubectl rollout status deployment/sre-metrics-app -n application --timeout=120s
 
-      - name: Check that /metrics is served after some traffic
+      - name: Check /, /store and /metrics through the Service
         run: |
           kubectl -n application port-forward service/sre-metrics-app 5000:5000 &
-          sleep 5
-          for i in $(seq 1 10); do curl -s -o /dev/null http://localhost:5000/store; done
+          for _ in $(seq 1 20); do
+            curl -sf http://localhost:5000/ > /dev/null && break
+            sleep 1
+          done
+          curl -sf http://localhost:5000/
+          for _ in $(seq 1 10); do curl -s -o /dev/null http://localhost:5000/store; done
           curl -sf http://localhost:5000/metrics | grep http_requests_total
+
+      - name: Show pod state and logs on failure
+        if: failure()
+        run: |
+          kubectl get pods -A -o wide || true
+          kubectl -n application describe pods || true
+          kubectl -n application logs deployment/sre-metrics-app --tail=50 || true
+
+  helm-chart:
+    name: Package Helm chart and release
+    runs-on: ubuntu-latest
+    needs: [publish, smoke-test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.16.2
+
+      - name: Package the chart
+        run: |
+          mkdir -p dist
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            # The chart and app version follow the git tag: v1.2.3 -> 1.2.3
+            version="${GITHUB_REF_NAME#v}"
+            helm package helm/sre-metrics-app --destination dist --version "$version" --app-version "$version"
+          else
+            helm package helm/sre-metrics-app --destination dist
+          fi
+          ls -l dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: helm-chart
+          path: dist/*.tgz
+
+      - name: Create the GitHub Release with the chart attached
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.tgz
+          generate_release_notes: true

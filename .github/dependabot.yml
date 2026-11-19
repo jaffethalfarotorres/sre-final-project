@@ -1,0 +1,29 @@
+version: 2
+updates:
+  - package-ecosystem: pip
+    directories: ["/", "/app"]
+    schedule:
+      interval: weekly
+    labels: ["dependencies", "python"]
+    open-pull-requests-limit: 5
+    groups:
+      opentelemetry:
+        patterns: ["opentelemetry-*"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    labels: ["dependencies", "github-actions"]
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+    labels: ["dependencies", "docker"]
+
+  - package-ecosystem: terraform
+    directory: /terraform
+    schedule:
+      interval: weekly
+    labels: ["dependencies", "terraform"]

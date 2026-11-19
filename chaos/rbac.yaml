@@ -1,0 +1,54 @@
+# Permissions for the chaos experiment (SRE Academy exercise 19).
+# - chaos-runner: used by LitmusChaos to delete pods of the app in the application namespace.
+# - chaos-workflow: used by the Argo Workflow that creates the experiment and reads its result.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: chaos-runner
+  namespace: litmus
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: chaos-workflow
+  namespace: litmus
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: sre-chaos
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "events", "services", "configmaps", "secrets"]
+    verbs: ["create", "get", "list", "watch", "patch", "update", "delete", "deletecollection"]
+  - apiGroups: [""]
+    resources: ["pods/log", "pods/exec"]
+    verbs: ["get", "list", "watch", "create"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets", "statefulsets", "daemonsets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["create", "get", "list", "watch", "delete", "deletecollection"]
+  - apiGroups: ["litmuschaos.io"]
+    resources: ["chaosengines", "chaosexperiments", "chaosresults"]
+    verbs: ["create", "get", "list", "watch", "patch", "update", "delete"]
+  - apiGroups: ["argoproj.io"]
+    resources: ["workflows", "workflowtaskresults"]
+    verbs: ["create", "get", "list", "watch", "patch", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: sre-chaos
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: sre-chaos
+subjects:
+  - kind: ServiceAccount
+    name: chaos-runner
+    namespace: litmus
+  - kind: ServiceAccount
+    name: chaos-workflow
+    namespace: litmus

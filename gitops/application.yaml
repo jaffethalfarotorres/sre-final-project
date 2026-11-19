@@ -1,0 +1,46 @@
+# ArgoCD Application (SRE Academy exercises 17 and 18). ArgoCD watches the Helm chart in this Git
+# repository and keeps the gitops-staging namespace identical to it:
+#   - a commit to main that changes helm/sre-metrics-app is deployed automatically (automated sync)
+#   - manual changes in the cluster are reverted (selfHeal), deleted files are removed (prune)
+#   - roll back from the UI (History and Rollback) or with: argocd app rollback sre-metrics-app-staging <id>
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sre-metrics-app-staging
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: sre-project
+  source:
+    repoURL: https://github.com/jaffethalfarotorres/sre-final-project
+    targetRevision: main
+    path: helm/sre-metrics-app
+    helm:
+      valuesObject:
+        replicaCount: 2
+        image:
+          repository: sre-metrics-app
+          tag: "1.0.0"
+          pullPolicy: Never  # the image built inside Minikube by the deploy script
+        serviceMonitor:
+          enabled: false     # the raw stack's Prometheus discovers pods by annotation instead
+        trafficGenerator:
+          enabled: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: gitops-staging
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
