@@ -2,13 +2,14 @@
 """
 SRE Academy Lab Game: missions, XP, levels, achievements and a shareable proof.
 
-Theme: the Road to Junior SRE. With Bob, your AI pair, you climb camp by camp from "Career Changer" to On-Call
-Ready (the lab's last camp: you completed its on-call missions; it is practice, not a job certification). Each
-camp teaches one SRE principle. A CV skill is listed only when the mission that proves it is done.
+Theme: the Road to Junior SRE. With your AI pair (an AI coding agent), you climb camp by camp from
+"Career Changer" to On-Call Ready (the lab's last camp: you completed its on-call missions; it is practice, not
+a job certification). Each camp teaches one SRE principle. A CV skill is listed only when the mission that
+proves it is done.
 A mission is only marked done when a read-only check finds the evidence on your cluster or repository. The
 progress file and the passport stay on your own laptop, so a mentor can confirm them with "lab.py verify" or a
-short live demo. IBM Bob (mode "SRE Lab Guide") and Claude Code (/lab) use this script as the game engine,
-and you can run it yourself:
+short live demo. AI coding agents use this script as the game engine (IBM Bob in mode "SRE Lab Guide",
+Claude Code with /lab, other agents through AGENTS.md), and you can run it yourself:
 
     python3 scripts/lab.py status              # your journey first, then level, XP, next mission
     python3 scripts/lab.py journey             # the steps of your first journey, done marks, minutes left
@@ -53,6 +54,8 @@ COURSE_REPO = "jaffethalfarotorres/sre-final-project"
 ORIGINAL_DASHBOARDS = {"golden-signals.json", "llm-observability.json", "slo.json", "sre-metrics.json"}
 ORIGINAL_RUNBOOKS = {"error-budget-burn.md", "high-error-rate.md", "high-latency.md", "service-down.md"}
 ORIGINAL_POLICIES = {"workload-baseline.yaml"}
+# The author's own postmortem ships with the repository: it must not earn M09 or M27 for a fresh clone.
+ORIGINAL_POSTMORTEMS = {"2026-11-19-alert-drill-and-ai-triage.md"}
 NTFY_SECRET = ROOT / "k8s" / "alertmanager-secret.yaml"  # only its ntfy-url line is ever read
 
 
@@ -237,7 +240,9 @@ TIME_RE = re.compile(r"\bTT[DAR]\b[^\n|]*\|?[^\n]*\d", re.IGNORECASE)
 
 
 def _postmortems():
-    return [p for p in glob.glob(str(ROOT / "docs" / "postmortems" / "*.md")) if not p.endswith("README.md")]
+    """The student's own postmortems: README.md and the ones that ship with the repository do not count."""
+    return [p for p in glob.glob(str(ROOT / "docs" / "postmortems" / "*.md"))
+            if Path(p).name != "README.md" and Path(p).name not in ORIGINAL_POSTMORTEMS]
 
 
 def check_postmortem_written():
@@ -545,7 +550,7 @@ def zones_cleared(catalog, progress):
 
 
 def climb(catalog, progress):
-    """Bob's climb to the On-Call Ready summit: (level number, current zone or None at the summit, total camps)."""
+    """The climb to the On-Call Ready summit: (level number, current zone or None at the summit, total camps)."""
     zones = catalog.get("zones", [])
     cleared = set(zones_cleared(catalog, progress))
     current = next((z for z in zones if z["part"] not in cleared), None)
@@ -783,7 +788,7 @@ def cmd_check(args):
         following = zones[step] if step < len(zones) else None
         print("\n" + "=" * 60)
         print(f"  LEVEL UP!  Camp {part} cleared: {zone['name']}")
-        print(f"  You and Bob reach level {step}/{len(zones)} on the way to the On-Call Ready summit.")
+        print(f"  You and your AI pair reach level {step}/{len(zones)} on the way to the On-Call Ready summit.")
         if zone.get("principle"):
             print(f"  SRE principle you practised: {zone['principle']}")
         done_ids = set(progress["missions"])
@@ -794,7 +799,7 @@ def cmd_check(args):
         questions = zone_questions(zone)
         if questions:
             print(f"  Interview practice: \"{questions[0]['question']}\" ({PY} scripts/lab.py cv shows all "
-                  f"{len(questions)}; type /interview to Bob to rehearse them)")
+                  f"{len(questions)}; ask your AI agent to rehearse them, /interview in IBM Bob)")
         print(f"  Next camp: {following['name']} - {following['story']}" if following else
               "  SUMMIT REACHED: On-Call Ready. You completed the lab's on-call missions (practice, not a job "
               f"certification).\n  Run: {PY} scripts/lab.py proof --name \"Your Name\"")
@@ -854,7 +859,8 @@ def cmd_play(args):
     if not args.no_open:
         import webbrowser
         webbrowser.open(path.as_uri())
-    print("In IBM Bob you can also open it with: Command Palette > Simple Browser: Show, then paste the file:/// link.")
+    print("In a VS Code-based agent such as IBM Bob you can also open it with: Command Palette > "
+          "Simple Browser: Show, then paste the file:/// link.")
 
 
 def cmd_answer(args):
@@ -869,8 +875,8 @@ def cmd_answer(args):
     progress.setdefault("attempts", {})
     limit, used = catalog.get("quiz_attempts", 2), progress["attempts"].get(key, 0)
     if used >= limit:
-        print("This question is locked (no attempts left). Ask Bob to explain the idea; it does not block your "
-              "missions. Quizzes are for learning, not for grades.")
+        print("This question is locked (no attempts left). Ask your AI agent to explain the idea; it does not "
+              "block your missions. Quizzes are for learning, not for grades.")
         return 1
     progress["attempts"][key] = used + 1
     expected = mission["quiz"][args.number - 1]["answer"]
@@ -884,7 +890,7 @@ def cmd_answer(args):
     save_progress(progress)
     left = limit - used - 1
     hint = (f"Re-read the guide section and try once more ({left} attempt left)." if left
-            else "That question is now locked; ask Bob to explain the right idea.")
+            else "That question is now locked; ask your AI agent to explain the right idea.")
     print("Not quite. " + hint)
     return 1
 
@@ -914,7 +920,8 @@ def cmd_cv(args):
     for zone in won:
         if zone.get("principle"):
             print(f"- {zone['principle']}")
-    print("\nInterview practice for the camps you cleared (ask Bob to play the interviewer with /interview):")
+    print("\nInterview practice for the camps you cleared (ask your AI agent to play the interviewer; "
+          "/interview in IBM Bob):")
     for zone in won:
         for item in zone_questions(zone):
             cite = f" Answer with: {', '.join(item['evidence'])}." if item.get("evidence") else ""

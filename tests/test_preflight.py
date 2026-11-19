@@ -92,8 +92,43 @@ def test_missing_tool_is_todo_with_install_command():
     assert "install-tools.sh" in mac.fix
 
 
-def test_optional_tool_says_optional():
-    assert preflight.check_tool("helm", None, None, "Windows", "optional").fix.startswith("Optional.")
+def test_optional_tool_says_optional_once_and_is_not_a_todo():
+    for name in ("helm", "terraform"):
+        assert preflight.TOOLS[name][0] == "optional"
+        result = preflight.check_tool(name, None, None, "Windows", "optional")
+        assert result.status == "WARN" and "not needed for your first shift" in result.fix
+        assert result.fix.count("Optional") == 1, result.fix
+
+
+def test_tool_in_tools_bin_but_not_on_path_says_open_a_new_terminal():
+    stale = r"C:\Users\x\tools\bin\minikube.exe"
+    result = preflight.check_tool("minikube", None, None, "Windows", "core", stale)
+    assert result.status == "WARN" and "old PATH: open a new terminal" in result.fix
+    assert r"found in tools\bin" in result.fix
+    # When the tool is on PATH, the copy in tools\bin does not matter.
+    assert preflight.check_tool("minikube", r"C:\x\minikube.exe", "v1.34.0", "Windows", "core", stale).status == "PASS"
+
+
+def test_tools_bin_copy_is_found_only_on_windows(tmp_path):
+    (tmp_path / "tools" / "bin").mkdir(parents=True)
+    (tmp_path / "tools" / "bin" / "gh.exe").write_bytes(b"")
+    assert preflight.tools_bin_copy("gh", "Windows", str(tmp_path)).endswith("gh.exe")
+    assert preflight.tools_bin_copy("helm", "Windows", str(tmp_path)) is None
+    assert preflight.tools_bin_copy("gh", "Darwin", str(tmp_path)) is None
+
+
+def test_gather_reports_a_stale_path(monkeypatch, tmp_path):
+    (tmp_path / "tools" / "bin").mkdir(parents=True)
+    (tmp_path / "tools" / "bin" / "kubectl.exe").write_bytes(b"")
+    monkeypatch.setattr(preflight.platform, "system", lambda: "Windows")
+    monkeypatch.setattr(preflight.shutil, "which", lambda name: None)
+    monkeypatch.setattr(preflight.os.path, "expanduser", lambda path: str(tmp_path))
+    monkeypatch.setattr(preflight, "run", lambda *a, **k: (None, ""))
+    monkeypatch.setattr(preflight, "total_ram_bytes", lambda system: 16 * GIB)
+    rows = {r.name: r for r in preflight.gather(no_network=True)}
+    assert rows["kubectl"].status == "WARN" and "open a new terminal" in rows["kubectl"].fix
+    assert rows["minikube"].status == "TODO"
+    assert rows["terraform"].status == "WARN" and "first shift" in rows["terraform"].fix
 
 
 def test_present_tool_shows_short_version():

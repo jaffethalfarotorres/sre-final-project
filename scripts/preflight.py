@@ -9,7 +9,8 @@ It only reads. It never installs, changes or deletes anything, and it needs no a
 It prints one line per check with PASS, WARN, TODO or FAIL and the fix for each one:
 
     PASS  ready.
-    WARN  works, with a limit (for example: core stack only, no add-ons).
+    WARN  works, with a limit (for example: core stack only, an optional tool is missing, or a new tool
+          is installed but this terminal cannot see it yet: open a new terminal).
     TODO  a tool is not installed yet. The install guide (docs/GUIDE.md step 2) adds it.
     FAIL  this laptop cannot run the lab until it is fixed. Bring the line to your professor or IT.
 
@@ -50,7 +51,8 @@ TOOLS = collections.OrderedDict([
     ("kubectl", ("core", ["kubectl", "version", "--client"])),
     ("git", ("core", ["git", "--version"])),
     ("gh", ("core", ["gh", "--version"])),
-    ("terraform", ("core", ["terraform", "version"])),
+    # Optional: not used in the First on-call shift, only in the deeper lab parts.
+    ("terraform", ("optional", ["terraform", "version"])),
     ("helm", ("optional", ["helm", "version", "--short"])),
 ])
 
@@ -63,7 +65,7 @@ INSTALL = {
         "git": "winget install -e --id Git.Git",
         "gh": "Run the setup kit: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\install-tools.ps1",
         "terraform": "winget install -e --id Hashicorp.Terraform (needed in Part 5, M11)",
-        "helm": "Optional (only for the Helm path in Part 5). Run the setup kit: "
+        "helm": "Only for the Helm path in Part 5. Run the setup kit: "
                 "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\install-tools.ps1",
         "python": "winget install -e --id Python.Python.3.12 --scope user, then use 'python' (never 'python3')",
     },
@@ -95,6 +97,11 @@ SITES = [
     ("github.com", "https://github.com"),
     ("ntfy.sh (phone alerts)", "https://ntfy.sh"),
 ]
+
+OPTIONAL_NOTE = "Optional, not needed for your first shift. Later: "
+STALE_PATH_FIX = ("found in tools\\bin, but this terminal has an old PATH: open a new terminal (in your AI coding "
+                  "agent too) and run this check again. Still not found? Quit the agent completely and start it "
+                  "again.")
 
 NETWORK_FIX = ("Open the address in your browser. If it fails only on the VPN, try off the VPN (if your IBM policy "
                "allows) or ask IT to allow it (docs/IT-REQUEST.md). Behind a proxy, set HTTPS_PROXY.")
@@ -191,13 +198,16 @@ def check_cpus(count):
     return Result("PASS", "CPU cores", str(count), "")
 
 
-def check_tool(name, path, version_text, system, needed="core"):
+def check_tool(name, path, version_text, system, needed="core", stale_copy=None):
+    """stale_copy: the tool's file in ~/tools/bin when the setup kit put it there but this terminal cannot see it."""
+    if not path and stale_copy:
+        # The setup kit added tools\bin to the user PATH, but a terminal opened before that still has the old PATH.
+        return Result("WARN", name, "not on this terminal's PATH", STALE_PATH_FIX)
     if not path:
-        status = "TODO"
-        fix = install_hint(system, name)
         if needed == "optional":
-            fix = "Optional. " + fix
-        return Result(status, name, "not installed", fix)
+            # A missing optional tool is not a TODO: the first shift works without it.
+            return Result("WARN", name, "not installed", OPTIONAL_NOTE + install_hint(system, name))
+        return Result("TODO", name, "not installed", install_hint(system, name))
     if version_text is None:
         return Result("WARN", name, "found, but it did not print a version",
                       "Open a new terminal and run '{} --version'. Reinstall it if it fails.".format(name))
@@ -336,6 +346,14 @@ def total_ram_bytes(system):
         return None
 
 
+def tools_bin_copy(name, system, home=None):
+    """On Windows, the path of ~/tools/bin/<name>.exe if the setup kit put it there, else None."""
+    if system != "Windows":
+        return None
+    candidate = os.path.join(home or os.path.expanduser("~"), "tools", "bin", name + ".exe")
+    return candidate if os.path.isfile(candidate) else None
+
+
 def tool_version(cmd):
     code, out = run(cmd)
     if code is None or code != 0 or not out.strip():
@@ -392,7 +410,8 @@ def gather(no_network=False):
 
     for name, (needed, cmd) in TOOLS.items():
         path = shutil.which(name)
-        results.append(check_tool(name, path, tool_version(cmd) if path else None, system, needed))
+        stale = None if path else tools_bin_copy(name, system)
+        results.append(check_tool(name, path, tool_version(cmd) if path else None, system, needed, stale))
     if system == "Darwin":
         path = shutil.which("colima")
         version = tool_version(["colima", "version"]) if path else None
@@ -426,7 +445,8 @@ def main(argv=None):
         print("FAIL: this laptop needs a fix before the lab. Show this output to your professor or IT "
               "(docs/IT-REQUEST.md).")
     elif counts.get("TODO"):
-        print("Next: install the TODO tools with docs/GUIDE.md step 2 (or let IBM Bob do it), then run this again.")
+        print("Next: install the TODO tools with docs/GUIDE.md step 2 (or let your AI coding agent do it), "
+              "then run this again.")
     else:
         print("Ready. Next: docs/GUIDE.md step 3, or Part 1 of the lab (docs/labs/01-foundations.md).")
     return code

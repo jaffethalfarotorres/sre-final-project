@@ -1,8 +1,8 @@
 # Step-by-step guide for Mac and Windows (no experience needed)
 
-> **Using IBM Bob?** Then you do not need this page to start. Follow [BOB-QUICKSTART.md](BOB-QUICKSTART.md): Bob runs your **First on-call shift**, 9 short steps in one sitting of about 2-3 hours (mostly waiting for installs), and does the setup below with you. This guide is the **by-hand version** of the same lab, and the reference Bob uses when something fails. Nothing here is graded.
+> **Using an AI coding agent?** (IBM Bob, recommended for IBMers, Claude Code, or another agent.) Then you do not need this page to start. Follow [BOB-QUICKSTART.md](BOB-QUICKSTART.md): the agent runs your **First on-call shift**, 9 short steps in one sitting of about 2-3 hours once the laptop is ready (an estimate, not yet timed), and does the setup below with you. This guide is the **by-hand version** of the same lab, and the reference the agent uses when something fails. Nothing here is graded. By hand, the shift ends at step 7: steps 8-9 (M17, M18) need an AI coding agent.
 
-> **Using IBM Bob on Windows?** Use the [Windows (PowerShell, used by IBM Bob)](#windows-powershell-used-by-ibm-bob) section and skip WSL. Bob's terminal is PowerShell, so every command must work there.
+> **Using an AI coding agent on Windows?** Use the [Windows (PowerShell, used by IBM Bob)](#windows-powershell-used-by-ibm-bob) section and skip WSL. The agent's terminal is PowerShell (in IBM Bob always), so every command must work there.
 
 > **Start with the preflight.** Run `python scripts\preflight.py` (Windows) or `python3 scripts/preflight.py` (Mac). It only reads your laptop and tells you what is missing. On an IBM-managed laptop, send [IT-REQUEST.md](IT-REQUEST.md) to IT before you start.
 
@@ -10,8 +10,8 @@ This guide explains the project in plain language and walks you through running 
 
 There are three install paths. Pick **one**:
 - **Mac:** Colima, as in the SRE Academy course.
-- **Windows with IBM Bob:** PowerShell and `winget`. This is the path Bob follows.
-- **Windows by hand (no Bob):** WSL2 with Ubuntu, as in the course.
+- **Windows with an AI coding agent (for example IBM Bob):** PowerShell and `winget`. This is the path the agent follows.
+- **Windows by hand (no agent):** WSL2 with Ubuntu, as in the course.
 
 If you already set up your computer for the course exercises, skip to [step 3](#3-download-and-start-the-project).
 
@@ -67,7 +67,7 @@ The alarm rules are:
 
 Grafana adds two more rules of its own, one built on traces (`StoreLatencyFromTraces`) and one built on logs (`ErrorLogBurst`). You see them under Grafana > Alerting, not in Prometheus.
 
-Everything runs on your computer. Nothing is sent to the internet unless you set up Slack or email in step 6. It works on Apple Silicon (M1 to M4) and Intel Macs, and on any Windows 10 or 11 PC, because the app is built on your own machine instead of downloaded for one type of processor.
+Everything runs on your computer. Only the alert text goes to ntfy.sh, on a random private topic, when you turn on the phone push ([6-0](#6-0-phone-push-with-ntfy-recommended-on-ibm-laptops-no-account)); Slack and email are optional. It works on Apple Silicon (M1 to M4) and Intel Macs, and on any Windows 10 or 11 PC, because the app is built on your own machine instead of downloaded for one type of processor.
 
 **What you need:** about 8 GB of RAM (16 GB is more comfortable; with WSL you must give it at least 5 GB, see [WSL step 2](#windows-by-hand-wsl2-and-ubuntu); on an 8 GB Mac give Colima 4 GB, see [Mac step 5](#mac)), 20 GB of free disk space and an internet connection for the first run.
 
@@ -137,7 +137,7 @@ Then log in to GitHub once (needed for the fork in step 3): `gh auth login`, cho
 
 ### Windows (PowerShell, used by IBM Bob)
 
-Use this path if IBM Bob is guiding you. Every command runs in **PowerShell** (Bob's terminal). There is no Ubuntu window and no WSL setup to do by hand.
+Use this path if an AI coding agent (for example IBM Bob) is guiding you. Every command runs in **PowerShell** (the agent's terminal). There is no Ubuntu window and no WSL setup to do by hand.
 
 1. **Install a container engine** (the program that runs containers). This needs administrator rights and maybe one restart; you click through the installer yourself.
    - **Docker Desktop:** `winget install -e --id Docker.DockerDesktop`, if your company has a licence for it (see [On an IBM-managed laptop](#on-an-ibm-managed-laptop)).
@@ -243,10 +243,10 @@ Company laptops have a few extra locks. Fix them **before** the lab day:
 - **Which container engine.** Docker Desktop needs a paid licence in large companies ([Docker's licence terms](https://docs.docker.com/subscription/desktop-license/)). Ask your manager or IT which engine is approved. If Docker Desktop is not licensed for you, use [Rancher Desktop](https://rancherdesktop.io/) with the **dockerd (moby)** engine.
 - **VPN.** Downloads can fail or hang on the VPN. Disconnect it during installs and the first deploy (if your IBM policy allows), then reconnect.
 - **Script policy.** If PowerShell says "running scripts is disabled on this system", use the `powershell -NoProfile -ExecutionPolicy Bypass -File ...` form shown in this guide. If that is also blocked, IT has locked the policy: send them [IT-REQUEST.md](IT-REQUEST.md).
-- **Data.** Never put client data, w3 credentials or screenshots of internal IBM tools into the lab, into IBM Bob or into your fork.
+- **Data.** Never put client data, w3 credentials or screenshots of internal IBM tools into the lab, into any AI agent or into your fork.
 
 ### AI assistants (only for lab Part 7)
-Part 7 uses **IBM Bob** (Claude Code is optional). If you want Claude Code too, install it by following the official setup page, <https://code.claude.com/docs>, then check it with `claude --version`. It needs a paid Claude plan or an Anthropic Console account; free courses are on Anthropic Academy. IBM Bob is at <https://bob.ibm.com> (IBMers through IBM, others through the trial). Without either, pair with a classmate: every Part 7 exercise can be done with one of the two tools.
+Part 7 uses an **AI coding agent**. This repository has ready-made setups for **IBM Bob** (recommended for IBMers, in `.bob/`) and **Claude Code** (in `CLAUDE.md` and `.claude/`); other agents can follow `AGENTS.md`, but they were not tested. If you want Claude Code, install it by following the official setup page, <https://code.claude.com/docs>, then check it with `claude --version`. It needs a paid Claude plan or an Anthropic Console account; free courses are on Anthropic Academy. IBM Bob is at <https://bob.ibm.com> (IBMers through IBM, others through the trial). Without either, pair with a classmate: every Part 7 exercise can be done with one of the two tools.
 
 ---
 
@@ -468,9 +468,9 @@ python3 scripts/chaos_test.py
 ```
 Windows PowerShell: `python scripts\chaos_test.py`
 
-### The Road to Junior SRE (the lab game, also without Bob)
+### The Road to Junior SRE (the lab game, also without an agent)
 
-The lab is one journey: you start as a **Career Changer** and climb 8 camps to **On-Call Ready**, the day a team trusts you with the pager. Each camp gives Nimbus Store (the pretend shop) a real new capability, teaches one SRE principle and lists skills you can name on your CV. The default start is the **First on-call shift**, 9 missions in one sitting: `python3 scripts/lab.py journey` lists them with done marks and minutes left. Everything after it is optional. You can play it by hand with the same script Bob uses. The commands below are for **Mac** and for the **Ubuntu window (WSL)**: `python3 scripts/lab.py ...`. Only in **Windows PowerShell** type `python scripts\lab.py ...` instead (the backslash and `python` work only there):
+The lab is one journey: you start as a **Career Changer** and climb 8 camps to **On-Call Ready**, the day a team trusts you with the pager. Each camp gives Nimbus Store (the pretend shop) a real new capability, teaches one SRE principle and lists skills you can name on your CV. The default start is the **First on-call shift**, 9 missions in one sitting: `python3 scripts/lab.py journey` lists them with done marks and minutes left. Everything after it is optional. You can play it by hand with the same script the agents use. By hand, the shift ends at step 7: steps 8-9 (M17, M18) need an AI coding agent, because their check looks for the agent's triage report in `reports/`. The commands below are for **Mac** and for the **Ubuntu window (WSL)**: `python3 scripts/lab.py ...`. Only in **Windows PowerShell** type `python scripts\lab.py ...` instead (the backslash and `python` work only there):
 
 ```bash
 python3 scripts/lab.py journey         # the 9 steps of the First on-call shift

@@ -114,11 +114,11 @@ function Install-Portable([string]$Name) {
 $tools = @(
     @("git", "Git.Git", "", "Git: downloads and saves the project", "https://git-scm.com/download/win (PortableGit needs no admin)"),
     @("gh", "GitHub.cli", "", "GitHub CLI: makes your own copy (fork) of the project", ""),
-    @("python", "Python.Python.3.12", "--scope user", "Python 3.12: runs the lab scripts",
+    @("python", "Python.Python.3.12", "--scope user", "Python 3.10+: runs the lab scripts",
         "https://www.python.org/downloads/windows/ (choose 'Install for me only' and tick 'Add python.exe to PATH')"),
     @("kubectl", "Kubernetes.kubectl", "", "kubectl: talks to Kubernetes", ""),
     @("minikube", "Kubernetes.minikube", "", "Minikube: a small Kubernetes on your laptop", ""),
-    @("helm", "Helm.Helm", "", "Helm: installs packaged apps on Kubernetes", "")
+    @("helm", "Helm.Helm", "", "Helm: installs packaged apps on Kubernetes (optional, not needed for your first shift)", "")
 )
 
 Update-SessionPath
@@ -186,3 +186,6 @@ if ($failed.Count -gt 0) {
 Write-Host "`nChecking the laptop (read-only):"
 if (Test-Tool "python") { & python scripts\preflight.py }
 else { Write-Host "Python is not ready yet. Install it, open a new PowerShell window and run: python scripts\preflight.py" }
+
+# This script refreshed PATH only for itself. Terminals that were already open still have the old PATH.
+Write-Host "`nClose this terminal and open a new one (in your AI coding agent too) before the next step, so the new tools are found."

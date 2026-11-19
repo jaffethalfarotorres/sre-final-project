@@ -60,7 +60,7 @@ No git yet? On the GitHub page of the repository click **Code > Download ZIP**, 
 > | `releases.hashicorp.com`, `registry.terraform.io` | Terraform and its Kubernetes provider (Part 5) |
 > | `prometheus-community.github.io`, `litmuschaos.github.io` | Helm charts for optional modules |
 > | `ntfy.sh` | test alerts sent to my phone (no account, no IBM data) |
-> | `bob.ibm.com` | IBM Bob, the AI assistant used in the course (if not already approved) |
+> | `bob.ibm.com` | IBM Bob, the recommended AI coding agent for the course (if not already approved; another approved AI coding agent also works) |
 >
 > **5. Hardware check.** The lab needs 8 GB of RAM (16 GB recommended), 20 GB of free disk (25 GB recommended) and 2 CPU cores (4 recommended). The output of the course's read-only check script is attached.
 >
@@ -76,12 +76,12 @@ Decide these before the course starts, and write the answers into the course wel
 | --- | --- | --- | --- | --- |
 | 1 | Container engine on Windows | Rancher Desktop (free) or Docker Desktop (licence needed). The scripts work with both. | Academy lead, with IT | [ ] |
 | 2 | How students get install rights | Temporary admin rights per student, or IT installs the package list for the whole cohort | Academy lead and IT | [ ] |
-| 3 | IBM Bob entitlement | Confirm every student has Bob access before week 1. Without Bob the lab still works by hand ([GUIDE.md](GUIDE.md)). | Academy lead | [ ] |
+| 3 | AI coding agent | Confirm every student has an approved AI coding agent before the lab day. IBM Bob is recommended for IBMers; Claude Code also has a ready-made setup. Without an agent the lab still works by hand ([GUIDE.md](GUIDE.md)), but the shift then ends at step 7: steps 8-9 need an agent. | Academy lead | [ ] |
 | 4 | Network | Confirm the sites in section 4 work on the IBM VPN, or tell students to install off the VPN where policy allows | IT | [ ] |
 | 5 | PowerShell policy | Confirm no Group Policy blocks `-ExecutionPolicy Bypass`, or give an approved way. The fallback is the WSL2 and Ubuntu path in [GUIDE.md](GUIDE.md#windows-by-hand-wsl2-and-ubuntu). | IT | [ ] |
 | 6 | 8 GB laptops | Accept them for the core path only (add-ons as instructor demos), or provide loaner or lab machines | Academy lead | [ ] |
 | 7 | Phone alerts | ntfy.sh is allowed (no account, the topic name is the only secret). IBM Slack and IBM mail are **not** used by the lab. | Academy lead | [ ] |
-| 8 | Pre-course week | One week before class: students run the preflight, send the IT request, and install the tools. A drop-in hour for problems. | Academy lead | [ ] |
+| 8 | Before the lab day | Students run the preflight, send the IT request, and get install rights (or IT installs the tools), 20 GB of free disk, the approved container engine and, on Windows, WSL2 (it may restart Windows once). They install the free ntfy app on their phone. On the lab day the setup kit installs the rest, and the shift takes about 2-3 hours once the laptop is ready (an estimate, not yet timed). A drop-in hour for problems. | Academy lead | [ ] |
 
 ### Suggested timeline
 
@@ -89,8 +89,8 @@ Decide these before the course starts, and write the answers into the course wel
 | --- | --- |
 | 3 weeks before | Academy decides items 1-8 and sends the welcome mail with this page. |
 | 2 weeks before | Students run the preflight and send the IT request with its output. |
-| 1 week before | Students install the tools (by hand with [GUIDE.md](GUIDE.md), or with IBM Bob and [BOB-QUICKSTART.md](BOB-QUICKSTART.md)) and run the preflight again. Drop-in hour for FAIL lines. |
-| Day 1 | Every preflight shows no FAIL. Part 1 of the lab starts with a working laptop. |
+| 1 week before | IT grants install rights (or installs the tools). Students install the approved container engine (on Windows with WSL2, which may restart Windows once) and the ntfy app, then run the preflight again. Drop-in hour for FAIL lines. |
+| Lab day | Every preflight shows no FAIL (TODO lines are fine: the setup kit installs those). Students start the shift with their AI coding agent ([BOB-QUICKSTART.md](BOB-QUICKSTART.md)) or by hand ([GUIDE.md](GUIDE.md)): about 2-3 hours once the laptop is ready (an estimate, not yet timed). |
 
 ## What this page does not promise
 

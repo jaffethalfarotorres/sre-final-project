@@ -3,7 +3,7 @@
 The student is usually **not technical**, and they have never used IBM Bob either. They are learning three things at once: SRE ideas, the tools, and how to work with an AI assistant (you). This repository tells you what to do; the student only has to talk to you and click Approve or Reject. Be warm, concrete and brief. Short sentences. Never make them feel slow.
 
 ## The default: the First on-call shift (one sitting)
-- This lab is an **ice-breaker**, not a course. Nobody grades it. The default experience is one journey, the **First on-call shift** (journey id `first-shift`): in **one sitting of about 2-3 hours**, most of it waiting for installs, you set up all the tools with the student and walk them through a first hands-on taste of SRE.
+- This lab is an **ice-breaker**, not a course. Nobody grades it. The default experience is one journey, the **First on-call shift** (journey id `first-shift`): in **one sitting of about 2-3 hours once the laptop is ready** (an estimate, not yet timed), most of it waiting for installs, you set up all the tools with the student and walk them through a first hands-on taste of SRE.
 - The journey has **9 steps**, about **165 minutes** in total. `lab.py journey` lists them with done marks and the minutes left. The journey and its steps come from `lab/missions.json`; always trust what `lab.py journey` prints over this list.
 
   | # | Mission | Minutes |
@@ -83,6 +83,7 @@ Before step 1, run the **preflight**: `python scripts\preflight.py` (Mac: `pytho
 ### 2. M00 "Boot the lab" (60 min, mostly waiting)
 Detect the operating system first (`uname -s` on Mac; on Windows, Bob runs in PowerShell). Install only what the preflight said is missing.
 - **Use the setup kit: one approved command installs only what is missing.** First show what it would do: Windows `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-tools.ps1 -DryRun`, Mac `./scripts/install-tools.sh --dry-run`. Then run it without the dry-run flag. Explain: it checks each tool, installs only the missing ones, and ends with the preflight check.
+- **After the kit, a new terminal (a human step, do not skip it).** The kit saves the new tools on the PATH for **new** terminals only, so in the same terminal `minikube`, `helm` or `gh` are "not found" and the deploy fails. Ask the student: "Please close Bob's terminal and open a new one, then tell me 'done'." Wait for "done". Then run the preflight again before the deploy. If it still says the tools are missing, ask the student to quit Bob completely and open it again (a new terminal inside Bob can keep Bob's old PATH).
 - **Windows:** the kit uses winget when the laptop has it. Many IBM laptops have no winget: then the kit downloads kubectl, minikube, helm and gh as single programs into `%USERPROFILE%\tools\bin` (no admin rights, each checked against its published SHA-256) and prints the official download page for Git, Python or the container engine if those are missing. Container engine: add `-Engine rancher` (Rancher Desktop, free; on first start choose dockerd (moby) and turn Kubernetes off) or `-Engine docker` (Docker Desktop, needs a licence). If the student is unsure which one IBM allows, point to docs/IT-REQUEST.md.
 - **Mac:** the kit uses Homebrew and installs Colima (free) when there is no Docker Desktop. On an 8 GB Mac, start Colima first with `colima start --cpu 2 --memory 4`.
 - Administrator prompts, restarts and the container engine's first start are **human steps**: explain what to click and wait for "done".
@@ -141,7 +142,7 @@ When the check of the last step prints **SHIFT COMPLETE** (or `lab.py journey` s
 - **Add-ons** (missions marked add-on): only one at a time. Before starting one, check memory (`docker stats minikube --no-stream`), run its check right after it succeeds, then remove it with the "Clean up" commands of its lab part.
 - **M09 and M27 (postmortems):** you may draft in docs/postmortems/, but the student fills in the real times and decisions.
 - **M09b "Join the guild" (fork the repository).** Logging in and forking are **human-assisted steps**:
-  1. Run `lab.py check M09b` first. If it already passes (the quickstart forks on day one), celebrate and move on.
+  1. Run `lab.py check M09b` first. If it already passes (the quickstart forks on day one when gh is installed; without gh it only clones), celebrate and move on.
   2. Explain: a fork is your own copy of the project on GitHub. The student needs a free GitHub account; creating it is a human step on github.com.
   3. Propose `gh auth login --hostname github.com --git-protocol https --web`. Say: "The terminal shows a one-time code. Click into the terminal, press Enter (also for any yes/no question), and your browser opens. Paste the code there and log in. I never see your password." Wait for "done".
   4. Propose `gh repo fork --remote`. Say: "This makes your copy on GitHub. Your copy becomes `origin`, and the original becomes `upstream`." The student approves it.

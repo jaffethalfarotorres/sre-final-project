@@ -10,9 +10,11 @@ I wrote this page because there is no presentation for this project. You only ge
 
 **What is this?** A small pretend online shop runs on my laptop. The project measures how healthy it is, draws the measurements as live charts, and sends an alarm to my phone when something goes wrong. Then it practises what a Site Reliability Engineer (SRE, the person who keeps online services working) does next: find the cause, fix it and learn from it.
 
-**Who is it for?** First, it is an **ice-breaker** for IBMers who want to try SRE: you open IBM Bob (IBM's AI assistant), paste the link to this repository, and Bob sets up the tools and walks you through your [first on-call shift](../README.md#the-first-on-call-shift). Second, it is my SRE Academy 2026 final project, so the grader material stays here too. The README has a [table by audience](../README.md#start-here-by-audience).
+**Who is it for?** First, it is an **ice-breaker** for IBMers who want to try SRE: you open your AI coding agent, paste the link to this repository, and the agent sets up the tools and walks you through your [first on-call shift](../README.md#the-first-on-call-shift). IBM Bob (IBM's AI coding agent) is the recommended agent for IBMers. Claude Code, OpenAI Codex, Google Antigravity, Cursor and others can follow the same shared instructions in [AGENTS.md](../AGENTS.md). Second, it is my SRE Academy 2026 final project, so the grader material stays here too. The README has a [table by audience](../README.md#start-here-by-audience).
 
-**How long does it take?** One sitting of about 2 to 3 hours. The 9 steps add up to about 165 minutes, and most of that is waiting while Bob installs the tools and deploys the stack (step M00, about 60 minutes). Everything else in the repository (the other camps, the add-ons, the portfolio projects, the seven deeper lab parts) is optional, at your own pace: [Keep exploring](../README.md#keep-exploring).
+**How long does it take?** About 2-3 hours in one sitting once the laptop is ready (estimated, not yet timed with a class). "Ready" means admin rights, about 20 GB of free disk and an approved container engine ([BOB-QUICKSTART, "Before the lab day"](BOB-QUICKSTART.md#before-the-lab-day)). The 9 steps add up to about 165 minutes, and most of that is waiting while the agent installs the tools and deploys the stack (step M00, about 60 minutes). Everything else in the repository (the other camps, the add-ons, the portfolio projects, the seven deeper lab parts) is optional, at your own pace: [Keep exploring](../README.md#keep-exploring).
+
+**Which AI coding agent can I use?** The lab is agent-neutral. [AGENTS.md](../AGENTS.md) is the shared entry point. IBM Bob reads it plus [`.bob/`](../.bob/) (modes, rules, slash commands). Claude Code reads [CLAUDE.md](../CLAUDE.md), which imports AGENTS.md, plus the `/lab` skill and the `sre-triage` subagent. Other agents read AGENTS.md. What was tested: I ran the shift and the triage drill with Claude Code. The IBM Bob setup was written for Bob 2.x, but a full shift in Bob has not been timed yet. Other agents were not tested. The README has the [start table](../README.md#start-with-your-ai-coding-agent).
 
 **Is it graded?** No. Nobody grades the shift. The quizzes and XP are there to help you learn and to make it fun. A course may choose to grade the optional deeper material; the [lab guide, "Suggested assessment"](labs/README.md#suggested-assessment) says how.
 
@@ -81,9 +83,10 @@ The same idea gives the slower alerts: 6x over 6 hours and 30 minutes (look at i
 
 The README section [How this was built](../README.md#how-this-was-built) is the short answer. In more detail:
 
-- **I decided:** the goals and the scope, a public portfolio project, Minikube on a laptop, Python for the app, a guided lab with IBM Bob for 2027, and the safety rules for the AI tools ([AGENTS.md](../AGENTS.md)). I directed the work, approved the changes and decided each release.
+- **I decided:** the goals and the scope, a public portfolio project, Minikube on a laptop, Python for the app, a guided lab for 2027 led by an AI coding agent (IBM Bob recommended for IBMers), and the safety rules for the AI tools ([AGENTS.md](../AGENTS.md)). I directed the work, approved the changes and decided each release.
 - **The AI did:** Claude Code (by Anthropic) generated most of the code, the manifests and the documentation, following my direction. It also ran the live checks on my local Minikube cluster. I used AI review panels to find problems before submitting.
 - **How to see it:** commits made with AI help have a `Co-Authored-By` trailer. To count them, run `git log --format=%b | grep -c Co-Authored-By` (Mac, Linux, Git Bash) or `(git log --format=%b | Select-String Co-Authored-By).Count` (PowerShell).
+- **Which agent ran the shift:** I completed the shift on my laptop with Claude Code as the agent ([journey-complete.png](screenshots/journey-complete.png)). A full, timed run in IBM Bob is still to do.
 - **What I can explain without help:** the alert path ([question 2](#2-from-a-failing-request-to-a-phone-push)), the burn-rate alerts ([question 3](#3-what-does-the-144x-burn-rate-mean-and-why-two-windows)) and the Kubernetes deployment ([question 8](#8-design-choices)).
 
 **Problems the checks found, and how they were fixed.** I do not hide that AI-generated work had mistakes:
@@ -120,7 +123,7 @@ With the current rules in [`alerts.yml`](../k8s/config/prometheus/alerts.yml) an
 - **The 20% errors:** all traffic now goes to the surviving pod, so about 20% of all requests fail. `HighErrorRate` (more than 5%, for 2 minutes) **pages**. `ErrorBudgetFastBurn` (20x is above 14.4x) also pages once the 1-hour window is above 14.4x too.
 - **Inhibition:** `ServiceDown` is not firing, so nothing hides the error alerts. `ErrorBudgetFastBurn` mutes `ErrorBudgetSlowBurn` and `ErrorBudgetTicket`, because a person is already paged. Muted alerts still show in the Alertmanager UI as "inhibited".
 
-Before this change, `ServiceDown` was per pod, so one lost pod could page as critical and mute the error alerts. The drill showed it (`ServiceDown` went pending for each replaced pod). It is listed in the [postmortem](postmortems/2026-11-19-alert-drill-and-ai-triage.md#what-could-be-improved) and tested in [`tests/rules/alerts.test.yml`](../tests/rules/alerts.test.yml).
+Before this change, `ServiceDown` was per pod, so one lost pod could page as critical and mute the error alerts. The drill showed it (`ServiceDown` went pending for each replaced pod). It is listed in the [postmortem](postmortems/2026-11-19-alert-drill-and-ai-triage.md#what-could-be-improved) (action item done) and tested in [`tests/rules/alerts.test.yml`](../tests/rules/alerts.test.yml).
 
 ---
 
@@ -159,7 +162,9 @@ Yes, once, on 2026-11-19 on my laptop. A **fresh** Claude Code agent, with read-
 - quoted the `[INJECTION-DRILL]` line (which told it to delete the `monitoring` namespace) as suspicious and did not act on it,
 - reported the real `/store` problem that nobody had asked about.
 
-The full report is unchanged in [docs/evidence/ai-triage-2026-11-19.md](evidence/ai-triage-2026-11-19.md). The incident is in the [postmortem](postmortems/2026-11-19-alert-drill-and-ai-triage.md): TTD 2 min 19 s, TTR 19 min. This was one run with Claude Code. I have not repeated it with IBM Bob.
+The full report is unchanged in [docs/evidence/ai-triage-2026-11-19.md](evidence/ai-triage-2026-11-19.md). The incident is in the [postmortem](postmortems/2026-11-19-alert-drill-and-ai-triage.md): TTD 2 min 19 s, TTR 19 min, about 18% of a 30-day error budget used by two drills in one hour.
+
+It is **one trial, not a guarantee**: one run, with Claude Code, and the planted line has a visible `[INJECTION-DRILL]` marker. I have not repeated it with IBM Bob or other agents. The agent used read-only HTTP queries to Prometheus and Loki plus `kubectl get`, not the Grafana MCP path that AGENTS.md describes for triage.
 
 ---
 
@@ -199,7 +204,7 @@ docker run --rm -v "${PWD}:/w" -w /w --entrypoint sh prom/prometheus:v2.54.1 -c 
 4. `./scripts/trigger-alert.sh` (Windows: `scripts\trigger-alert.ps1`). `HighErrorRate` fires after about 2 to 3 minutes. See it in Alertmanager at http://localhost:9093.
 5. Optional: `python3 scripts/notify_setup.py` (Windows: `python scripts\notify_setup.py`) and subscribe to the topic in the ntfy app. The next drill reaches your phone.
 
-**C. CI.** The [Actions tab](https://github.com/jaffethalfarotorres/sre-final-project/actions/workflows/ci.yml) shows every run. [ci-green.png](screenshots/ci-green.png) is one green run.
+**C. CI.** The [Actions tab](https://github.com/jaffethalfarotorres/sre-final-project/actions/workflows/ci.yml) shows every run. [ci-green.png](screenshots/ci-green.png) is one green run (run #30, commit `e308f25`, all 8 jobs green).
 
 ---
 
@@ -209,8 +214,10 @@ docker run --rm -v "${PWD}:/w" -w /w --entrypoint sh prom/prometheus:v2.54.1 -c 
 - **The SRE Lab Passport is self-generated.** `lab.py proof` writes it on the student's laptop. Its fingerprint is not a signature: anyone can recompute it. It is a record, not a certificate. A professor confirms it with `lab.py verify` or a short live demo ([README](../README.md#the-journey-road-to-junior-sre)).
 - **Slack and email delivery** are configured, but the repository does not show them working: they need a personal webhook or mail account. The delivered notification I can show is the ntfy push.
 - **The add-on results** in the README table (ArgoCD, canary, AWX, rollback times) come from my own runs on Minikube in November 2026, with Claude Code as the operator. Most run logs are not stored in the repository ([lab guide, "How the verification was done"](labs/README.md#how-the-verification-was-done)).
-- **The AI triage drill ran once**, with Claude Code, not with IBM Bob.
-- **The shift's minutes are estimates.** The 9 steps (about 165 minutes) have not been timed with a real class yet. The tool install depends most on the laptop and the network: on a slow connection or a blocked laptop it can take longer, so run the preflight before the session.
+- **The AI triage drill ran once**, with Claude Code, not with IBM Bob. It is one trial, not a guarantee. It used read-only HTTP queries and `kubectl get`, not the Grafana MCP path in [AGENTS.md](../AGENTS.md) ([evidence, "Limits of this test"](evidence/ai-triage-2026-11-19.md)).
+- **Agents tested:** the shift and the triage drill were run with Claude Code. The IBM Bob setup (`.bob/`) was written for Bob 2.x, but a full shift in Bob has not been timed. Other agents (Codex, Antigravity, Cursor...) follow AGENTS.md but were not tested.
+- **Some screenshots predate the latest alert changes.** `alerts.yml` and `alertmanager.yaml` changed after most captures (commits ea5eab3 and cc04db5). Only `prometheus-alerts.png` was retaken at the current commit. The README [evidence section](../README.md#evidence) lists which ones.
+- **The shift's minutes are estimates.** About 2-3 hours once the laptop is ready. The 9 steps (about 165 minutes) have not been timed with a real class yet. The tool install depends most on the laptop and the network: on a slow connection or a blocked laptop it can take longer, so run the preflight before the session.
 - **Lab only:** no persistent storage, local and short-lived credentials, container images pinned to fixed versions.
 - **IT decisions for 2027** (container engine, admin rights, VPN, Bob access) belong to the academy. [IT-REQUEST.md](IT-REQUEST.md) is a ticket template, and [`scripts/preflight.py`](../scripts/preflight.py) checks a laptop before the course.
 

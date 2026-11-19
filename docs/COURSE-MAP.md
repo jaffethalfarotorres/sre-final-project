@@ -34,7 +34,7 @@ Each camp gives Nimbus a real capability and teaches one SRE principle. When a s
 
 | Camp | Name | Missions | SRE principle | Skills for the CV | Interview question |
 | --- | --- | --- | --- | --- | --- |
-| 0 | Orientation Day | B00 | Humans stay in control: automation and AI propose, people approve. | Working safely with an AI coding assistant (IBM Bob); reviewing and approving commands before they run | How do you make sure an AI assistant does not break production? |
+| 0 | Orientation Day | B00 | Humans stay in control: automation and AI propose, people approve. | Working safely with an AI coding agent (IBM Bob, Claude Code or similar); reviewing and approving commands before they run | How do you make sure an AI assistant does not break production? |
 | 1 | The Engine Room | M00, M01, M02 | Reliability starts with how you run software: small, safe, repeatable changes. | Docker containers; Kubernetes basics (pods, deployments, services, probes); zero-downtime rolling updates | What is the difference between a container and a pod? |
 | 2 | The Watchtower | M03, M04, M05, N01 | Monitor what users feel, and alert only when a human must act. | Prometheus metrics and PromQL; Grafana dashboards as code; alerting with Alertmanager | How would you know a service is unhealthy before customers call? |
 | 3 | The War Room | M06, M08, M09, P-RUNBOOK | Embrace risk with SLOs and error budgets, and learn from every incident without blame. | SLIs, SLOs and error budgets; synthetic monitoring; incident response and blameless postmortems | What is an error budget, and how does it change what the team does? |

@@ -1,7 +1,12 @@
 @AGENTS.md
 
 ## Claude Code specifics
-- Shared rules for every AI assistant live in AGENTS.md (imported above); IBM Bob reads the same file.
+- Shared rules for every AI coding agent live in AGENTS.md (imported above); IBM Bob and other agents read the same
+  file. Claude Code is one adapter: this file, `.claude/` and `.mcp.json`.
+- **Students start with `/lab`** (`.claude/skills/lab/SKILL.md`). It runs the same First on-call shift as IBM Bob:
+  the same 9 steps (`lab.py journey`), the preflight first, then the setup kit, then a new terminal and a Claude Code
+  restart (`claude --continue`) so the new tools are on PATH. Windows: always `python` (never `python3`);
+  Mac/Linux: `python3`. The student runs setup, deploy and cluster-changing commands in their own terminal.
 - Subagents: `sre-triage` (read-only alert triage) and `postmortem-writer` (drafts in docs/postmortems/ only).
 - Skill: `/incident-triage` runs the triage protocol end to end.
 - Enforcement does not depend on these instructions: `.claude/settings.json` denies changing commands and secret

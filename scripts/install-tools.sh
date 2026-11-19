@@ -23,10 +23,10 @@ fi
 # command | brew formula | plain description
 TOOLS="git|git|Git: downloads and saves the project
 gh|gh|GitHub CLI: makes your own copy (fork) of the project
-python3|python@3.12|Python 3.12: runs the lab scripts
+python3|python@3.12|Python 3.10+: runs the lab scripts
 kubectl|kubectl|kubectl: talks to Kubernetes
 minikube|minikube|Minikube: a small Kubernetes on your laptop
-helm|helm|Helm: installs packaged apps on Kubernetes"
+helm|helm|Helm: installs packaged apps on Kubernetes (optional, not needed for your first shift)"
 
 python_ok() {
   # Apple's python3 is often 3.9, which is too old for the lab.
@@ -36,7 +36,7 @@ python_ok() {
 MISSING=""
 while IFS='|' read -r cmd formula desc; do
   if [[ "$cmd" == "python3" ]] && ! python_ok; then
-    echo "  MISSING  $desc (3.10 or newer)"; MISSING="$MISSING $formula"
+    echo "  MISSING  $desc"; MISSING="$MISSING $formula"
   elif [[ "$cmd" != "python3" ]] && ! command -v "$cmd" >/dev/null 2>&1; then
     echo "  MISSING  $desc"; MISSING="$MISSING $formula"
   else
@@ -82,3 +82,6 @@ if python_ok; then
 else
   echo "Python is not ready yet. Open a new Terminal and run: python3 scripts/preflight.py"
 fi
+
+# Homebrew changes PATH for new terminals; terminals that were already open may not find the new tools.
+echo; echo "Close this terminal and open a new one (in your AI coding agent too) before the next step, so the new tools are found."

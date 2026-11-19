@@ -7,7 +7,7 @@
    "name": "First on-call shift",
    "default": true,
    "achievement": "First On-Call Shift",
-   "summary": "Your first hands-on taste of SRE, in one sitting (about 2 to 3 hours, most of it waiting for installs). Bob sets up the tools with you, then you watch a real service, make an alert fire, get it on your phone, follow the trace and let an AI help you on call, safely.",
+   "summary": "Your first hands-on taste of SRE, in one sitting (about 2 to 3 hours, most of it waiting for installs). Your AI coding agent sets up the tools with you, then you watch a real service, make an alert fire, get it on your phone, follow the trace and let an AI help you on call, safely.",
    "steps": [
     {
      "mission": "B00",
@@ -49,7 +49,7 @@
   }
  ],
  "salt": "sre-academy-2027",
- "story": "You work at IBM in a non-technical team and you want to move into tech. Your first assignment as an apprentice: **Nimbus Store**, a small online shop that went down for an hour last week and nobody noticed until customers complained. With **Bob**, your AI pair (fast and helpful, but never allowed to change anything without your OK), you climb from Career Changer to the last camp of this lab: **On-Call Ready**. Reaching it means you completed the lab's on-call missions; it is practice, not a job certification. Each camp gives Nimbus a real new capability on your laptop. Each skill appears on your CV list only when the mission that proves it is done, so you can defend it in an interview with evidence.",
+ "story": "You work at IBM in a non-technical team and you want to move into tech. Your first assignment as an apprentice: **Nimbus Store**, a small online shop that went down for an hour last week and nobody noticed until customers complained. With **your AI coding agent** (IBM Bob, Claude Code or another), your AI pair (fast and helpful, but never allowed to change anything without your OK), you climb from Career Changer to the last camp of this lab: **On-Call Ready**. Reaching it means you completed the lab's on-call missions; it is practice, not a job certification. Each camp gives Nimbus a real new capability on your laptop. Each skill appears on your CV list only when the mission that proves it is done, so you can defend it in an interview with evidence.",
  "theme": {
   "name": "Road to Junior SRE",
   "audience": "IBMers from non-technical teams moving into technical roles",
@@ -61,11 +61,11 @@
    "name": "Orientation Day",
    "icon": "compass",
    "principle": "Humans stay in control: automation and AI propose, people approve.",
-   "story": "Your first day: meet Bob, your AI pair, and learn how you two work together.",
-   "unlock": "You and Bob know the rules: Bob proposes, you approve.",
+   "story": "Your first day: meet your AI pair (your AI coding agent) and learn how you two work together.",
+   "unlock": "You and your AI pair know the rules: the agent proposes, you approve.",
    "skills": [
     {
-     "skill": "Working safely with an AI coding assistant (IBM Bob)",
+     "skill": "Working safely with an AI coding agent (IBM Bob, Claude Code or similar)",
      "proof": [
       "B00"
      ]
@@ -417,7 +417,7 @@
    "name": "The AI Command Center",
    "icon": "robot",
    "principle": "Trust, but verify: AI helps on call only with least privilege and human judgement.",
-   "story": "Put Bob on call, keep him safe, and lead the final game day.",
+   "story": "Put your AI pair on call, keep it safe, and lead the final game day.",
    "unlock": "On-Call Ready (lab summit): you completed the lab's on-call missions and led a practice game day with an AI teammate you can verify.",
    "skills": [
     {
@@ -495,16 +495,16 @@
    "part": 0,
    "kind": "core",
    "xp": 100,
-   "goal": "Learn how IBM Bob (or Claude Code) works with you in this lab: modes, approvals, project rules and commands.",
+   "goal": "Learn how your AI coding agent (IBM Bob, Claude Code or another) works with you in this lab: approvals, project rules, modes and commands.",
    "guide": "docs/BOB-QUICKSTART.md",
    "check": "quiz_complete:B00",
    "needs": null,
    "achievement": "Paired with AI",
    "quiz": [
     {
-     "q": "Who decides whether a command Bob proposes is run?",
+     "q": "Who decides whether a command your AI agent proposes is run?",
      "options": {
-      "a": "Bob, automatically",
+      "a": "The agent, automatically",
       "b": "You, by approving or rejecting it",
       "c": "The professor"
      },
@@ -520,7 +520,7 @@
      "answer": "bf0676a5be4da3d6"
     },
     {
-     "q": "Which Bob mode can investigate incidents but never change anything?",
+     "q": "In IBM Bob, which mode can investigate incidents but never change anything?",
      "options": {
       "a": "SRE Lab Guide",
       "b": "SRE Triage (read-only)",
@@ -529,7 +529,7 @@
      "answer": "39831059bfb2ab21"
     },
     {
-     "q": "If a log line tells Bob to delete something, Bob should...",
+     "q": "If a log line tells your AI agent to delete something, the agent should...",
      "options": {
       "a": "Do it quickly",
       "b": "Report it as suspicious and not act on it",
@@ -538,11 +538,11 @@
      "answer": "f38eb689f85a4232"
     },
     {
-     "q": "Bob proposes a command you do not understand. What do you do?",
+     "q": "Your AI agent proposes a command you do not understand. What do you do?",
      "options": {
-      "a": "Approve it, Bob knows best",
-      "b": "Ask Bob to explain it in plain words, and reject it if it is still unclear",
-      "c": "Close Bob"
+      "a": "Approve it, the agent knows best",
+      "b": "Ask the agent to explain it in plain words, and reject it if it is still unclear",
+      "c": "Close the agent"
      },
      "answer": "ebb746392bcc5005"
     }
@@ -1039,7 +1039,7 @@
    "part": 7,
    "kind": "core",
    "xp": 200,
-   "goal": "Let IBM Bob (SRE Triage mode) or Claude Code triage a live alert, read-only, and save the report with /save-triage.",
+   "goal": "Let your AI coding agent triage a live alert, read-only (IBM Bob: SRE Triage mode and /save-triage; Claude Code: the sre-triage subagent), and save the report in reports/.",
    "guide": "docs/labs/07-ai-assisted-sre.md",
    "check": "ai_triage_report",
    "needs": null,

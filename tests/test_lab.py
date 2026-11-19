@@ -129,7 +129,7 @@ def test_skills_need_their_proof_missions_not_a_cleared_camp(catalog):
         return {s["skill"]: s["proof"] for _, won in lab.skills_earned(catalog, progress) for s in won}
 
     assert earned() == {}
-    assert set(earned("B00")) == {"Working safely with an AI coding assistant (IBM Bob)",
+    assert set(earned("B00")) == {"Working safely with an AI coding agent (IBM Bob, Claude Code or similar)",
                                   "Reviewing and approving commands before they run"}
     only_rollback = earned("M14")  # camp 6 is far from cleared, but the mission that proves the skill is done
     assert only_rollback == {"Rollbacks": ["M14"]}
@@ -251,3 +251,23 @@ def test_phone_push_check_never_raises(tmp_path, monkeypatch):
                         '{"event":"message","title":"[firing] critical: HighErrorRate"}\n')
     result = lab.check_phone_push()
     assert result["ok"] is True and "sre-lab-secrettopic" not in result["detail"]
+
+
+def test_shipped_postmortem_does_not_clear_m09_or_m27(tmp_path, monkeypatch, catalog):
+    """A fresh clone has only the author's postmortem: it must not earn M09 or M27 (or their CV skills)."""
+    shipped = os.path.join(ROOT, "docs", "postmortems", "2026-11-19-alert-drill-and-ai-triage.md")
+    assert os.path.basename(shipped) in lab.ORIGINAL_POSTMORTEMS
+    folder = tmp_path / "docs" / "postmortems"
+    folder.mkdir(parents=True)
+    with open(shipped, encoding="utf-8") as source:
+        text = source.read()
+    (folder / os.path.basename(shipped)).write_text(text, encoding="utf-8")
+    (folder / "README.md").write_text("TTD 1 TTA 2 TTR 3 AI human", encoding="utf-8")
+    monkeypatch.setattr(lab, "ROOT", tmp_path)
+    checks = {m["id"]: m["check"] for m in catalog["missions"]}
+    assert lab.run_check(checks["M09"])["ok"] is False
+    assert lab.run_check(checks["M27"])["ok"] is False
+    # The same text saved as the student's own postmortem does count.
+    (folder / "2027-01-10-my-game-day.md").write_text(text, encoding="utf-8")
+    assert lab.run_check(checks["M09"])["ok"] is True
+    assert lab.run_check(checks["M27"])["ok"] is True

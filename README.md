@@ -1,34 +1,47 @@
-# SRE Academy: your first on-call shift, guided by IBM Bob
+# SRE Academy: your first on-call shift, guided by your AI coding agent
 
 [![CI](https://github.com/jaffethalfarotorres/sre-final-project/actions/workflows/ci.yml/badge.svg)](https://github.com/jaffethalfarotorres/sre-final-project/actions/workflows/ci.yml)
 [![CD](https://github.com/jaffethalfarotorres/sre-final-project/actions/workflows/cd.yml/badge.svg)](https://github.com/jaffethalfarotorres/sre-final-project/actions/workflows/cd.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE.md)
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB.svg?logo=python&logoColor=white)](app/app.py)
 [![Runs on Mac and Windows](https://img.shields.io/badge/runs%20on-macOS%20%7C%20Windows-informational)](docs/GUIDE.md)
-[![Guided by IBM Bob](https://img.shields.io/badge/guided%20by-IBM%20Bob-0f62fe)](docs/BOB-QUICKSTART.md)
+[![Guided by your AI coding agent](https://img.shields.io/badge/guided%20by-your%20AI%20coding%20agent-0f62fe)](docs/BOB-QUICKSTART.md)
 
-**What this is, in plain words:** an ice-breaker for Site Reliability Engineering (SRE: the people who keep online services working). You open [IBM Bob](https://bob.ibm.com), paste the link to this repository, and in **one sitting of about 2 to 3 hours** (most of it is waiting for installs) Bob sets up a real SRE toolchain on your laptop and walks you through your **first on-call shift**: live dashboards, an alert that reaches your phone, the trace of one failing request, and an AI teammate that investigates safely without being allowed to break anything.
+**What this is, in plain words:** an ice-breaker for Site Reliability Engineering (SRE: the people who keep online services working), guided by your AI coding agent: [IBM Bob](https://bob.ibm.com) for IBMers, or Claude Code, Codex and others. You open your agent, paste the link to this repository, and in **one sitting of about 2-3 hours once the laptop is ready (estimated)**, most of it waiting for installs, the agent sets up a real SRE toolchain on your laptop and walks you through your **first on-call shift**: live dashboards, an alert that reaches your phone, the trace of one failing request, and an AI teammate that investigates safely without being allowed to break anything.
 
-You do not need a technical background. Nobody grades it. You type, you approve, Bob explains. New words? See the [glossary](docs/GUIDE.md#glossary) or the [FAQ](docs/FAQ.md).
+You do not need a technical background. Nobody grades it. You type, you approve, the agent explains. New words? See the [glossary](docs/GUIDE.md#glossary) or the [FAQ](docs/FAQ.md).
 
-**→ [Start your first on-call shift with IBM Bob](docs/BOB-QUICKSTART.md)**
+<a id="start-with-your-ai-coding-agent"></a>
+**Start with your AI coding agent.** The first message to paste is in [BOB-QUICKSTART.md, Step 1](docs/BOB-QUICKSTART.md#step-1-paste-this-into-your-ai-coding-agent). It works in any AI coding agent. It installs the tools and gets the lab; then you open the `sre-final-project` folder in your agent:
+
+| Your agent | How it reads this lab | How to start |
+| --- | --- | --- |
+| **IBM Bob** (recommended for IBMers) | [`.bob/`](.bob/) (modes, rules, slash commands) plus [`AGENTS.md`](AGENTS.md) | Choose the mode **SRE Lab Guide**, type `/start-lab` |
+| **Claude Code** | [`CLAUDE.md`](CLAUDE.md) (imports `AGENTS.md`), the `/lab` skill in [`.claude/skills/lab/`](.claude/skills/lab/) and the `sre-triage` subagent | Type `/lab` |
+| **Others** (OpenAI Codex, Google Antigravity, Cursor...) | [`AGENTS.md`](AGENTS.md), the shared entry point that many agents read | Paste `Read AGENTS.md and guide me through the First on-call shift` |
+
+**Tested with:** the shift and the AI triage drill were run with Claude Code on the author's laptop. The IBM Bob setup was written for Bob 2.x, but a full shift in Bob has not been timed yet. Other agents follow `AGENTS.md` but were not tested. More in [Use any AI coding agent](docs/BOB-QUICKSTART.md#use-any-ai-coding-agent).
+
+**→ [Start your first on-call shift](docs/BOB-QUICKSTART.md)**
 
 <a id="the-first-on-call-shift"></a>
 ## Your first on-call shift: 9 steps, about 165 minutes
+
+The minutes are estimates for a laptop that is ready (admin rights, disk space, a container engine). They have not been timed with a real class yet.
 
 The pretend shop is **Nimbus Store**. It went down for an hour last week and nobody noticed. Today you make sure that never happens again.
 
 | # | Mission | What you do | Minutes |
 | --- | --- | --- | --- |
-| 1 | B00 Meet your AI partner | Learn how you and Bob work together, including the "Stay in control" rules | 15 |
-| 2 | M00 Boot the lab | Run `scripts/preflight.py`, then the one-command setup kit `scripts/install-tools.*` installs what is missing, and Bob deploys the stack (mostly waiting) | 60 |
+| 1 | B00 Meet your AI partner | Learn how you and your agent (Bob for IBMers) work together, including the "Stay in control" rules | 15 |
+| 2 | M00 Boot the lab | Run `scripts/preflight.py`, then the one-command setup kit `scripts/install-tools.*` installs what is missing, and the agent deploys the stack (mostly waiting) | 60 |
 | 3 | M01 Instrument a service | See the numbers, traces and logs the shop sends out | 10 |
 | 4 | M04 Dashboards as code | Open Grafana and read the live charts | 10 |
 | 5 | M05 First alert | Break the shop on purpose (`scripts/trigger-alert.*`) and watch an alert fire | 15 |
 | 6 | N01 Alerts on your phone | Run `scripts/notify_setup.py`, subscribe in the free ntfy app or a browser, and get a real `[firing]` push | 10 |
 | 7 | M07 Follow the trace | Follow one failing request step by step in Jaeger | 10 |
-| 8 | M17 AI on call | Turn on Bob's read-only access (`scripts/ai_setup.py`), let Bob triage in **SRE Triage** mode, save it with `/save-triage` | 20 |
-| 9 | M18 Injection proof | See Bob spot a planted instruction in the logs and refuse to follow it | 15 |
+| 8 | M17 AI on call | Turn on the agent's read-only access (`scripts/ai_setup.py`) and let it triage the alert (Bob: **SRE Triage** mode and `/save-triage`; Claude Code: the `sre-triage` subagent) | 20 |
+| 9 | M18 Injection proof | See the agent spot a planted instruction in the logs and refuse to follow it | 15 |
 
 When all nine are done you get a **SHIFT COMPLETE** moment and the **First On-Call Shift** badge. Check where you are at any time with `python scripts\lab.py journey` on Windows (Mac and Linux: `python3 scripts/lab.py journey`). Everything else in this repository is optional: see [Keep exploring](#keep-exploring).
 
@@ -36,7 +49,7 @@ When all nine are done you get a **SHIFT COMPLETE** moment and the **First On-Ca
 
 | You are... | Read this first | Then |
 | --- | --- | --- |
-| **An IBMer trying SRE for the first time** | [BOB-QUICKSTART.md](docs/BOB-QUICKSTART.md): paste one message into IBM Bob and follow the [9 steps](#the-first-on-call-shift) | First check your laptop with `python scripts\preflight.py` on Windows (Mac: `python3 scripts/preflight.py`). If something is blocked, send IT the [IT request template](docs/IT-REQUEST.md) |
+| **An IBMer trying SRE for the first time** | [BOB-QUICKSTART.md](docs/BOB-QUICKSTART.md): paste one message into IBM Bob (or another [AI coding agent](#start-with-your-ai-coding-agent)) and follow the [9 steps](#the-first-on-call-shift) | First check your laptop with `python scripts\preflight.py` on Windows (Mac: `python3 scripts/preflight.py`). If something is blocked, send IT the [IT request template](docs/IT-REQUEST.md) |
 | **The grader** | The [grader view](#final-project-grader-view) just below (rubric to file to screenshot) | The [FAQ](docs/FAQ.md) (alert path, burn-rate math, design choices, limits) and the evidence: [screenshots](#evidence), [AI triage drill](docs/evidence/ai-triage-2026-11-19.md), [postmortem](docs/postmortems/2026-11-19-alert-drill-and-ai-triage.md) |
 | **A professor or team lead running a session** | The [instructor notes](docs/instructor/README.md) (how to run it as one class session) | The [course map](docs/COURSE-MAP.md) and the [lab guide](docs/labs/README.md) (the shift first, then optional deeper parts) |
 | **A team that onboards SRE new hires or interns** | [Reuse it for onboarding](#reuse-it-for-onboarding) | The mission catalog [`lab/missions.json`](lab/missions.json) and [`scripts/lab.py`](scripts/lab.py) |
@@ -70,15 +83,16 @@ The full details are below: [What you get](#what-you-get), [Quick start](#quick-
 
 I am an SRE Academy 2026 student from a non-technical background. I built this project with an AI coding assistant, and I want to be clear about who did what.
 
-- **What I did:** I set the goals, the scope and the design decisions: a public portfolio project, Minikube on a laptop, Python for the app, a guided lab with IBM Bob for the 2027 class, and the safety rules for the AI tools. I directed the work, approved the changes and decided each release. The whole stack runs on my own laptop.
+- **What I did:** I set the goals, the scope and the design decisions: a public portfolio project, Minikube on a laptop, Python for the app, a guided lab for the 2027 class led by an AI coding agent (IBM Bob recommended for IBMers), and the safety rules for the AI tools. I directed the work, approved the changes and decided each release. The whole stack runs on my own laptop.
 - **What the AI did:** Claude Code (by Anthropic) generated most of the code, the manifests and the documentation, following my direction. It also ran the live checks on my local Minikube cluster. I used AI review panels to find problems before submitting.
 - **How to see it:** commits made with AI help carry a `Co-Authored-By` trailer in the Git history.
+- **Which agent ran the shift:** I completed the shift on my laptop with Claude Code as the agent ([journey-complete.png](docs/screenshots/journey-complete.png)). A full, timed run in IBM Bob is still to do.
 - **What I can explain end to end:** the alert path, from a failing request to the metric, the Prometheus rule and the Alertmanager route; the SLO burn-rate alerts and why they use two windows; and how the app is deployed on Kubernetes. I wrote these answers down in the [FAQ](docs/FAQ.md), with the problems the checks found in AI-generated work.
 
 <a id="keep-exploring"></a>
 ## Keep exploring (optional, at your own pace)
 
-The shift is the whole ice-breaker. If you liked it, the rest of the repository is there for you, with no deadline and no grade. Bob stays your guide: open the folder in Bob, choose the **SRE Lab Guide** mode and type `/next-mission`.
+The shift is the whole ice-breaker. If you liked it, the rest of the repository is there for you, with no deadline and no grade. Your agent stays your guide: in IBM Bob, choose the **SRE Lab Guide** mode and type `/next-mission`; in Claude Code, type `/lab`.
 
 | You are... | Start with |
 | --- | --- |
@@ -90,7 +104,7 @@ A mission counts only when [`scripts/lab.py`](scripts/lab.py) finds the evidence
 
 ### The journey: Road to Junior SRE
 
-The full lab is a longer climb, built for IBMers from non-technical teams who want to move into technical roles such as junior SRE, DevOps, cloud or operations. With **Bob, your AI pair** (fast and helpful, never allowed to change anything without your OK), you climb camp by camp from **Career Changer** to the last camp, **On-Call Ready**. Each camp gives Nimbus a real capability, teaches one SRE principle, lists skills you can name on a CV and adds one interview question to rehearse with Bob (`lab.py cv`, Bob: `/my-cv` and `/interview`). The first on-call shift already touches camps 0, 1, 2, 4 and 7. The lab gives hands-on evidence for junior roles; it does not claim to make anyone a senior engineer.
+The full lab is a longer climb, built for IBMers from non-technical teams who want to move into technical roles such as junior SRE, DevOps, cloud or operations. With **your AI pair**, your AI coding agent (fast and helpful, never allowed to change anything without your OK), you climb camp by camp from **Career Changer** to the last camp, **On-Call Ready**. Each camp gives Nimbus a real capability, teaches one SRE principle, lists skills you can name on a CV and adds one interview question to rehearse with your agent (`lab.py cv`; in Bob: `/my-cv` and `/interview`). The first on-call shift already touches camps 0, 1, 2, 4 and 7. The lab gives hands-on evidence for junior roles; it does not claim to make anyone a senior engineer.
 
 | Camp | SRE principle |
 | --- | --- |
@@ -157,7 +171,7 @@ flowchart LR
 | **Automation** | Ansible playbooks and AWX, Terraform, Helm, Kustomize |
 | **Delivery** | GitHub Actions CI/CD, ArgoCD GitOps, rolling updates and rollback, Argo Rollouts canary gated by the SLO |
 | **Resilience and guardrails** | LitmusChaos experiments, Kyverno policies, SBOM, image scanning and signing |
-| **AI-assisted SRE** | Shared [`AGENTS.md`](AGENTS.md) for IBM Bob and Claude Code, read-only MCP access, guard hooks, injection drill ([`docs/AI-SRE.md`](docs/AI-SRE.md)) |
+| **AI-assisted SRE** | Shared [`AGENTS.md`](AGENTS.md) for every AI coding agent (IBM Bob, Claude Code and others), read-only MCP access, guard hooks, injection drill ([`docs/AI-SRE.md`](docs/AI-SRE.md)) |
 
 ## Quick start
 
@@ -209,6 +223,8 @@ Checked live by the author on Minikube in November 2026; the screenshots below s
 
 Screenshots of the core stack are in [`docs/screenshots/`](docs/screenshots/). The requirement for each one is in the [grader view](#final-project-grader-view).
 
+**What changed after some captures:** `alerts.yml` (the new `ServiceDown` and `ReplicaDown`, commit cc04db5) and `alertmanager.yaml` (ntfy and routing, commits ea5eab3 and cc04db5) changed after the screenshots taken at commit e308f25: pods, Prometheus targets, Alertmanager, the four Grafana dashboards, Loki and Jaeger. `notification-delivered.png` predates the cc04db5 change, and the two Helm images predate all three files. `slo.yml` last changed in commit 2ea9269, the same commit that added those captures. Only `prometheus-alerts.png` was retaken at the current commit.
+
 **All pods running in every namespace (`kubectl get pods -A`)** (captured 2026-11-19 from the live cluster, commit e308f25, during an alert drill)
 
 ![All pods running in every namespace (kubectl get pods -A)](docs/screenshots/pods.png)
@@ -217,7 +233,7 @@ Screenshots of the core stack are in [`docs/screenshots/`](docs/screenshots/). T
 
 ![Prometheus targets UP, including blackbox and cAdvisor](docs/screenshots/prometheus-targets.png)
 
-**Prometheus alert rules and their state** (captured 2026-11-19 from the live cluster, commit e308f25, during an alert drill)
+**Prometheus alert rules and their state** (retaken 2026-11-19 at the current commit: shows ServiceDown and ReplicaDown)
 
 ![Prometheus alert rules and their state](docs/screenshots/prometheus-alerts.png)
 
@@ -251,11 +267,15 @@ The low availability and the negative budget are expected here: Prometheus had r
 
 ![Jaeger: one failing /store request traced through the app](docs/screenshots/jaeger-trace.png)
 
-**Mission Control, the lab dashboard (`lab.py play`)** (captured 2026-11-19 from the live cluster, commit e308f25, during an alert drill)
+**Mission Control, the lab dashboard (`lab.py play`)** (a local capture of `lab.py play`, 2026-11-19)
 
 ![Mission Control, the lab dashboard (lab.py play)](docs/screenshots/mission-control.png)
 
-**GitHub Actions: a CI run with all jobs green** (captured 2026-11-19 from the live cluster, commit e308f25, during an alert drill)
+**The First on-call shift, finished** (`lab.py journey` at 9/9 SHIFT COMPLETE on the author's laptop)
+
+![lab.py journey at 9/9 SHIFT COMPLETE](docs/screenshots/journey-complete.png)
+
+**GitHub Actions: a CI run with all jobs green** (a GitHub Actions CI run, run #30 at commit e308f25: all 8 jobs green)
 
 ![GitHub Actions: a CI run with all jobs green](docs/screenshots/ci-green.png)
 
