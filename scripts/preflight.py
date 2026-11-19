@@ -350,9 +350,11 @@ def docker_engine():
 
 
 def reach(url, timeout=8):
+    if not url.startswith("https://"):
+        raise ValueError("preflight only checks fixed https addresses")
     request = urllib.request.Request(url, method="HEAD", headers={"User-Agent": "sre-lab-preflight"})
     try:
-        urllib.request.urlopen(request, timeout=timeout).close()
+        urllib.request.urlopen(request, timeout=timeout).close()  # nosec B310: https only, checked above
         return True, ""
     except urllib.error.HTTPError as error:
         # The site answered, so the network path works (some sites refuse HEAD requests).
