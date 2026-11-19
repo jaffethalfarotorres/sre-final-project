@@ -38,6 +38,7 @@ Where every SRE Academy topic, every new 2027 topic and every roadmap.sh DevOps 
 
 | Module | Topic | Where | Lab | Status |
 | --- | --- | --- | --- | --- |
+| B00 | Working with an AI partner (IBM Bob guided lab, game engine, verified passport) | [`BOB-QUICKSTART.md`](BOB-QUICKSTART.md), [`.bob/`](../.bob/), [`scripts/lab.py`](../scripts/lab.py), [`lab/missions.json`](../lab/missions.json) | [Lab guide](labs/README.md) | ✅ |
 | M16 | DORA metrics (all five, including deployment rework rate) | [`dora_metrics.py`](../scripts/dora_metrics.py) | [Part 5](labs/05-automation-iac-cicd.md) | ✅ |
 | M17 | AI-assisted SRE with Claude Code and IBM Bob | [`AGENTS.md`](../AGENTS.md), [`CLAUDE.md`](../CLAUDE.md), [`.claude/`](../.claude/), [`.bob/`](../.bob/), [`AI-SRE.md`](AI-SRE.md) | [Part 7](labs/07-ai-assisted-sre.md) | ✅ |
 | M18 | MCP safety and prompt injection | In-cluster Grafana MCP server ([`k8s/ai/`](../k8s/ai/)), Viewer token, `view` RBAC, guard hook, `/inject` drill | [Part 7](labs/07-ai-assisted-sre.md) | ✅ |

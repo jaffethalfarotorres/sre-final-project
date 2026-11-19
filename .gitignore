@@ -42,3 +42,6 @@ reports/
 CLAUDE.local.md
 .claude/settings.local.json
 .claude/audit.log
+
+# Lab game progress (per student; the shareable proof is lab-proof/)
+.lab/

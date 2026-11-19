@@ -1,4 +1,4 @@
-# SRE Academy Mega Lab
+# SRE Academy Mega Lab: AI SRE onboarding with IBM Bob
 
 [![CI](https://github.com/jaffethalfarotorres/sre-final-project/actions/workflows/ci.yml/badge.svg)](https://github.com/jaffethalfarotorres/sre-final-project/actions/workflows/ci.yml)
 [![CD](https://github.com/jaffethalfarotorres/sre-final-project/actions/workflows/cd.yml/badge.svg)](https://github.com/jaffethalfarotorres/sre-final-project/actions/workflows/cd.yml)
@@ -10,8 +10,19 @@
 
 It started as my SRE Academy 2026 final project and grew into a **complete, reusable lab**. It covers every topic and exercise of the 2026 course on one working stack, adds the topics a 2027 class needs (AI-assisted operations with Claude Code and IBM Bob, MCP safety, supply chain security, policy as code, canary releases, DORA metrics, LLM observability), and comes with a lab guide that professors can teach from.
 
-> **New to this?** Start with the [step-by-step guide for Mac and Windows](docs/GUIDE.md). No Kubernetes experience needed.
-> **Teaching it?** Go to the [lab guide](docs/labs/README.md) and the [course map](docs/COURSE-MAP.md).
+## Start here: let IBM Bob guide you
+
+Built for **non-technical students**. Paste one message into [IBM Bob](https://bob.ibm.com) and Bob installs the tools, sets up the lab on your laptop and then guides you through **26 missions**, explaining every idea in plain words. You learn SRE, the tools and how to work with an AI partner at the same time, earn **XP, levels and badges**, and finish with a **verified SRE Lab Passport** you can share.
+
+**→ [Start the lab with IBM Bob](docs/BOB-QUICKSTART.md)** (about 2 hours of setup, then one mission at a time)
+
+| You are... | Start with |
+| --- | --- |
+| A student with IBM Bob | [BOB-QUICKSTART.md](docs/BOB-QUICKSTART.md): open the folder in Bob, choose the **SRE Lab Guide** mode, type `/start-lab` |
+| A student without Bob | The [step-by-step guide for Mac and Windows](docs/GUIDE.md), then `python3 scripts/lab.py status` (or `/lab` in Claude Code) |
+| A professor | The [lab guide](docs/labs/README.md) (objectives, timing, answers, instructor notes) and the [course map](docs/COURSE-MAP.md) |
+
+Every mission is checked on the student's own cluster by [`scripts/lab.py`](scripts/lab.py): nothing is self-reported.
 
 ## What you get
 

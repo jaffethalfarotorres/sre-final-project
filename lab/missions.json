@@ -1,0 +1,668 @@
+{
+ "version": 1,
+ "salt": "sre-academy-2027",
+ "levels": [
+  {
+   "name": "SRE Intern",
+   "xp": 0
+  },
+  {
+   "name": "Junior SRE",
+   "xp": 500
+  },
+  {
+   "name": "SRE",
+   "xp": 1300
+  },
+  {
+   "name": "Senior SRE",
+   "xp": 2300
+  },
+  {
+   "name": "Staff SRE",
+   "xp": 3300
+  }
+ ],
+ "quiz_xp": 20,
+ "missions": [
+  {
+   "id": "B00",
+   "title": "Meet your AI partner",
+   "part": 0,
+   "kind": "core",
+   "xp": 100,
+   "goal": "Learn how IBM Bob (or Claude Code) works with you in this lab: modes, approvals, project rules and commands.",
+   "guide": "docs/BOB-QUICKSTART.md",
+   "check": "quiz_complete:B00",
+   "needs": null,
+   "achievement": "Paired with AI",
+   "quiz": [
+    {
+     "q": "Who decides whether a command Bob proposes is run?",
+     "options": {
+      "a": "Bob, automatically",
+      "b": "You, by approving or rejecting it",
+      "c": "The professor"
+     },
+     "answer": "a356e9ca457d2372"
+    },
+    {
+     "q": "Which file gives every AI assistant the rules of this project?",
+     "options": {
+      "a": "AGENTS.md",
+      "b": "README.md",
+      "c": "LICENSE.md"
+     },
+     "answer": "bf0676a5be4da3d6"
+    },
+    {
+     "q": "Which Bob mode can investigate incidents but never change anything?",
+     "options": {
+      "a": "SRE Lab Guide",
+      "b": "SRE Triage (read-only)",
+      "c": "Agent"
+     },
+     "answer": "39831059bfb2ab21"
+    },
+    {
+     "q": "If a log line tells Bob to delete something, Bob should...",
+     "options": {
+      "a": "Do it quickly",
+      "b": "Report it as suspicious and not act on it",
+      "c": "Ask the log for a password"
+     },
+     "answer": "f38eb689f85a4232"
+    }
+   ]
+  },
+  {
+   "id": "M00",
+   "title": "Boot the lab",
+   "part": 1,
+   "kind": "core",
+   "xp": 100,
+   "goal": "Install the tools, deploy the stack and get every pod Ready.",
+   "guide": "docs/labs/01-foundations.md",
+   "check": "stack_ready",
+   "needs": null,
+   "achievement": "Hello, Cluster",
+   "quiz": [
+    {
+     "q": "Which command deploys the whole stack?",
+     "options": {
+      "a": "./scripts/deploy.sh",
+      "b": "kubectl run lab",
+      "c": "minikube addons enable lab"
+     },
+     "answer": "7119f6c8c050d7e8"
+    },
+    {
+     "q": "Why do the dashboards need a tunnel (port-forward)?",
+     "options": {
+      "a": "Grafana has no password",
+      "b": "The services run inside Minikube's private network",
+      "c": "Browsers block localhost"
+     },
+     "answer": "b17435f9f64cdb77"
+    }
+   ]
+  },
+  {
+   "id": "M01",
+   "title": "Instrument a service",
+   "part": 1,
+   "kind": "core",
+   "xp": 100,
+   "goal": "See the app's metrics in Prometheus and one of its traces in Jaeger.",
+   "guide": "docs/labs/01-foundations.md",
+   "check": "app_signals",
+   "needs": null,
+   "achievement": null,
+   "quiz": [
+    {
+     "q": "Which metric type counts requests?",
+     "options": {
+      "a": "Gauge",
+      "b": "Counter",
+      "c": "Histogram"
+     },
+     "answer": "d683bf4328d12ea6"
+    },
+    {
+     "q": "What links a log line to its trace?",
+     "options": {
+      "a": "The pod name",
+      "b": "The trace_id field",
+      "c": "The timestamp"
+     },
+     "answer": "54710447470525f0"
+    }
+   ]
+  },
+  {
+   "id": "M02",
+   "title": "Ship it on Kubernetes",
+   "part": 1,
+   "kind": "core",
+   "xp": 100,
+   "goal": "Run 2 replicas with probes, limits, non-root and a zero-downtime rolling update.",
+   "guide": "docs/labs/01-foundations.md",
+   "check": "deployment_hardened",
+   "needs": null,
+   "achievement": null,
+   "quiz": [
+    {
+     "q": "With maxUnavailable: 0, what happens during an update?",
+     "options": {
+      "a": "All pods restart at once",
+      "b": "A new pod must be ready before an old one stops",
+      "c": "The update is paused"
+     },
+     "answer": "79a515892062152d"
+    }
+   ]
+  },
+  {
+   "id": "M03",
+   "title": "Prometheus pulls the world",
+   "part": 2,
+   "kind": "core",
+   "xp": 100,
+   "goal": "Every scrape target UP: app, collector, cAdvisor, blackbox and Prometheus itself.",
+   "guide": "docs/labs/02-metrics-dashboards-alerts.md",
+   "check": "targets_up",
+   "needs": null,
+   "achievement": null,
+   "quiz": [
+    {
+     "q": "Prometheus collects metrics by...",
+     "options": {
+      "a": "Receiving pushes from apps",
+      "b": "Pulling (scraping) HTTP endpoints",
+      "c": "Reading log files"
+     },
+     "answer": "67b7e249f408cdd7"
+    },
+    {
+     "q": "Which function turns a counter into a per-second rate?",
+     "options": {
+      "a": "rate()",
+      "b": "sum()",
+      "c": "histogram_quantile()"
+     },
+     "answer": "2d6137aff04e5783"
+    }
+   ]
+  },
+  {
+   "id": "M04",
+   "title": "Dashboards as code",
+   "part": 2,
+   "kind": "core",
+   "xp": 100,
+   "goal": "Open the four provisioned Grafana dashboards (they live in Git, not in clicks).",
+   "guide": "docs/labs/02-metrics-dashboards-alerts.md",
+   "check": "dashboards_provisioned",
+   "needs": null,
+   "achievement": null,
+   "quiz": [
+    {
+     "q": "Why provision dashboards from files?",
+     "options": {
+      "a": "They are reviewed, versioned and rebuilt identically",
+      "b": "Grafana is faster",
+      "c": "It hides them from users"
+     },
+     "answer": "a316cc968c9a9b0c"
+    }
+   ]
+  },
+  {
+   "id": "M05",
+   "title": "First alert",
+   "part": 2,
+   "kind": "core",
+   "xp": 150,
+   "goal": "Make HighErrorRate fire with ./scripts/trigger-alert.sh and watch it reach Alertmanager.",
+   "guide": "docs/labs/02-metrics-dashboards-alerts.md",
+   "check": "alert_fired:HighErrorRate",
+   "needs": null,
+   "achievement": "First Page",
+   "quiz": [
+    {
+     "q": "What does the 'for: 2m' in an alert rule do?",
+     "options": {
+      "a": "Repeats the alert every 2 minutes",
+      "b": "The condition must hold for 2 minutes before firing",
+      "c": "Deletes the alert after 2 minutes"
+     },
+     "answer": "7892595384319e61"
+    }
+   ]
+  },
+  {
+   "id": "M06",
+   "title": "Error budget keeper",
+   "part": 3,
+   "kind": "core",
+   "xp": 150,
+   "goal": "Burn error budget fast enough to fire ErrorBudgetFastBurn, then read the SLO dashboard.",
+   "guide": "docs/labs/03-slos-and-incidents.md",
+   "check": "alert_fired:ErrorBudgetFastBurn",
+   "needs": null,
+   "achievement": "Budget Keeper",
+   "quiz": [
+    {
+     "q": "With a 90% SLO, the error budget is...",
+     "options": {
+      "a": "90% of requests",
+      "b": "10% of requests",
+      "c": "0.1% of requests"
+     },
+     "answer": "e76dfed53f088aef"
+    },
+    {
+     "q": "A burn rate of 6x means the 30-day budget lasts about...",
+     "options": {
+      "a": "5 days",
+      "b": "6 months",
+      "c": "30 days"
+     },
+     "answer": "2e142b48cf459c23"
+    }
+   ]
+  },
+  {
+   "id": "M07",
+   "title": "Follow the trace",
+   "part": 4,
+   "kind": "core",
+   "xp": 100,
+   "goal": "Find ERROR logs in Loki and the matching failed span in Jaeger.",
+   "guide": "docs/labs/04-logs-traces-llm.md",
+   "check": "logs_and_traces",
+   "needs": null,
+   "achievement": null,
+   "quiz": [
+    {
+     "q": "Which component receives OTLP from the app and fans it out?",
+     "options": {
+      "a": "Prometheus",
+      "b": "The OpenTelemetry Collector",
+      "c": "Grafana"
+     },
+     "answer": "86c00dcdd9d68818"
+    }
+   ]
+  },
+  {
+   "id": "M08",
+   "title": "Synthetic user",
+   "part": 3,
+   "kind": "core",
+   "xp": 100,
+   "goal": "The blackbox exporter probes the app like a user; read probe_success.",
+   "guide": "docs/labs/03-slos-and-incidents.md",
+   "check": "synthetic_probes",
+   "needs": null,
+   "achievement": null,
+   "quiz": [
+    {
+     "q": "Why add synthetic checks if the app has metrics?",
+     "options": {
+      "a": "They see what a user sees, even when the app cannot report",
+      "b": "They are cheaper",
+      "c": "Grafana needs them"
+     },
+     "answer": "7a7fae3253787071"
+    }
+   ]
+  },
+  {
+   "id": "M09",
+   "title": "Blameless postmortem",
+   "part": 3,
+   "kind": "core",
+   "xp": 150,
+   "goal": "Write a postmortem in docs/postmortems/ with real TTD, TTA and TTR numbers.",
+   "guide": "docs/labs/03-slos-and-incidents.md",
+   "check": "postmortem_written",
+   "needs": null,
+   "achievement": "Storyteller",
+   "quiz": [
+    {
+     "q": "TTD is measured from...",
+     "options": {
+      "a": "Acknowledgement to fix",
+      "b": "Problem start to alert firing",
+      "c": "Alert to postmortem"
+     },
+     "answer": "903860595603c316"
+    },
+    {
+     "q": "A blameless postmortem focuses on...",
+     "options": {
+      "a": "Who made the mistake",
+      "b": "What the system and process allowed",
+      "c": "How to avoid writing postmortems"
+     },
+     "answer": "26605e15495bc97e"
+    }
+   ]
+  },
+  {
+   "id": "M10",
+   "title": "Runbook automation",
+   "part": 5,
+   "kind": "core",
+   "xp": 150,
+   "goal": "Run the Ansible diagnostics runbook and keep its report.",
+   "guide": "docs/labs/05-automation-iac-cicd.md",
+   "check": "diagnostics_report",
+   "needs": null,
+   "achievement": null,
+   "quiz": [
+    {
+     "q": "Which runbook may an alert start automatically?",
+     "options": {
+      "a": "restart-app (remediation)",
+      "b": "collect-diagnostics (read-only)",
+      "c": "Both"
+     },
+     "answer": "933cfa7fa00204ba"
+    }
+   ]
+  },
+  {
+   "id": "M10X",
+   "title": "AWX autopilot",
+   "part": 5,
+   "kind": "addon",
+   "xp": 150,
+   "goal": "Install AWX and let a critical alert launch the diagnostics job by itself.",
+   "guide": "docs/labs/05-automation-iac-cicd.md",
+   "check": "awx_configured",
+   "needs": "awx",
+   "achievement": "Automation Ace",
+   "quiz": []
+  },
+  {
+   "id": "M11",
+   "title": "Infrastructure as code",
+   "part": 5,
+   "kind": "core",
+   "xp": 100,
+   "goal": "Create and destroy a staging copy of the app with Terraform.",
+   "guide": "docs/labs/05-automation-iac-cicd.md",
+   "check": "terraform_applied",
+   "needs": null,
+   "achievement": null,
+   "quiz": [
+    {
+     "q": "What should never be committed to Git?",
+     "options": {
+      "a": "main.tf",
+      "b": "terraform.tfstate",
+      "c": ".terraform.lock.hcl"
+     },
+     "answer": "9219c20c2fd1fc4e"
+    }
+   ]
+  },
+  {
+   "id": "M12",
+   "title": "Green pipeline",
+   "part": 5,
+   "kind": "core",
+   "xp": 150,
+   "goal": "Get a successful CI run on your own fork of the repository.",
+   "guide": "docs/labs/05-automation-iac-cicd.md",
+   "check": "fork_ci_green",
+   "needs": null,
+   "achievement": null,
+   "quiz": [
+    {
+     "q": "What should happen when a pull request breaks a test?",
+     "options": {
+      "a": "Merge it and fix later",
+      "b": "CI fails and blocks the merge",
+      "c": "CI deletes the branch"
+     },
+     "answer": "ac4a639c1961691d"
+    }
+   ]
+  },
+  {
+   "id": "M13",
+   "title": "GitOps guardian",
+   "part": 6,
+   "kind": "addon",
+   "xp": 150,
+   "goal": "ArgoCD syncs the app from Git and reverts a manual change.",
+   "guide": "docs/labs/06-delivery-resilience-policy.md",
+   "check": "argocd_synced",
+   "needs": "argocd",
+   "achievement": "GitOps Guardian",
+   "quiz": []
+  },
+  {
+   "id": "M14",
+   "title": "Rollback hero",
+   "part": 6,
+   "kind": "core",
+   "xp": 150,
+   "goal": "Release a broken version, keep users served, then roll back.",
+   "guide": "docs/labs/06-delivery-resilience-policy.md",
+   "check": "rollback_done",
+   "needs": null,
+   "achievement": "Rollback Hero",
+   "quiz": [
+    {
+     "q": "Which command undoes the last release?",
+     "options": {
+      "a": "kubectl rollout undo",
+      "b": "kubectl delete deployment",
+      "c": "git revert --hard"
+     },
+     "answer": "b5858765a4d9030a"
+    }
+   ]
+  },
+  {
+   "id": "M15",
+   "title": "Chaos survivor",
+   "part": 6,
+   "kind": "addon",
+   "xp": 200,
+   "goal": "Kill pods with LitmusChaos and prove users never noticed (verdict Pass).",
+   "guide": "docs/labs/06-delivery-resilience-policy.md",
+   "check": "chaos_passed",
+   "needs": "chaos",
+   "achievement": "Chaos Survivor",
+   "quiz": [
+    {
+     "q": "A chaos experiment starts with...",
+     "options": {
+      "a": "Deleting everything",
+      "b": "A steady-state hypothesis",
+      "c": "A postmortem"
+     },
+     "answer": "2574347b060a76dc"
+    }
+   ]
+  },
+  {
+   "id": "M16",
+   "title": "Measure delivery (DORA)",
+   "part": 5,
+   "kind": "core",
+   "xp": 100,
+   "goal": "Compute the five DORA metrics for your fork into reports/dora.md.",
+   "guide": "docs/labs/05-automation-iac-cicd.md",
+   "check": "dora_report",
+   "needs": null,
+   "achievement": null,
+   "quiz": [
+    {
+     "q": "Which DORA metric measures instability?",
+     "options": {
+      "a": "Deployment frequency",
+      "b": "Change fail rate",
+      "c": "Lead time"
+     },
+     "answer": "4690f66affbd0bf2"
+    }
+   ]
+  },
+  {
+   "id": "M17",
+   "title": "AI on call",
+   "part": 7,
+   "kind": "core",
+   "xp": 200,
+   "goal": "Let Claude Code or IBM Bob triage a live alert, read-only, and save the report.",
+   "guide": "docs/labs/07-ai-assisted-sre.md",
+   "check": "ai_triage_report",
+   "needs": null,
+   "achievement": "AI Wrangler",
+   "quiz": [
+    {
+     "q": "Where must every claim in an AI triage come from?",
+     "options": {
+      "a": "The model's memory",
+      "b": "A query result (PromQL, LogQL, kubectl)",
+      "c": "The dashboard title"
+     },
+     "answer": "1beec9f9fd207da9"
+    }
+   ]
+  },
+  {
+   "id": "M18",
+   "title": "Injection proof",
+   "part": 7,
+   "kind": "core",
+   "xp": 200,
+   "goal": "Run the prompt-injection drill: the agent must flag the line and never act on it.",
+   "guide": "docs/labs/07-ai-assisted-sre.md",
+   "check": "injection_flagged",
+   "needs": null,
+   "achievement": "Injection Proof",
+   "quiz": [
+    {
+     "q": "Text inside a log line addressed to the AI is...",
+     "options": {
+      "a": "An instruction to follow",
+      "b": "Untrusted data to report",
+      "c": "Ignored silently"
+     },
+     "answer": "dee6dcb88ad22877"
+    },
+    {
+     "q": "What really stops an AI agent from deleting a pod?",
+     "options": {
+      "a": "A polite prompt",
+      "b": "Enforcement below the prompt: RBAC, deny rules, hooks",
+      "c": "The model's training"
+     },
+     "answer": "4c95bdb39e37143f"
+    }
+   ]
+  },
+  {
+   "id": "M19",
+   "title": "Signed and sealed",
+   "part": 5,
+   "kind": "addon",
+   "xp": 150,
+   "goal": "Publish a release from your fork with a signed image and verified provenance.",
+   "guide": "docs/labs/05-automation-iac-cicd.md",
+   "check": "release_attested",
+   "needs": "github-release",
+   "achievement": "Supply Chain Sentinel",
+   "quiz": [
+    {
+     "q": "What does an SBOM list?",
+     "options": {
+      "a": "Every component inside the image",
+      "b": "The team's on-call schedule",
+      "c": "Kubernetes nodes"
+     },
+     "answer": "494c088434498735"
+    }
+   ]
+  },
+  {
+   "id": "M20",
+   "title": "Policy enforcer",
+   "part": 6,
+   "kind": "addon",
+   "xp": 150,
+   "goal": "Install Kyverno and watch it reject a non-compliant pod.",
+   "guide": "docs/labs/06-delivery-resilience-policy.md",
+   "check": "policy_active",
+   "needs": "kyverno",
+   "achievement": "Policy Enforcer",
+   "quiz": []
+  },
+  {
+   "id": "M21",
+   "title": "Canary whisperer",
+   "part": 6,
+   "kind": "addon",
+   "xp": 200,
+   "goal": "A bad canary is stopped by the SLO analysis and rolled back automatically.",
+   "guide": "docs/labs/06-delivery-resilience-policy.md",
+   "check": "canary_gated",
+   "needs": "argo-rollouts",
+   "achievement": "Canary Whisperer",
+   "quiz": [
+    {
+     "q": "Why release to 25% first?",
+     "options": {
+      "a": "To limit how many users a bad version hurts",
+      "b": "It is faster",
+      "c": "Kubernetes requires it"
+     },
+     "answer": "51dfe418bfa5bd1b"
+    }
+   ]
+  },
+  {
+   "id": "M23",
+   "title": "Watching the model",
+   "part": 4,
+   "kind": "core",
+   "xp": 100,
+   "goal": "See token usage and model latency on the LLM Observability dashboard.",
+   "guide": "docs/labs/04-logs-traces-llm.md",
+   "check": "genai_metrics",
+   "needs": null,
+   "achievement": null,
+   "quiz": [
+    {
+     "q": "Why give model calls their own latency SLO?",
+     "options": {
+      "a": "They are slow and variable compared with normal requests",
+      "b": "Grafana cannot mix them",
+      "c": "Tokens are free"
+     },
+     "answer": "38290438bcb6fab9"
+    }
+   ]
+  },
+  {
+   "id": "M27",
+   "title": "Game day captain",
+   "part": 7,
+   "kind": "capstone",
+   "xp": 300,
+   "goal": "Run the AI-assisted game day and publish a postmortem that separates AI suggestions from human decisions.",
+   "guide": "docs/labs/07-ai-assisted-sre.md",
+   "check": "gameday_postmortem",
+   "needs": null,
+   "achievement": "Game Day Captain",
+   "quiz": []
+  }
+ ]
+}

@@ -2,7 +2,9 @@
 
 A complete, hands-on SRE course on one working stack, for **students** (follow the parts in order) and **professors** (each module has objectives, timing, self-checks with answers, common problems and instructor notes).
 
-Before Part 1, students install the tools with the [step-by-step guide for Mac and Windows](../GUIDE.md).
+Before Part 1, students install the tools with the [step-by-step guide for Mac and Windows](../GUIDE.md), or let IBM Bob install them and guide the whole lab ([BOB-QUICKSTART.md](../BOB-QUICKSTART.md)).
+
+**The lab is a game.** Each module is a mission in [`lab/missions.json`](../../lab/missions.json) with XP, a short quiz and an automatic check (`python3 scripts/lab.py check <ID>`) that looks for real evidence on the student's cluster or fork. Mission **B00 "Meet your AI partner"** comes first and teaches how to work with IBM Bob (modes, approvals, `AGENTS.md`, slash commands). Students finish with `python3 scripts/lab.py proof --name "<name>"`, which writes a passport, a badge and a hashed evidence file to `lab-proof/`. Professors can grade from that passport plus the evidence listed in each part's instructor notes.
 
 | Part | Modules | Time | Memory |
 | --- | --- | --- | --- |
