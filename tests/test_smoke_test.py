@@ -108,6 +108,8 @@ def test_part_b_stops_on_wrong_context(monkeypatch):
       pod("errload", "application", phase="Succeeded"), pod("kube-proxy", "kube-system", phase="Pending")], "PASS"),
     ([pod("sre-metrics-app-1", "application"), pod("sre-metrics-app-2", "application"),
       pod("errload", "application", phase="Failed", ready=False)], "PASS"),
+    ([pod("sre-metrics-app-1", "application"), pod("sre-metrics-app-2", "application"),
+      pod("errload", "application", phase="Pending", ready=False)], "PASS"),
     ([pod("sre-metrics-app-1", "application")], "FAIL"),
     ([pod("sre-metrics-app-1", "application"), pod("sre-metrics-app-2", "application"),
       pod("grafana-1", "monitoring", ready=False)], "FAIL"),

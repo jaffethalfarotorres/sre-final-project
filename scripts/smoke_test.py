@@ -214,6 +214,8 @@ def check_pods():
         phase = pod.get("status", {}).get("phase", "")
         statuses = pod.get("status", {}).get("containerStatuses", [])
         ready = bool(statuses) and all(s.get("ready") for s in statuses)
+        if pod["metadata"]["name"] == "errload":
+            continue  # the alert-drill pod (k8s/drills/errload-pod.yaml): it comes and goes, never part of the lab
         if phase in ("Succeeded", "Failed") and not pod["metadata"].get("ownerReferences"):
             continue  # a finished one-off pod (for example the errload drill), not part of the running lab
         count += 1
