@@ -11,6 +11,36 @@
 
 It started as my SRE Academy 2026 final project and grew into a **complete, reusable lab**. It covers every topic and exercise of the 2026 course on one working stack, adds the topics a 2027 class needs (AI-assisted operations with IBM Bob, Claude Code optional, MCP safety, supply chain security, policy as code, canary releases, DORA metrics, LLM observability), and comes with a lab guide that professors can teach from.
 
+<a id="final-project-requirements"></a>
+## Final project: grader view
+
+This table maps the official rubric to the repository. Each row links to the file and to the evidence.
+
+| Requirement | Where it is | Evidence |
+| --- | --- | --- |
+| 1. Application emits metrics | Python Flask app with Prometheus metrics, OpenTelemetry traces and JSON logs: [`app/app.py`](app/app.py); tests in [`tests/`](tests/) | [grafana-golden-signals.png](docs/screenshots/grafana-golden-signals.png), [jaeger-trace.png](docs/screenshots/jaeger-trace.png), [grafana-loki-logs.png](docs/screenshots/grafana-loki-logs.png) |
+| 2. Kubernetes deployment | Minikube and Kustomize, 2 replicas, probes, limits, non-root, rolling updates: [`k8s/application.yaml`](k8s/application.yaml), [`k8s/kustomization.yaml`](k8s/kustomization.yaml), [`scripts/deploy.sh`](scripts/deploy.sh), [`scripts/deploy.ps1`](scripts/deploy.ps1) | [pods.png](docs/screenshots/pods.png) |
+| 3. Prometheus scraping | Pull model: Kubernetes service discovery finds the app and the Collector's span metrics, plus cAdvisor and blackbox jobs: [`k8s/config/prometheus/prometheus.yml`](k8s/config/prometheus/prometheus.yml); 5 alert rules in [`alerts.yml`](k8s/config/prometheus/alerts.yml); 17 recording rules and 4 burn-rate alerts in [`slo.yml`](k8s/config/prometheus/slo.yml) | [prometheus-targets.png](docs/screenshots/prometheus-targets.png), [prometheus-alerts.png](docs/screenshots/prometheus-alerts.png) |
+| 4. Grafana dashboards | 4 dashboards as code: overview, golden signals, SLO and error budget, LLM observability: [`k8s/config/grafana/dashboards/`](k8s/config/grafana/dashboards/), [`datasources.yaml`](k8s/config/grafana/datasources.yaml) | [grafana-sre-metrics.png](docs/screenshots/grafana-sre-metrics.png), [grafana-golden-signals.png](docs/screenshots/grafana-golden-signals.png), [grafana-slo.png](docs/screenshots/grafana-slo.png), [grafana-llm.png](docs/screenshots/grafana-llm.png) |
+| 5. Alertmanager | Routing by severity, inhibition, receivers for Slack, email and AWX: [`k8s/alertmanager.yaml`](k8s/alertmanager.yaml); Grafana alerts use the same routes; runbooks in [`docs/runbooks/`](docs/runbooks/) | [alertmanager-alert.png](docs/screenshots/alertmanager-alert.png) |
+| 6. Documentation | This README, the [guide](docs/GUIDE.md), the [lab parts](docs/labs/README.md), [`LICENSE.md`](LICENSE.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), comments in the code and manifests | [Screenshots](#evidence) |
+| Bonus: external notifications | Slack and email receivers in [`k8s/alertmanager.yaml`](k8s/alertmanager.yaml); setup in [guide section 6](docs/GUIDE.md#6-optional-get-alerts-in-slack-and-email) | Config only. Delivery proof: **pending** (it needs the author's own Slack webhook or SMTP account). <!-- When ready: replace this cell with [notification-delivered.png](docs/screenshots/notification-delivered.png) --> |
+| Bonus: Infrastructure as Code | [`terraform/`](terraform/), [`ansible/`](ansible/), [`helm/`](helm/), Kustomize in [`k8s/`](k8s/) | [helm-deployment.png](docs/screenshots/helm-deployment.png), [helm-prometheus-targets.png](docs/screenshots/helm-prometheus-targets.png) (Helm path, earlier capture) |
+| Bonus: CI/CD | [`ci.yml`](.github/workflows/ci.yml) (tests, flake8, bandit, pip-audit, kubeconform, promtool, amtool, Terraform, Ansible) and [`cd.yml`](.github/workflows/cd.yml) (GHCR, SBOM, Trivy, cosign, provenance) | [ci-green.png](docs/screenshots/ci-green.png), and the badges above |
+
+**Minimum to meet the six requirements:** the core stack from `scripts/deploy.*` (no add-ons needed).
+
+The full details are below: [What you get](#what-you-get), [Quick start](#quick-start), [Optional add-ons](#optional-add-ons-one-at-a-time), [CI/CD](#cicd) and [Evidence](#evidence).
+
+## How this was built
+
+I am an SRE Academy 2026 student from a non-technical background. I built this project with an AI coding assistant, and I want to be clear about who did what.
+
+- **What I did:** I set the goals, the scope and the design decisions: a public portfolio project, Minikube on a laptop, Python for the app, a guided lab with IBM Bob for the 2027 class, and the safety rules for the AI tools. I directed the work, approved the changes and decided each release. The whole stack runs on my own laptop.
+- **What the AI did:** Claude Code (by Anthropic) generated most of the code, the manifests and the documentation, following my direction. It also ran the live checks on my local Minikube cluster. I used AI review panels to find problems before submitting.
+- **How to see it:** commits made with AI help carry a `Co-Authored-By` trailer in the Git history.
+- **What I can explain end to end:** the alert path, from a failing request to the metric, the Prometheus rule and the Alertmanager route; the SLO burn-rate alerts and why they use two windows; and how the app is deployed on Kubernetes.
+
 ## Start here: let IBM Bob guide you
 
 Built for **non-technical students**. Paste one message into [IBM Bob](https://bob.ibm.com) and Bob installs the tools, sets up the lab on your laptop and then guides you through the missions, explaining every idea in plain words. You learn SRE, the tools and how to work with an AI partner at the same time, earn **XP, levels and badges**, and finish with a **self-generated SRE Lab Passport** that your professor confirms in a short live check-off.
@@ -40,7 +70,7 @@ The lab is one journey, built for IBMers from non-technical teams who want to mo
 | 6. The Proving Grounds | Release engineering: gradual, reversible changes, tested by breaking things on purpose |
 | 7. The AI Command Center | Trust, but verify: AI helps on call only with least privilege and human judgement |
 
-Ranks by XP: Career Changer (0) → Tech Apprentice (500) → SRE Intern (1300) → Junior SRE Candidate (2300) → Interview-Ready Junior SRE (3300). The missions are B00 (orientation, with the "Stay in control" safety rules), core missions M00-M23 including **M09b** (work in your own fork), six optional add-ons, and the capstone game day **M27**.
+Ranks by XP: Career Changer (0) → Tech Apprentice (500) → SRE Intern (1300) → Junior SRE Candidate (2300) → Interview-Ready Junior SRE (3300). There are 31 missions (`lab.py missions`): 20 core missions (B00 orientation with the "Stay in control" safety rules, then the core missions from M00 to M23, including **M09b**, work in your own fork), 6 optional add-ons (M10X, M13, M15, M19, M20, M21), 4 optional portfolio projects and the capstone game day **M27**. The mission IDs have gaps on purpose: M22 and M24 to M26 are not used.
 
 **Portfolio projects** (optional, open to everyone, pieces to show in interviews):
 
@@ -116,7 +146,9 @@ Every 2026 topic and exercise, and the roadmap.sh DevOps areas, are mapped to fi
 ## Optional add-ons (one at a time)
 The core stack uses about 3.5 GB. `./scripts/deploy.sh` creates a 4 GB Minikube, which is enough for the core stack only. For the add-ons (16 GB laptop), first create a 6 GB cluster with `minikube start --driver=docker --memory=6144` (run `minikube delete` first if a cluster already exists, because `minikube start` cannot change the memory of an existing cluster; on a Mac, run `colima stop && colima start --cpu 4 --memory 8` first), then run `./scripts/deploy.sh`. Run one add-on, then remove it before the next. On an 8 GB laptop, stay with the core stack. The commands below are for Mac/Linux; on Windows type `python scripts\<name>.py` instead of `python3 scripts/<name>.py`.
 
-| Add-on | Command | Extra memory | What it proves (verified) |
+Checked live by the author on Minikube in November 2026; the screenshots below show the core stack.
+
+| Add-on | Command | Extra memory | What you should see |
 | --- | --- | --- | --- |
 | ArgoCD | `python3 scripts/gitops_setup.py` | ~0.8 GB | Synced from GitHub; a manual change is reverted in ~5 s |
 | Chaos | `python3 scripts/chaos_test.py` | ~0.5 GB | Pods killed for 30 s, the app kept answering, verdict Pass |
@@ -127,35 +159,69 @@ The core stack uses about 3.5 GB. `./scripts/deploy.sh` creates a 4 GB Minikube,
 | Bad release | `python3 scripts/rollout_demo.py` | none | Users kept being served; rollback in ~1 s |
 | Terraform | `cd terraform && terraform init && terraform apply` | ~0.2 GB | A staging copy of the app created and destroyed from code |
 
-## Final project requirements
-
-| Requirement | Implementation |
-| --- | --- |
-| 1. Application | Python Flask app emitting metrics, traces and logs ([`app/app.py`](app/app.py)); 61 automated tests for the app and the AI guard hook |
-| 2. Kubernetes | Minikube, Kustomize, 2 replicas, probes, limits, non-root, rolling updates |
-| 3. Prometheus | Pod discovery by annotation, cAdvisor, blackbox and span-metric jobs; 5 alert rules + 16 SLO rules |
-| 4. Grafana | 4 provisioned dashboards: overview, golden signals, SLO and error budget, LLM observability |
-| 5. Alertmanager | Severity routing to Slack, email and AWX; Grafana alerts flow through the same routes |
-| 6. Documentation | This README, a beginner guide, 7 lab parts, runbooks, SLO/ORR/incident docs, [`LICENSE.md`](LICENSE.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), screenshots |
-| Bonus: notifications | Slack and email receivers ([`k8s/alertmanager.yaml`](k8s/alertmanager.yaml)); setup in [guide section 6](docs/GUIDE.md#6-optional-get-alerts-in-slack-and-email) |
-| Bonus: IaC | Helm, Terraform, Ansible, Kustomize |
-| Bonus: CI/CD | CI: tests, security scans, config validation, multi-arch build, scripts checked on Linux, macOS and Windows. CD: GHCR, SBOM, vulnerability gate, signing, provenance, Helm chart release |
-
 ## Evidence
 
-Screenshots of the working deployment are in [`docs/screenshots/`](docs/screenshots/).
+Screenshots of the core stack are in [`docs/screenshots/`](docs/screenshots/). The requirement for each one is in the [grader view](#final-project-grader-view).
 
-**All pods running** · **Prometheus target UP** · **Grafana dashboard with live data**
+**All pods running in every namespace (`kubectl get pods -A`)** (captured 2026-11-19 from the live cluster, commit e308f25, during an alert drill)
 
-![All pods running](docs/screenshots/pods.png)
-![Prometheus targets](docs/screenshots/prometheus-targets.png)
-![Grafana dashboard](docs/screenshots/grafana-dashboard.png)
+![All pods running in every namespace (kubectl get pods -A)](docs/screenshots/pods.png)
 
-**Prometheus alerts** · **Alertmanager with a firing `HighErrorRate`** · **Helm deployment**
+**Prometheus targets UP, including blackbox and cAdvisor** (captured 2026-11-19 from the live cluster, commit e308f25, during an alert drill)
 
-![Prometheus alerts](docs/screenshots/prometheus-alerts.png)
-![Alertmanager alerts](docs/screenshots/alertmanager-alert.png)
+![Prometheus targets UP, including blackbox and cAdvisor](docs/screenshots/prometheus-targets.png)
+
+**Prometheus alert rules and their state** (captured 2026-11-19 from the live cluster, commit e308f25, during an alert drill)
+
+![Prometheus alert rules and their state](docs/screenshots/prometheus-alerts.png)
+
+**Alertmanager routing the drill alerts (`HighErrorRate`, `ErrorBudgetFastBurn`, `ErrorBudgetSlowBurn`) to their receivers** (captured 2026-11-19 from the live cluster, commit e308f25, during an alert drill)
+
+![Alertmanager routing the drill alerts to their receivers](docs/screenshots/alertmanager-alert.png)
+
+**Grafana: SRE metrics overview dashboard** (captured 2026-11-19 from the live cluster, commit e308f25, during an alert drill)
+
+![Grafana: SRE metrics overview dashboard](docs/screenshots/grafana-sre-metrics.png)
+
+**Grafana: golden signals dashboard** (captured 2026-11-19 from the live cluster, commit e308f25, during an alert drill)
+
+![Grafana: golden signals dashboard](docs/screenshots/grafana-golden-signals.png)
+
+**Grafana: SLO and error budget dashboard** (captured 2026-11-19 from the live cluster, commit e308f25, during an alert drill)
+
+![Grafana: SLO and error budget dashboard](docs/screenshots/grafana-slo.png)
+
+The low availability and the negative budget are expected here: Prometheus had restarted about an hour earlier and two drills sent mostly failing requests since then, so the "30 days" window held only that hour. See [Limits of this lab](docs/SLO.md#limits-of-this-lab).
+
+**Grafana: LLM observability dashboard** (captured 2026-11-19 from the live cluster, commit e308f25, during an alert drill)
+
+![Grafana: LLM observability dashboard](docs/screenshots/grafana-llm.png)
+
+**Grafana Explore on Loki: JSON logs with trace IDs** (captured 2026-11-19 from the live cluster, commit e308f25, during an alert drill)
+
+![Grafana Explore on Loki: JSON logs with trace IDs](docs/screenshots/grafana-loki-logs.png)
+
+**Jaeger: one failing `/store` request traced through the app (3 spans, the failed step marked)** (captured 2026-11-19 from the live cluster, commit e308f25, during an alert drill)
+
+![Jaeger: one failing /store request traced through the app](docs/screenshots/jaeger-trace.png)
+
+**Mission Control, the lab dashboard (`lab.py play`)** (captured 2026-11-19 from the live cluster, commit e308f25, during an alert drill)
+
+![Mission Control, the lab dashboard (lab.py play)](docs/screenshots/mission-control.png)
+
+**GitHub Actions: a CI run with all jobs green** (captured 2026-11-19 from the live cluster, commit e308f25, during an alert drill)
+
+![GitHub Actions: a CI run with all jobs green](docs/screenshots/ci-green.png)
+
+**Helm deployment** (Helm path, earlier capture)
+
 ![Helm deployment](docs/screenshots/helm-deployment.png)
+
+**Prometheus targets on the Helm path** (Helm path, earlier capture)
+
+![Helm Prometheus targets](docs/screenshots/helm-prometheus-targets.png)
+
+**Notification delivered to Slack or email:** pending. It needs the author's own Slack webhook or SMTP account. <!-- When ready: add ![Notification delivered](docs/screenshots/notification-delivered.png) here -->
 
 ## Repository layout
 

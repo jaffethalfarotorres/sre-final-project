@@ -22,6 +22,7 @@ If you already set up your computer for the course exercises, skip to [step 3](#
 - [5. Make an alert fire](#5-make-an-alert-fire)
 - [6. Optional: get alerts in Slack and email](#6-optional-get-alerts-in-slack-and-email)
 - [7. Optional: publish the app image to Docker Hub](#7-optional-publish-the-app-image-to-docker-hub)
+- [Your final project: what you must hand in](#your-final-project-what-you-must-hand-in)
 - [8. Stop, restart and clean up](#8-stop-restart-and-clean-up)
 - [Troubleshooting](#troubleshooting)
 - [Glossary](#glossary)
@@ -51,20 +52,20 @@ The alarm rules are:
 
 | Alarm | When it goes off |
 | --- | --- |
-| `ServiceDown` | The shop stops answering for 1 minute. |
+| `ServiceDown` | Prometheus cannot reach one copy (pod) of the shop for 1 minute. It checks each pod on its own, so one lost pod is enough. |
 | `HighErrorRate` | More than 5% of requests fail over 5 minutes, while the shop gets real traffic (more than 0.2 requests per second), for 2 minutes. |
-| `HighLatency` | Pages take longer than half a second for 2 minutes. |
+| `HighLatency` | The slowest 5% of `/store` requests take longer than half a second, for 2 minutes. |
 | `SyntheticProbeFailing` | A robot check (blackbox exporter) cannot open the shop's home page: fewer than 90% of checks succeed over 2 minutes, for 2 minutes. |
 | `ErrorBudgetFastBurn` | The shop is using up its monthly failure allowance more than 14.4 times faster than planned, over both the last hour and the last 5 minutes (see `docs/SLO.md`). At that speed the whole month's allowance is gone in about 2 days. This is urgent: it pages a person. |
-| `ErrorBudgetSlowBurn` | The failure allowance is being spent more than 6 times faster than planned, over both the last 6 hours and the last 30 minutes. This is serious, but it can wait for working hours. A third, gentler rule opens a ticket when the burn stays above 1x for 3 days. |
-| `ErrorBudgetExhausted` | The whole 30-day failure allowance is used up. On a fresh cluster this stays quiet until there are about 100,000 requests of history. |
+| `ErrorBudgetSlowBurn` | The failure allowance is being spent more than 6 times faster than planned, over both the last 6 hours and the last 30 minutes. This is serious: fix it today, in working hours. A third, gentler rule opens a ticket when the burn stays above 1x for 3 days. |
+| `ErrorBudgetExhausted` | The whole 30-day failure allowance is used up. On a fresh cluster this stays quiet until there are 500,000 requests of history (about 4.5 days of lab traffic). |
 | `AlwaysFiringDemoAlert` | Always on. It only proves the alarm system works. |
 
 Grafana adds two more rules of its own, one built on traces (`StoreLatencyFromTraces`) and one built on logs (`ErrorLogBurst`). You see them under Grafana > Alerting, not in Prometheus.
 
 Everything runs on your computer. Nothing is sent to the internet unless you set up Slack or email in step 6. It works on Apple Silicon (M1 to M4) and Intel Macs, and on any Windows 10 or 11 PC, because the app is built on your own machine instead of downloaded for one type of processor.
 
-**What you need:** about 8 GB of RAM (16 GB is more comfortable; with WSL you must give it at least 5 GB, see [WSL step 2](#windows-by-hand-wsl2-and-ubuntu)), 20 GB of free disk space and an internet connection for the first run.
+**What you need:** about 8 GB of RAM (16 GB is more comfortable; with WSL you must give it at least 5 GB, see [WSL step 2](#windows-by-hand-wsl2-and-ubuntu); on an 8 GB Mac give Colima 4 GB, see [Mac step 5](#mac)), 20 GB of free disk space and an internet connection for the first run.
 
 ---
 
@@ -78,29 +79,51 @@ You will type commands in the **Terminal** app. To open it, press **Cmd + Space*
    ```bash
    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
    ```
-   When it finishes, it may print two or three lines under **Next steps** that start with `echo` or `eval`. Copy and run those lines too. Then check:
+   When it finishes, it may print two or three lines under **Next steps** that start with `echo` or `eval`. Copy and run those lines too.
+2. **Apple silicon Macs (M1 to M4) only: add Homebrew to your PATH.** On these Macs Homebrew lives in `/opt/homebrew`, and Terminal does not find it until you run these two lines. The first line fixes this window. The second line fixes every new window. (Intel Macs skip this step. If you already ran the same `eval` and `echo` lines from **Next steps** in step 1, skip it too.)
+   ```bash
+   eval "$(/opt/homebrew/bin/brew shellenv)"
+   echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
+   ```
+   Then check:
    ```bash
    brew --version
    ```
-2. **Install the tools:**
+   `command not found: brew` means this step was skipped. Run it, then try again.
+3. **Install the tools:**
    ```bash
    brew install colima docker minikube kubectl helm git gh python
    ```
-   (`gh` is the GitHub command line, used from lab Part 3; `python` gives you `python3` for the add-on scripts.)
-3. **Start Colima** (it gives your Mac the engine that runs containers; use Colima instead of Docker Desktop, as in the course):
+   (`gh` is the GitHub command line, used in [step 3](#3-download-and-start-the-project) to fork the project and again in lab Part 3; `python` gives you `python3` for the tests and the lab scripts.)
+4. **Check your Python version.** The lab needs Python **3.10 or newer**:
+   ```bash
+   python3 --version
+   ```
+   If it shows `3.9` (Apple's own Python, too old for the tests), Homebrew is not first in your PATH. Do step 2 again and open a new Terminal window. Still `3.9`? Install a fixed version and use `python3.12` wherever this guide says `python3`:
+   ```bash
+   brew install python@3.12
+   python3.12 --version
+   ```
+5. **Start Colima** (it gives your Mac the engine that runs containers; use Colima instead of Docker Desktop, as in the course):
    ```bash
    colima start --cpu 4 --memory 6 --disk 60
    ```
-4. **Check that everything works.** Each line should print a version, not an error:
+   **Mac with 8 GB of memory:** 6 GB for Colima leaves too little for macOS. Use this line instead, and run **no add-ons** (stay with the core stack):
+   ```bash
+   colima start --cpu 2 --memory 4 --disk 60
+   ```
+   Start Colima yourself **before** you run `./scripts/deploy.sh`. The deploy script starts Colima only when it is not running, and then it always uses 6 GB. With 4 GB in Colima, Minikube gets about 3.6 GB. That is enough for the core stack, but not for add-ons.
+6. **Check that everything works.** Each line should print a version, not an error:
    ```bash
    docker version
    minikube version
    kubectl version --client
    git --version
    gh --version
+   python3 --version
    ```
 
-Then log in to GitHub once (needed from lab Part 3): `gh auth login`, choose **GitHub.com**, **HTTPS** and **Login with a web browser**. Go to [step 3](#3-download-and-start-the-project).
+Then log in to GitHub once (needed for the fork in step 3): `gh auth login`, choose **GitHub.com**, **HTTPS** and **Login with a web browser**. Go to [step 3](#3-download-and-start-the-project).
 
 ### Windows (PowerShell, used by IBM Bob)
 
@@ -186,7 +209,7 @@ Use this path only if you follow the guide **without** IBM Bob. The tools run in
    sudo install minikube-linux-amd64 /usr/local/bin/minikube && rm minikube-linux-amd64
    curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
    ```
-7. **Install the GitHub command line** (used from lab Part 3; Ubuntu's own `gh` package is too old, so use GitHub's repository) and the Python tools for the add-on scripts:
+7. **Install the GitHub command line** (used in step 3 to fork the project and in lab Part 3; Ubuntu's own `gh` package is too old, so use GitHub's repository) and the Python tools for the add-on scripts:
    ```bash
    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/etc/apt/keyrings/githubcli-archive-keyring.gpg
    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
@@ -404,9 +427,9 @@ You can also start it by hand: **Actions > CD > Run workflow**.
 
 Everything above is the core of the project. The [lab guide](labs/README.md) continues from here, one topic at a time: logs and traces, SLOs, automation with Ansible and AWX, GitOps with ArgoCD, chaos engineering, policies, canary releases, and AI assistants (Claude Code and IBM Bob) that help investigate incidents without being allowed to change anything ([AI-SRE.md](AI-SRE.md)).
 
-The add-ons are started with a Python script (Python 3 comes with Ubuntu; on Mac run `brew install python@3.12` if `python3 --version` fails or shows 3.9, and use `python3.12` instead of `python3`; on Windows always use `python`, never `python3`). Run **one at a time** and remove it before the next, so Minikube does not run out of memory.
+The add-ons are started with a Python script (Python 3 comes with Ubuntu; on Mac run `brew install python@3.12` if `python3 --version` fails or shows 3.9, and use `python3.12` instead of `python3`, see [Mac step 4](#mac); in Windows PowerShell always use `python`, never `python3`). Run **one at a time** and remove it before the next, so Minikube does not run out of memory.
 
-Add-ons need a 6 GB Minikube on a 16 GB laptop (see [labs/01, step 4](labs/01-foundations.md)). On an 8 GB laptop, stay with the core stack. For example:
+Add-ons need a 6 GB Minikube on a 16 GB laptop (see [labs/01, step 4](labs/01-foundations.md)). On an 8 GB laptop, stay with the core stack (Mac: Colima with `--memory 4`, see [Mac step 5](#mac)). For example:
 ```bash
 python3 scripts/chaos_test.py
 ```
@@ -414,7 +437,7 @@ Windows PowerShell: `python scripts\chaos_test.py`
 
 ### The Road to Junior SRE (the lab game, also without Bob)
 
-The lab is one journey: you start as a **Career Changer** and climb 8 camps to **On-Call Ready**, the day a team trusts you with the pager. Each camp gives Nimbus Store (the pretend shop) a real new capability, teaches one SRE principle and lists skills you can name on your CV. You can play it by hand with the same script Bob uses (Mac/Linux shown; on Windows type `python scripts\lab.py ...`):
+The lab is one journey: you start as a **Career Changer** and climb 8 camps to **On-Call Ready**, the day a team trusts you with the pager. Each camp gives Nimbus Store (the pretend shop) a real new capability, teaches one SRE principle and lists skills you can name on your CV. You can play it by hand with the same script Bob uses. The commands below are for **Mac** and for the **Ubuntu window (WSL)**: `python3 scripts/lab.py ...`. Only in **Windows PowerShell** type `python scripts\lab.py ...` instead (the backslash and `python` work only there):
 
 ```bash
 python3 scripts/lab.py status          # your rank, XP and next mission
@@ -427,6 +450,28 @@ python3 scripts/lab.py proof --name "Your Name"   # your SRE Lab Passport
 ```
 
 Ranks by XP: Career Changer (0), Tech Apprentice (500), SRE Intern (1300), Junior SRE Candidate (2300), Interview-Ready Junior SRE (3300). Quizzes are for learning only: they never block a mission and are never graded. The passport is a self-generated record, not a certificate; its fingerprint shows later edits but is not a signature. Your professor confirms it with `lab.py verify` or a short live demo.
+
+---
+
+## Your final project: what you must hand in
+
+The SRE Academy final project has **six required items** and **three bonuses**. This table shows where you do each one in this lab. Everything you hand in lives in **your own fork** (see [step 3](#3-download-and-start-the-project)). A copy of this repository with no changes of your own earns no credit.
+
+| # | Requirement | What you do in this lab |
+| --- | --- | --- |
+| 1 | An app that emits metrics or alerts | Deploy the core stack ([step 3](#3-download-and-start-the-project)). The app in `app/app.py` emits metrics, traces and logs. |
+| 2 | Deployment on Kubernetes | Same: `deploy.sh` (or `deploy.ps1`) runs everything on Minikube. |
+| 3 | Prometheus collects the metrics | Same: check **Status > Targets** in Prometheus ([step 4](#4-look-at-the-dashboards)). |
+| 4 | Grafana dashboards | Same: the four dashboards in the **SRE Demo** folder ([step 4](#4-look-at-the-dashboards)). |
+| 5 | Alertmanager | Make an alert fire ([step 5](#5-make-an-alert-fire)) and see it in Alertmanager. |
+| 6 | Professional documentation | In your fork: a `README.md` that explains **your** work, comments in your code, `LICENSE.md`, `CONTRIBUTING.md`, and **your own screenshots** in `docs/screenshots/`, taken on your laptop. |
+| Bonus a | Notifications to Slack or email | [Step 6](#6-optional-get-alerts-in-slack-and-email). Keep one screenshot of the message that arrived (hide the webhook and passwords). |
+| Bonus b | Infrastructure as Code | The `terraform/`, `ansible/` and `helm/` folders (`./scripts/deploy.sh --helm` is the Helm path). Show that you ran one of them. |
+| Bonus c | CI/CD pipeline | The GitHub Actions workflows in **your fork** (**Actions** tab). Keep a screenshot of a green run. [Step 7](#7-optional-publish-the-app-image-to-docker-hub) adds the CD part. |
+
+Your own change counts too. The [lab guide](labs/README.md) says what your professor expects: for example a new endpoint with a test, an SLO alert, a Grafana panel and a runbook, with CI green in your fork.
+
+**The licence.** Keep the MIT copyright line in `LICENSE.md` as it is (it names the original author). Add a new line under it with your own name and year, for example `Copyright (c) 2027 Your Name`. Do not delete the original line.
 
 ---
 
@@ -464,13 +509,14 @@ If a command fails, **you are probably not doing anything wrong**. Find the mess
 | What you see | What to do |
 | --- | --- |
 | Mac: `Cannot connect to the Docker daemon` | Run `colima start`, wait for it to finish, try again. |
+| Mac: `command not found: brew`, or `python3 --version` shows 3.9 | Homebrew is not in your PATH. Do [Mac step 2](#mac) (the `brew shellenv` lines), open a new Terminal window and check again. Still 3.9? Do Mac step 4 (`brew install python@3.12`). |
 | Windows (PowerShell): `Cannot connect to the Docker daemon` or `error during connect` | Start Docker Desktop or Rancher Desktop from the **Start** menu and wait until it says it is running. |
 | Windows (WSL): `Cannot connect to the Docker daemon` or `permission denied ... docker.sock` | Close and reopen the Ubuntu window. If it persists, run `sudo systemctl start docker`. Check step 4 of the Windows install (systemd) was done. |
 | `command not found` for `minikube`, `kubectl` or `helm` | The install step for that tool did not finish. Run it again and reopen the window. |
 | `permission denied: ./scripts/deploy.sh` | Run `chmod +x scripts/deploy.sh` once, then try again. |
 | `No such file or directory` for `scripts/deploy.sh` or `k8s/...` | You are not in the project folder. Run `cd ~/sre-final-project`. |
 | `Docker has only ...MB of memory` (from deploy.sh) or `Docker has only ...MB memory but you specified 4096MB` (from Minikube) | Docker has too little memory. Windows with IBM Bob: raise the memory in Docker Desktop (**Settings > Resources**) or Rancher Desktop (**Preferences > Virtual Machine**) to at least 5 GB. Windows by hand: do step 2 of the WSL install (`.wslconfig`), run `wsl --shutdown` and reopen Ubuntu. Mac: `colima stop` then `colima start --cpu 4 --memory 6`. Then run `minikube delete` and `./scripts/deploy.sh` again. |
-| Pods stuck in `Pending` or `ContainerCreating` for more than 5 minutes | The computer is short on memory. Mac: `colima stop` then `colima start --cpu 4 --memory 6`. Windows: close other programs. Then run `minikube delete` and `./scripts/deploy.sh` again. |
+| Pods stuck in `Pending` or `ContainerCreating` for more than 5 minutes | The computer is short on memory. Mac: `colima stop` then `colima start --cpu 4 --memory 6` (8 GB Mac: `--cpu 2 --memory 4`, and close other apps). Windows: close other programs. Then run `minikube delete` and `./scripts/deploy.sh` again. |
 | A pod shows `CrashLoopBackOff` | Run `kubectl get pods -A` again in a minute; Kubernetes retries on its own. If it stays, run `./scripts/deploy.sh` again. |
 | Browser says "This site can't be reached" on localhost | The tunnels are not running. Run `./scripts/dashboards.sh --background` again (Windows: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\dashboards.ps1 -Background`). |
 | `curl` or the browser gets nothing right after starting the tunnels | The tunnels need a few seconds to get ready. Wait 5 seconds and try again. |

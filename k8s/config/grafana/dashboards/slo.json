@@ -41,9 +41,9 @@
     },
     {
       "id": 5, "type": "timeseries", "title": "Error budget burn rate",
-      "description": "1x spends the budget exactly over 30 days. The fast-burn alert fires above 6x (5 m) and 1x (1 h).",
+      "description": "1x spends the budget exactly over 30 days. ErrorBudgetFastBurn (page) fires above 14.4x on 1 h and 5 m. ErrorBudgetSlowBurn (today) fires above 6x on 6 h and 30 m. Lines: orange at 6x, red at 14.4x.",
       "datasource": {"type": "prometheus", "uid": "prometheus"},
-      "fieldConfig": {"defaults": {"unit": "short", "custom": {"thresholdsStyle": {"mode": "line"}}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 6}]}}, "overrides": []},
+      "fieldConfig": {"defaults": {"unit": "short", "custom": {"thresholdsStyle": {"mode": "line"}}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "orange", "value": 6}, {"color": "red", "value": 14.4}]}}, "overrides": []},
       "gridPos": {"h": 8, "w": 12, "x": 0, "y": 6},
       "targets": [
         {"refId": "A", "expr": "slo:availability:burn_rate5m", "legendFormat": "5m"},

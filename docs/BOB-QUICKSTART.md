@@ -15,7 +15,7 @@ You will not do it alone. **Bob** (IBM Bob, an AI assistant) is **your AI pair**
 > Don't have IBM Bob? IBMers use their IBM Bob entitlement. Everyone else can use the trial at [bob.ibm.com](https://bob.ibm.com). No Bob at all? Follow the [step-by-step guide](GUIDE.md) by hand, or use Claude Code with `/lab`.
 
 ## What you need
-- A Mac or a Windows laptop with **at least 8 GB of memory** (16 GB is better) and **20 GB of free disk**.
+- A Mac or a Windows laptop with **at least 8 GB of memory** (16 GB is better) and **20 GB of free disk**. With 8 GB you run the core stack only, with no add-ons (Mac: see the Mac box below).
 - Administrator rights on your laptop (to install tools) and about **2 hours** for the setup.
 - IBM Bob installed and signed in, and a free [GitHub](https://github.com) account.
 
@@ -41,8 +41,8 @@ You will not do it alone. **Bob** (IBM Bob, an AI assistant) is **your AI pair**
 > - **Never** turn on auto-approve for **Execute** (running commands) or **Write** (changing files).
 > - **Never** click "always allow" for `python`, `powershell`, `bash`, `curl`, `kubectl`, `git` or `winget`. Approve each command one by one.
 > - **Reject** any command that contains `|`, `;`, `iex`, `-c` as a separate word (like `python -c`), `--kubeconfig`, `delete`, or a web address you do not recognise. Then ask Bob: "Why do you need this?" (Longer words that only start with `-c`, like `--clone` in Step 1, are fine.)
-> - Two known exceptions are safe: the **PATH refresh line** in Step 1 (its `;` is inside quotes), and on Mac the official **Homebrew installer** from [brew.sh](https://brew.sh) (it uses `-c` and an address starting with `https://raw.githubusercontent.com/Homebrew/`).
-> - Only the lab's own commands should run: `python scripts\lab.py ...`, `scripts\*.ps1` (Mac: `scripts/*.sh`), and the install steps in this page.
+> - Two known exceptions are safe: the **PATH refresh line** in Step 1 (its `;` is inside quotes), and on Mac the official **Homebrew installer** from [brew.sh](https://brew.sh) (it uses `-c` and an address starting with `https://raw.githubusercontent.com/Homebrew/`). The two Mac `brew shellenv` lines in Step 1 are also install steps from this page: they only add Homebrew to your PATH.
+> - Only the lab's own commands should run: `python scripts\lab.py ...` and `scripts\*.ps1` in Windows PowerShell; `python3 scripts/lab.py ...` and `scripts/*.sh` on Mac and in Ubuntu (WSL); and the install steps in this page.
 > - A clean-up step that **deletes** something is fine only after Bob has told you what will be lost and you have typed "yes".
 > - If something feels wrong, click **Reject**. Nothing breaks when you say no.
 
@@ -74,6 +74,17 @@ More detail: [On an IBM-managed laptop](GUIDE.md#on-an-ibm-managed-laptop) in th
 
 </details>
 
+<details>
+<summary><b>On a Mac? Read this before the lab day</b></summary>
+
+- **Homebrew PATH (Apple silicon, M1 to M4):** after Homebrew installs, run `eval "$(/opt/homebrew/bin/brew shellenv)"` and add the same line to `~/.zprofile` (Step 1 shows both commands). Without it, Terminal does not find `brew`, and `python3` is Apple's old Python.
+- **Python 3.10 or newer:** run `python3 --version`. Apple's Python 3.9 is too old for the tests. Install a newer one with `brew install python@3.12`, then use `python3.12`.
+- **8 GB Mac:** start Colima yourself with `colima start --cpu 2 --memory 4 --disk 60` before the deploy, and run **no add-ons**. (The deploy script starts Colima with 6 GB only if it is not running yet.)
+- **Container engine:** on a Mac the lab uses Colima, not Docker Desktop, so no Docker licence is needed.
+- More detail: [Mac](GUIDE.md#mac) in the guide.
+
+</details>
+
 ## Step 1: paste this into IBM Bob
 
 1. Open IBM Bob. Open any empty folder (for example a new folder called `labs` in your home folder).
@@ -88,7 +99,13 @@ Set up the SRE Academy lab for me. I am new to this, so explain each step in sim
    After each winget install, refresh PATH in the same terminal:
    $env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User')
    On Windows always use "python", never "python3" (python3 opens the Microsoft Store).
-   Mac: xcode-select --install for git; then Homebrew, then brew install python gh.
+   Mac: xcode-select --install for git; then Homebrew.
+   Apple silicon Mac (M1 to M4): after Homebrew, add it to PATH with two commands:
+   eval "$(/opt/homebrew/bin/brew shellenv)"
+   echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
+   Then brew install python gh, and check python3 --version.
+   It must be 3.10 or newer. If it shows 3.9 (Apple's own Python, too old):
+   brew install python@3.12, and use python3.12 instead of python3.
 3. Ask me to run "gh auth login" myself (GitHub.com, HTTPS, Login with a web browser). That is my step; wait until I say done.
 4. Go to my home folder and run: gh repo fork jaffethalfarotorres/sre-final-project --clone
 5. Tell me how to open the sre-final-project folder in Bob, then stop.
@@ -151,7 +168,7 @@ Take a screenshot, keep the file in your fork, and you have a real story to tell
 
 ## Your CV and interview practice
 
-- **`/my-cv`**: Bob runs `python scripts\lab.py cv` (Mac: `python3 scripts/lab.py cv`). You see the skills you earned, the principles you practised and the interview questions of the camps you cleared. Then Bob helps you turn them into CV or LinkedIn lines in plain English. Bob only writes what you actually did in the lab. It never invents experience.
+- **`/my-cv`**: Bob runs `python scripts\lab.py cv` (Mac and Ubuntu: `python3 scripts/lab.py cv`). You see the skills you earned, the principles you practised and the interview questions of the camps you cleared. Then Bob helps you turn them into CV or LinkedIn lines in plain English. Bob only writes what you actually did in the lab. It never invents experience.
 - **`/interview`**: Bob plays a friendly interviewer for a junior SRE or DevOps role. It asks the questions of the camps you cleared, one at a time. After each answer you get kind feedback and a model answer that points to what you really did in the lab.
 
 ## Commands you can type to Bob
@@ -181,6 +198,7 @@ When you finish the core missions, type `/lab-proof Your Name`. Bob creates `lab
 | What you see | What to do |
 | --- | --- |
 | **SRE Lab Guide** is missing from the mode picker, or `/start-lab` is "not found" | Check you opened the `sre-final-project` folder **itself** (Step 2.1). Then type `/permissions`, choose **Trust** for this folder, and reload Bob (Command Palette > **Developer: Reload Window**). |
+| Mac: `command not found: brew`, or `python3 --version` shows 3.9 | Run the two `brew shellenv` lines from Step 1, open a new Terminal, and check again. Still 3.9? `brew install python@3.12` and use `python3.12`. |
 | `python` opens the Microsoft Store | Install Python with `winget install -e --id Python.Python.3.12 --scope user`, refresh PATH (the line in Step 1), and use `python`, never `python3`. |
 | "not recognized" right after an install | The terminal has an old PATH. Run the PATH refresh line from Step 1, or open a new terminal. |
 | A command keeps running and the chat seems stuck | Some steps take minutes (the alert test takes about 4). That is normal. Wait for Bob to say it finished. |

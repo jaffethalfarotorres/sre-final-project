@@ -109,6 +109,9 @@ if ($Helm) {
     Invoke-Native helm upgrade --install sre-metrics-app helm/sre-metrics-app `
         --namespace application `
         --create-namespace
+    # The image is rebuilt with the same tag (1.0.0), so Kubernetes would keep the old pods running the old code.
+    # Restart the app so every deploy runs the image that was just built.
+    Invoke-Native kubectl rollout restart deployment/sre-metrics-app -n application
 
     Invoke-Native kubectl rollout status deployment/sre-metrics-app -n application --timeout=180s
     Invoke-Native kubectl rollout status deployment/kube-prometheus-stack-operator -n monitoring --timeout=180s
@@ -126,6 +129,9 @@ else {
     Invoke-Native kubectl apply -f $SecretFile
     Invoke-Native kubectl apply -f $GrafanaSecretFile
     Invoke-Native kubectl apply -k k8s
+    # The image is rebuilt with the same tag (1.0.0), so Kubernetes would keep the old pods running the old code.
+    # Restart the app so every deploy runs the image that was just built.
+    Invoke-Native kubectl rollout restart deployment/sre-metrics-app -n application
 
     foreach ($d in "monitoring/prometheus", "monitoring/alertmanager", "monitoring/grafana", "monitoring/blackbox-exporter",
         "opentelemetry/otel-collector", "opentelemetry/jaeger", "opentelemetry/loki", "application/sre-metrics-app") {

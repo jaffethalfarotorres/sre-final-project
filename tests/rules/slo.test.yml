@@ -142,3 +142,49 @@ tests:
       - eval_time: 6h
         alertname: ErrorBudgetTicket
         exp_alerts: []
+
+  # 7) Fresh cluster: 1 day of normal traffic (~112,000 requests), then one 10-minute classroom drill
+  #    (~2,500 failed calls to /error). On so little history the drill looks like more than the whole
+  #    30-day budget (remaining budget below 0), but the 500,000-request guard keeps
+  #    ErrorBudgetExhausted quiet. One drill must never freeze releases on a young cluster.
+  - interval: 1m
+    input_series:
+      - series: 'http_requests_total{namespace="application", endpoint="/", status="200"}'
+        values: '0+50x1470'
+      - series: 'http_requests_total{namespace="application", endpoint="/store", status="200"}'
+        values: '0+27.86x1470'
+      - series: 'http_requests_total{namespace="application", endpoint="/store", status="500"}'
+        values: '0+0.14x1470'
+      - series: 'http_requests_total{namespace="application", endpoint="/error", status="500"}'
+        values: '0x1440 252+252x9 2520x20'
+    alert_rule_test:
+      - eval_time: 1470m
+        alertname: ErrorBudgetExhausted
+        exp_alerts: []
+    promql_expr_test:
+      # The budget really looks spent: only the guard stops the alert.
+      - expr: count(slo:availability:error_budget_remaining < 0)
+        eval_time: 1470m
+        exp_samples:
+          - labels: '{}'
+            value: 1
+
+  # 8) The guard does not hide a real problem: 5 days of traffic (~560,000 requests) with 2% failures
+  #    (twice the budget). ErrorBudgetExhausted fires.
+  - interval: 5m
+    input_series:
+      - series: 'http_requests_total{namespace="application", endpoint="/store", status="200"}'
+        values: '0+382x1440'
+      - series: 'http_requests_total{namespace="application", endpoint="/store", status="500"}'
+        values: '0+8x1440'
+    alert_rule_test:
+      - eval_time: 5d
+        alertname: ErrorBudgetExhausted
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              service: sre-metrics-app
+            exp_annotations:
+              summary: "sre-metrics-app has used its whole 30-day error budget"
+              description: "Freeze feature deployments and focus on reliability (see docs/SLO.md, error budget policy)."
+              runbook_url: "https://github.com/jaffethalfarotorres/sre-final-project/blob/main/docs/runbooks/error-budget-burn.md"

@@ -10,7 +10,7 @@ Part 1 gets every student to the same starting point. You set up a laptop cluste
 
 Lab time is about 3.5-4 h. Total with lecture and breaks: about 5.5 h.
 
-All commands are the same in **Terminal** (Mac) and the **Ubuntu** window (Windows with WSL2). Run them from the project folder (`cd ~/sre-final-project`). If you use Docker Desktop with PowerShell on Windows instead, the same scripts exist as `scripts\*.ps1`, and you type `python` instead of `python3`.
+All commands are the same in **Terminal** (Mac) and the **Ubuntu** window (Windows with WSL2). Run them from the project folder (`cd ~/sre-final-project`). If you use **Windows PowerShell** instead (IBM Bob, with Docker Desktop or Rancher Desktop), the same scripts exist as `scripts\*.ps1`, you type `python` instead of `python3`, and the lab script is `python scripts\lab.py` (Mac and Ubuntu: `python3 scripts/lab.py`). In M00 and M01, steps that use `curl`, `source`, `grep` or `pkill` have a **Windows PowerShell** line or block right under them.
 
 ---
 
@@ -41,22 +41,23 @@ Memory is the most common blocker. The core stack uses about 3.2-3.8 GiB. Later 
    minikube version
    kubectl version --client
    git --version
+   gh --version
    ```
-   What you should see: each line prints a version. No `command not found`.
+   What you should see: each line prints a version. No `command not found`. (`gh` is needed for the fork in step 3.)
 
 2. Mac only: start the container engine.
    ```bash
    colima start --cpu 4 --memory 6 --disk 60
    ```
-   What you should see: Colima reports it is running (or that it already is). If you have 16 GB of RAM and plan to do step 4, you can start with `--memory 8` right away instead.
+   What you should see: Colima reports it is running (or that it already is). If you have 16 GB of RAM and plan to do step 4, you can start with `--memory 8` right away instead. On an **8 GB Mac** use `colima start --cpu 2 --memory 4 --disk 60`, skip step 4 and run no add-ons. Do not skip this step on an 8 GB Mac: if Colima is not running, `deploy.sh` (step 5) starts it with 6 GB.
 
-3. Get the project.
+3. Get the project: make your own **fork** and download it. Your work and your lab proof live in your fork (mission M09b checks this). Log in once first with `gh auth login` (see [GUIDE step 2](../GUIDE.md#2-install-the-tools-one-time)).
    ```bash
    cd ~
-   git clone https://github.com/jaffethalfarotorres/sre-final-project.git
+   gh repo fork jaffethalfarotorres/sre-final-project --clone
    cd sre-final-project
    ```
-   What you should see: a folder with `app/`, `k8s/`, `scripts/` and `docs/`.
+   What you should see: a folder with `app/`, `k8s/`, `scripts/` and `docs/`. A plain `git clone https://github.com/jaffethalfarotorres/sre-final-project.git` also works to look around, but then the fork mission does not pass (see [GUIDE step 3](../GUIDE.md#3-download-and-start-the-project)).
 
 4. Optional, only if you plan to do the add-on modules in later parts and have 16 GB of RAM. [`deploy.sh`](../../scripts/deploy.sh) starts Minikube with 4096 MB only when no cluster is running, so create a bigger one first. If a Minikube cluster already exists, run `minikube delete` first: `minikube start` cannot change the memory of an existing cluster.
    ```bash
@@ -86,7 +87,8 @@ Memory is the most common blocker. The core stack uses about 3.2-3.8 GiB. Later 
    ```bash
    ./scripts/dashboards.sh
    ```
-   What you should see: a list of addresses: Grafana `http://localhost:3000` (user `admin` and the password it prints), Prometheus `:9090`, Alertmanager `:9093`, the app `:5000`, Jaeger `:16686`. An `MCP (AI)` line on `:8000` appears only after `scripts/ai_setup.py` has run (Part 7, M17). Grafana opens in your browser.
+   Windows PowerShell: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\dashboards.ps1 -Background` (stop it later with `-Stop`).
+   What you should see: a list of addresses: Grafana `http://localhost:3000` (user `admin`; the script copies the password to your clipboard and never prints it; if it cannot use the clipboard, it tells you where to find the password. Paste it into the login and never into a chat), Prometheus `:9090`, Alertmanager `:9093`, the app `:5000`, Jaeger `:16686`. An `MCP (AI)` line on `:8000` appears only after `scripts/ai_setup.py` has run (Part 7, M17). Grafana opens in your browser.
 
 8. Look around. In Grafana open **Dashboards > SRE Metrics Demo**. In Prometheus open **Status > Targets**. In Alertmanager wait about a minute.
    What you should see: live charts in Grafana, the app target **UP** in Prometheus, and `AlwaysFiringDemoAlert` in Alertmanager. That alert is always on; it proves the alert pipeline works.
@@ -110,12 +112,12 @@ Memory is the most common blocker. The core stack uses about 3.2-3.8 GiB. Later 
 | Symptom | Fix |
 | --- | --- |
 | Mac: `Cannot connect to the Docker daemon` | Run `colima start`, wait, try again. |
-| Windows: `permission denied ... docker.sock` | Close and reopen the Ubuntu window. If it persists: `sudo systemctl start docker`. Check systemd was turned on (GUIDE Windows step 3). |
+| Windows: `permission denied ... docker.sock` | Close and reopen the Ubuntu window. If it persists: `sudo systemctl start docker`. Check systemd was turned on ([GUIDE WSL step 4](../GUIDE.md#windows-by-hand-wsl2-and-ubuntu)). |
 | `permission denied: ./scripts/deploy.sh` | `chmod +x scripts/*.sh` once. |
 | `No such file or directory` for `scripts/...` | You are not in the project folder: `cd ~/sre-final-project`. |
 | Pods stuck in `Pending` or `ContainerCreating` for more than 5 minutes | Short on memory. Close other apps. Mac with 16 GB: `colima stop`, then `colima start --cpu 4 --memory 8`. Then `minikube delete`, `minikube start --driver=docker --memory=6144` (step 4) and `./scripts/deploy.sh`. On an 8 GB laptop keep the 4096 MB default and run no add-ons. |
 | Browser says "This site can't be reached" on localhost | The `dashboards.sh` window was closed. Run it again and keep it open. |
-| `address already in use` when opening tunnels | Another tunnel uses the port: `pkill -f "kubectl port-forward"`, then rerun `./scripts/dashboards.sh`. |
+| `address already in use` when opening tunnels | Another tunnel uses the port: `pkill -f "kubectl port-forward"`, then rerun `./scripts/dashboards.sh`. Windows PowerShell: run `dashboards.ps1 -Stop`, then `-Background` again. |
 
 **Instructor notes**
 - Send the [GUIDE](../GUIDE.md) install steps one week before class. The first `deploy.sh` downloads several images; on shared Wi-Fi this is the slowest part of the day.
@@ -167,19 +169,34 @@ If `OTEL_EXPORTER_OTLP_ENDPOINT` is not set (tests, local runs), spans and logs 
    source .venv/bin/activate
    pip install -r requirements-dev.txt
    ```
-   What you should see: `Successfully installed ... flask ... prometheus-client ... opentelemetry-sdk ... pytest ...`. On Ubuntu, if `venv` is missing: `sudo apt-get install -y python3-venv`.
+   Windows PowerShell: do not activate the environment (`Activate.ps1` is a script, and script policy often blocks it). Call the Python inside it directly instead:
+   ```powershell
+   python -m venv .venv
+   .venv\Scripts\python -m pip install -r requirements-dev.txt
+   ```
+   What you should see: `Successfully installed ... flask ... prometheus-client ... opentelemetry-sdk ... pytest ...`. On Ubuntu, if `venv` is missing: `sudo apt-get install -y python3-venv`. On a Mac, `python3 --version` must show 3.10 or newer; if it shows 3.9, use `python3.12 -m venv .venv` (see [GUIDE Mac step 4](../GUIDE.md#mac)).
 
 3. Run the tests and the linter (the same checks CI runs in [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)).
    ```bash
    pytest tests -q
    flake8 app tests scripts .claude/hooks --max-line-length=120
    ```
+   Windows PowerShell:
+   ```powershell
+   .venv\Scripts\python -m pytest tests -q
+   .venv\Scripts\python -m flake8 app tests scripts .claude/hooks --max-line-length=120
+   ```
    What you should see: all tests pass (`passed`, no `failed`); flake8 prints nothing. Open [`tests/test_app.py`](../../tests/test_app.py) and read `test_store_creates_trace_spans`, `test_logs_are_json_with_trace_id` and `test_metrics_exposes_counters_and_histogram`.
 
-4. Look at raw metrics from the running app. Keep `./scripts/dashboards.sh` open in another window.
+4. Look at raw metrics from the running app. Keep `./scripts/dashboards.sh` open in another window. Reading `/metrics` is allowed in this lab: it only reads the numbers and changes nothing.
    ```bash
    curl -s http://localhost:5000/store
    curl -s http://localhost:5000/metrics | grep 'http_requests_total{'
+   ```
+   Windows PowerShell: type `curl.exe`, not `curl` (in PowerShell `curl` is a different command). The second line filters the output without a pipe:
+   ```powershell
+   curl.exe -s http://localhost:5000/store
+   (curl.exe -s http://localhost:5000/metrics) -like 'http_requests_total{*'
    ```
    What you should see: a JSON body with `stores` (or the 5% error), then lines such as `http_requests_total{endpoint="/store",method="GET",status="200"} 1234.0` and some with `status="500"`.
 
@@ -228,9 +245,10 @@ If `OTEL_EXPORTER_OTLP_ENDPOINT` is not set (tests, local runs), spans and logs 
 
 | Symptom | Fix |
 | --- | --- |
-| `curl: (7) Failed to connect to localhost port 5000` | The tunnel is not open. Run `./scripts/dashboards.sh` in another window and keep it open. |
-| `address already in use` for port 5000 | Another process or tunnel uses it. `pkill -f "kubectl port-forward"` and rerun `./scripts/dashboards.sh`. |
-| `ModuleNotFoundError: No module named 'flask'` in pytest | The virtual environment is not active. Run `source .venv/bin/activate` and install again. |
+| `curl: (7) Failed to connect to localhost port 5000` | The tunnel is not open. Run `./scripts/dashboards.sh` in another window and keep it open (Windows PowerShell: `scripts\dashboards.ps1 -Background`, with the full `powershell -NoProfile -ExecutionPolicy Bypass -File` form). |
+| Windows PowerShell: `curl` asks for parameters or prints a table instead of text | You typed `curl`, which PowerShell maps to a different command. Type `curl.exe`. |
+| `address already in use` for port 5000 | Another process or tunnel uses it. `pkill -f "kubectl port-forward"` and rerun `./scripts/dashboards.sh`. Windows PowerShell: run `dashboards.ps1 -Stop`, then `-Background` again. |
+| `ModuleNotFoundError: No module named 'flask'` in pytest | The virtual environment is not active. Run `source .venv/bin/activate` and install again. Windows PowerShell: run the tests with `.venv\Scripts\python -m pytest`, not plain `pytest`. |
 | Prometheus query returns `Empty query result` | Wait 1-2 minutes after deploy; `rate(...[5m])` needs a few scrapes. Check **Status > Targets** shows the app **UP**. |
 | No traces in Jaeger | Check the Collector is running: `kubectl get pods -n opentelemetry`. Traces arrive in batches, so wait 10-20 s and search again. |
 
@@ -247,6 +265,7 @@ No add-ons. Leave the virtual environment when you are done:
 ```bash
 deactivate
 ```
+Windows PowerShell: nothing to do, because you never activated it.
 
 ---
 

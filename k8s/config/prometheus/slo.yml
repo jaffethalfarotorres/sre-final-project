@@ -11,9 +11,13 @@
 #                    The highest possible burn rate is 1 / (1 - SLO) = 100x (every request fails).
 #
 # Alert thresholds follow the Google SRE Workbook (chapter "Alerting on SLOs"):
-#   page    : 1 h AND 5 m burn > 14.4x  (2% of the 30-day budget spent in 1 hour)
-#   page    : 6 h AND 30 m burn > 6x    (5% of the budget spent in 6 hours)
-#   ticket  : 3 d AND 6 h burn > 1x     (on track to spend the whole budget)
+#   ErrorBudgetFastBurn (critical): 1 h AND 5 m burn > 14.4x, for 2m  -> page now
+#                                   (2% of the 30-day budget spent in 1 hour)
+#   ErrorBudgetSlowBurn (warning) : 6 h AND 30 m burn > 6x, for 15m   -> act today
+#                                   (5% of the budget spent in 6 hours)
+#   ErrorBudgetTicket   (warning) : 3 d AND 6 h burn > 1x, for 30m    -> ticket for this sprint
+#                                   (on track to spend the whole budget)
+#   ErrorBudgetExhausted (critical): 30-day budget below 0, for 5m    -> error budget policy
 groups:
   - name: slo-recording-rules
     interval: 30s
@@ -103,9 +107,17 @@ groups:
           runbook_url: "https://github.com/jaffethalfarotorres/sre-final-project/blob/main/docs/runbooks/error-budget-burn.md"
 
       # Only meaningful once the 30-day window holds real history: on a fresh cluster a single drill
-      # would look like a whole month of failures. 100,000 requests is about 1 day of demo traffic.
+      # would look like a whole month of failures.
+      # How the guard is sized:
+      #   - One classroom drill is about 3,000 failed requests. Normal traffic fails about 0.2%.
+      #   - The budget is 1%. One drill stays inside the budget when
+      #     3,000 + 0.002 * N < 0.01 * N, so when N > 3,000 / 0.008 = 375,000 requests.
+      #   - We use 500,000 requests (some margin, room for about 4,000 drill failures).
+      #     At ~1.3 requests per second (~112,000 per day) that is about 4.5 days of lab traffic.
+      # So a drill on a cluster younger than ~4.5 days never fires this alert. After that, it fires
+      # only when the failures really are more than 1% of everything Prometheus still holds.
       - alert: ErrorBudgetExhausted
-        expr: slo:availability:error_budget_remaining < 0 and on() sum(increase(http_requests_total{namespace="application"}[30d])) > 100000
+        expr: slo:availability:error_budget_remaining < 0 and on() sum(increase(http_requests_total{namespace="application"}[30d])) > 500000
         for: 5m
         labels:
           severity: critical

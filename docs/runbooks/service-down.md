@@ -1,10 +1,14 @@
 # Runbook: ServiceDown / SyntheticProbeFailing
 
 **Alerts:**
-- `ServiceDown` (critical): Prometheus could not scrape an app pod for 1 minute.
-- `SyntheticProbeFailing` (critical): the blackbox exporter, acting as a user, could not get HTTP 200 from the app.
+- `ServiceDown` (critical): Prometheus could not scrape an app pod (`up == 0`) for 1 minute. The rule checks each pod on its own, so it fires as **critical even when only one pod is down** and the other replica still serves users.
+- `SyntheticProbeFailing` (critical): the blackbox exporter, acting as a user, probes `/` of the app. Fewer than 90% of the probes in the last 2 minutes got HTTP 2xx, for 2 minutes.
 
-**Severity:** Sev-1 when the synthetic probe fails, because users are affected. Sev-3 when only one pod is down and the probe still passes, because the other replica is serving.
+**Severity:** both alerts arrive as `critical`, so always look at them now. Then decide the incident level (see [`../INCIDENT-RESPONSE.md`](../INCIDENT-RESPONSE.md)):
+- **Sev-1:** `SyntheticProbeFailing` also fires, or every app pod is down. Users are affected.
+- **Sev-3:** only one pod is down and the probe still passes. The other replica is serving. Fix the pod, but no Incident Commander is needed.
+
+Note: while `ServiceDown` fires, Alertmanager mutes the error, latency, probe and burn-rate alerts of the same service (not `ErrorBudgetExhausted`) (they look like symptoms of the same outage). With one pod down this can hide a real problem on the other pod, so check the **SLO and Error Budget** dashboard too.
 
 ## 1. Acknowledge
 - Acknowledge in Slack, and name an Incident Commander if this is a Sev-1 (see [`../INCIDENT-RESPONSE.md`](../INCIDENT-RESPONSE.md)).

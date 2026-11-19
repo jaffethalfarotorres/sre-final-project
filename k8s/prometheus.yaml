@@ -28,7 +28,9 @@ spec:
           args:
             - --config.file=/etc/prometheus/prometheus.yml
             - --storage.tsdb.path=/prometheus
-            - --storage.tsdb.retention.time=7d
+            # 31d so the 30-day SLO window fits. The data volume is still an emptyDir (lab only):
+            # a pod restart loses the history. See docs/SLO.md, "Limits of this lab".
+            - --storage.tsdb.retention.time=31d
             - --web.enable-lifecycle
           ports:
             - containerPort: 9090

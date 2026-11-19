@@ -30,15 +30,22 @@ Multi-window burn-rate alerts. The long window proves the problem is real; the s
 | `ErrorBudgetFastBurn` (critical) | burn rate above 14.4× over 1 h **and** over 5 m, for 2 m | 2% of the 30-day budget gone in 1 hour | Page: incident now |
 | `ErrorBudgetSlowBurn` (warning) | above 6× over 6 h **and** over 30 m, for 15 m | 5% of the budget gone in 6 hours | Look at it today |
 | `ErrorBudgetTicket` (warning) | above 1× over 3 days **and** over 6 h, for 30 m, and more than 100,000 requests in the 3-day window | On track to spend the whole budget | Ticket for this sprint |
-| `ErrorBudgetExhausted` (critical) | remaining budget below 0 **and** more than 100,000 requests in the 30-day window, for 5 m | The budget is spent | Apply the error budget policy |
+| `ErrorBudgetExhausted` (critical) | remaining budget below 0 **and** more than 500,000 requests in the 30-day window, for 5 m | The budget is spent | Apply the error budget policy |
 
-The request guards (100,000 requests is about 1 day of demo traffic) keep a drill on a fresh cluster from firing the long-window alerts: there, "3 days" or "30 days" only holds a few hours of data.
+The request guards keep a drill on a fresh cluster from firing the long-window alerts: there, "3 days" or "30 days" only holds a few hours of data.
+- **Ticket guard: 100,000 requests** in 3 days, about 1 day of demo traffic.
+- **Exhausted guard: 500,000 requests** in 30 days, about 4.5 days of demo traffic. One drill is about 3,000 failures, and normal traffic fails about 0.2%. One drill stays inside the 1% budget only when `3,000 + 0.002 × N < 0.01 × N`, so when N is above 375,000 requests. 500,000 adds some margin. A promtool test checks that 1 day of traffic plus one drill does **not** fire `ErrorBudgetExhausted`.
 
 **Where 14.4 comes from.** A 30-day window has 720 hours. Spending 2% of the budget in 1 hour means burning `0.02 × 720 = 14.4` times faster than "exactly on budget". In the same way, 5% in 6 hours is `0.05 × 720 / 6 = 6`.
 
-**Alertmanager inhibition.** When `ServiceDown` fires, the error, probe and budget alerts are muted (they are symptoms of the same outage). When `ErrorBudgetFastBurn` fires, the slow burn and the ticket are muted. Muted alerts still show in the Alertmanager UI as "inhibited". See `inhibit_rules` in [`k8s/alertmanager.yaml`](../k8s/alertmanager.yaml).
+**Alertmanager inhibition.** When `ServiceDown` fires, the error, latency, probe and burn-rate alerts are muted (they are symptoms of the same outage). `ErrorBudgetExhausted` is not muted. When `ErrorBudgetFastBurn` fires, the slow burn and the ticket are muted. When `ErrorBudgetSlowBurn` fires, the ticket is muted. Muted alerts still show in the Alertmanager UI as "inhibited". See `inhibit_rules` in [`k8s/alertmanager.yaml`](../k8s/alertmanager.yaml).
 
-**Tested without a cluster.** [`tests/rules/`](../tests/rules/) holds `promtool` unit tests: the alerts stay silent on normal traffic, the page fires at 15× and stays silent at 14×, and the drill fires it. CI runs them.
+**Tested without a cluster.** [`tests/rules/`](../tests/rules/) holds `promtool` unit tests: the alerts stay silent on normal traffic, the page fires at 15× and stays silent at 14×, the drill fires it, and one drill on a 1-day-old cluster does not exhaust the budget. CI runs them.
+
+## Limits of this lab
+- **Prometheus keeps 31 days** of data (`--storage.tsdb.retention.time=31d` in [`k8s/prometheus.yaml`](../k8s/prometheus.yaml)), so the 30-day window fits.
+- **But the data lives on an `emptyDir` volume.** When the Prometheus pod restarts or moves, all history is lost. So the "30-day" budget really covers only the time since the last Prometheus restart. After a restart the budget starts again from full, and the request guards keep the long-window alerts quiet for a few days.
+- **In production**, use persistent storage (a PersistentVolumeClaim) and long-term storage such as Thanos or Mimir, so the SLO window survives restarts and upgrades.
 
 ## Error budget policy
 - **Budget above 50%:** normal feature work. Experiments and risky changes are allowed.

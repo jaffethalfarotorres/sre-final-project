@@ -46,3 +46,6 @@ CLAUDE.local.md
 # Lab game progress (per student; the shareable proof is lab-proof/)
 .lab/
 terraform/terraform.tfstate.d/
+
+# IBM Bob converts .bob/commands into skills on first open; the commands are the source.
+.bob/skills/

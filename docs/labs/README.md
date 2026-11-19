@@ -42,7 +42,7 @@ Ranks by XP: Career Changer (0), Tech Apprentice (500), SRE Intern (1300), Junio
 | [4. Logs, traces and LLM observability](04-logs-traces-llm.md) | M07 OpenTelemetry, Jaeger, Loki · M23 GenAI telemetry | ~2.5 h | core stack |
 | [5. Automation, IaC and CI/CD](05-automation-iac-cicd.md) | M10 Ansible and AWX · M11 Terraform and Helm · M09b join the guild (fork the repo; steps in [Part 3](03-slos-and-incidents.md#m09b-github-issues-pull-requests-and-projects-for-sre-work)) · M12 GitHub Actions · M16 DORA · M19 supply chain | ~12 h | AWX: +2.5 GB |
 | [6. GitOps, resilience and guardrails](06-delivery-resilience-policy.md) | M13 ArgoCD · M14 rollbacks · M15 chaos · M20 Kyverno · M21 canary | ~12 h | one add-on at a time |
-| [7. AI-assisted SRE](07-ai-assisted-sre.md) | M17 AI on call with IBM Bob (Claude Code optional) · M18 MCP safety · M24 agent telemetry · M27 capstone game day | ~10 h | +0.05 GB |
+| [7. AI-assisted SRE](07-ai-assisted-sre.md) | M17 AI on call with IBM Bob (Claude Code optional) · M18 MCP safety · optional instructor demo: observing the agents (not a graded mission) · M27 capstone game day | ~10 h | +0.05 GB |
 
 **Mapping to the 2026 course:** see the [course map](../COURSE-MAP.md) (every topic 0-6 and exercise 1-19, plus the roadmap.sh DevOps areas).
 
@@ -51,7 +51,7 @@ Ranks by XP: Career Changer (0), Tech Apprentice (500), SRE Intern (1300), Junio
 - **16 GB laptop:** create a 6 GB Minikube before `./scripts/deploy.sh`: `minikube delete` (only if a cluster already exists, because `minikube start` cannot change the memory of an existing cluster), then `minikube start --driver=docker --memory=6144` (Part 1, M00 step 4). On a Mac, run `colima stop && colima start --cpu 4 --memory 8` first. Core stack plus any single add-on, AWX included.
 
 ## How the verification was done
-Every add-on and script in this lab was run end to end on a Minikube cluster on 2026-11-18/19, and the expected results quoted in the parts come from those runs. Versions are pinned in the files; when a pinned image disappears (it happened with the AWX operator's `kube-rbac-proxy`), the fix is documented where it applies.
+The author ran the add-ons and scripts of this lab end to end on a local Minikube cluster in November 2026. The expected results quoted in the parts come from those runs. The run logs are not stored in this repository. Delivery of alerts to Slack or email is not checked yet, because it needs the author's own webhook or SMTP account. Versions are pinned in the files; when a pinned image disappears (it happened with the AWX operator's `kube-rbac-proxy`), the fix is documented where it applies.
 
 ## Suggested assessment
 - **Quizzes and self-checks are formative.** They help students learn and **never count toward a grade**. The XP they give is for motivation only. The answer keys are not in this repository: see [docs/instructor/README.md](../instructor/README.md).
