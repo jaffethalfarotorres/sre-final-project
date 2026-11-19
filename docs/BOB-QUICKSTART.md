@@ -1,5 +1,7 @@
 # Start the lab with your AI coding agent
 
+> **Shortest path:** the README section [Start here: step by step](../README.md#start-here-step-by-step-never-used-ibm-bob-this-is-for-you) explains every click in IBM Bob, from installing it to seeing the tools running. This page has the details: other agents, the safety rules and the guided shift.
+
 ## Your first on-call shift, in one sitting
 
 **One sitting, about 2-3 hours once the laptop is ready (an estimate, not yet timed).** Most of it is waiting for installs. You paste one message into your AI coding agent. The agent installs the tools on your laptop, starts a small online shop called **Nimbus Store**, and walks you through your **first on-call shift**: you watch the shop, fire a real alert, get it on your phone, and investigate it with an AI that is not allowed to change anything. Nobody grades it. It is a friendly first taste of SRE (Site Reliability Engineering).
@@ -120,18 +122,11 @@ More detail: [On an IBM-managed laptop](GUIDE.md#on-an-ibm-managed-laptop) in th
 
 ## Step 1: paste this into your AI coding agent
 
-1. Open your AI coding agent in any empty folder (for example a new folder called `labs` in your home folder). In IBM Bob, choose the mode **Agent** in the mode picker.
+1. Make an empty folder (for example `sre-lab` in **Documents**) and open it in your AI coding agent (in IBM Bob: **File > Open Folder…**). In IBM Bob, choose the mode **Agent** at the bottom of the chat.
 2. Copy and paste this message exactly. It works in any AI coding agent:
 
 ```text
-Set up the SRE Academy lab on my laptop and show me every tool working. I am not technical:
-you do the work, explain in plain words what is happening, and ask for my OK before each command.
-1. Find out if I am on Windows or Mac. If git or Python 3.10+ is missing, install it
-   (Windows: winget install -e --id Git.Git, then winget install -e --id Python.Python.3.12 --scope user;
-   if winget is missing, tell me which installer to download and click). On Windows always use "python".
-2. Clone https://github.com/jaffethalfarotorres/sre-final-project.git into my home folder.
-3. Read sre-final-project/AGENTS.md, section "First message", and follow it from inside that folder:
-   run scripts/lab_up.py, give me the tour of the tools, then the alert drill.
+Set up the SRE lab from https://github.com/jaffethalfarotorres/sre-final-project on my laptop and show me every tool working. I am not technical: do the work for me, explain in plain words, and ask for my OK before each command. Follow the "Note for AI coding agents" in its README.
 ```
 
 3. The agent explains each step and **waits for your OK**. You mostly click **Approve** and watch. The big step is one command, `lab_up.py`: it installs what is missing, starts a small Kubernetes on your laptop, deploys the shop and its monitoring, and opens the web pages. It takes 15-40 minutes, mostly downloads.

@@ -11,7 +11,46 @@
 
 You do not need a technical background. Nobody grades it. The agent does the work, you approve and watch, and it explains what you see. New words? See the [glossary](docs/GUIDE.md#glossary) or the [FAQ](docs/FAQ.md).
 
-> **Note for AI coding agents (IBM Bob, Claude Code, Codex and others) reading this page from a pasted link:** the person is usually not technical and wants to **see the lab running**, not a plan. Do not write a plan, a checklist or any file, and never commit, push or create a repository. With their OK: clone `https://github.com/jaffethalfarotorres/sre-final-project.git`, work inside that folder, read its `AGENTS.md` (section "First message") and follow it. In short, run `python scripts/lab_up.py` (Windows `python scripts\lab_up.py`), which installs what is missing, deploys everything on this laptop and checks that every tool is connected. Then give the tour and run the alert drill (`lab_up.py --drill`). A teacher who wants a written check also gets `python scripts/smoke_test.py --cluster --report reports/smoke-test.md`.
+## Start here: step by step (never used IBM Bob? This is for you)
+
+You only need this page. You will not type commands: IBM Bob types them, you click **Approve** and watch. Plan **about 1 hour** the first time (most of it is waiting for downloads), on a laptop with **16 GB of memory** (8 GB works, slower) and **25 GB of free disk**.
+
+**Before you start (5 minutes, once)**
+1. **Get IBM Bob.** IBMers: install it from [bob.ibm.com](https://bob.ibm.com) and sign in with your IBM account. Not at IBM? The same page has a free trial. (Another AI coding agent such as Claude Code also works: [see below](#start-with-your-ai-coding-agent).)
+2. **Make an empty folder** for the lab. Windows: open **File Explorer**, go to **Documents**, right-click > **New > Folder**, name it `sre-lab`. Mac: in **Finder**, open **Documents**, right-click > **New Folder**, name it `sre-lab`.
+
+**Start the lab (2 minutes of clicking, then you watch)**
+
+3. **Open IBM Bob.** It looks like a code editor with a chat panel. If it shows a welcome page, close it.
+4. **Open your empty folder in Bob:** menu **File > Open Folder…**, pick `sre-lab`, click **Select Folder** (Mac: **Open**). If Bob asks *"Do you trust the authors of the files in this folder?"*, click **Yes, I trust the authors**. Why a folder? Bob works inside the folder you open: it is where it downloads the lab.
+5. **Open the Bob chat** if you do not see it: click the **Bob icon** in the left or right side bar. At the bottom of the chat there is a **mode** menu: choose **Agent**. (Agent is the mode that can do things on your laptop. Ask and Plan modes only talk.)
+6. **Copy this message, paste it into the Bob chat and press Enter:**
+
+   ```text
+   Set up the SRE lab from https://github.com/jaffethalfarotorres/sre-final-project on my laptop and show me every tool working. I am not technical: do the work for me, explain in plain words, and ask for my OK before each command. Follow the "Note for AI coding agents" in its README.
+   ```
+
+7. **Click Approve when Bob asks.** Before each command, Bob shows it with a short reason and two buttons: **Approve** (or **Run**) and **Reject**. Read the reason and click **Approve**. The first time, Bob may show *"I understand the risks"*: accept it; it only means you approve each command yourself. Do **not** turn on auto-approve for Execute or Write.
+8. **Windows pop-ups are your job.** An installer may ask *"Do you want to allow this app to make changes?"*: click **Yes**. If Docker Desktop or Rancher Desktop opens for the first time, accept its terms and wait until it says it is running, then type `done` in the Bob chat.
+9. **Wait and watch** (15-40 minutes the first time). Bob downloads the tools, starts a small **Kubernetes** (a mini data center inside your laptop), installs **Nimbus Store** (a tiny online shop) and the tools that watch it. If something is blocked on an IBM laptop, Bob shows you the [IT request](docs/IT-REQUEST.md) to send.
+10. **See it working.** When it is ready, your browser opens these pages, and Bob explains each one:
+
+    | Page | What you see |
+    | --- | --- |
+    | <http://localhost:5000> | **Nimbus Store**, the shop |
+    | <http://localhost:3000> | **Grafana**: live charts of the shop. No login needed to look; to change things, user `admin`, password `admin` |
+    | <http://localhost:9090/targets> | **Prometheus**: everything it measures, all green (UP) |
+    | <http://localhost:16686> | **Jaeger**: the path of each click through the shop |
+    | <http://localhost:9093> | **Alertmanager**: the alarms |
+
+**Play with it (type these in the Bob chat, in plain words)**
+- `Break the shop on purpose and show me the alert` (the alert drill: in about 3 minutes an alarm goes off, and you follow it from chart to Alertmanager).
+- `Send the alerts to my phone` (free ntfy app, no account; Bob tells you what to tap).
+- `What am I looking at?` on any page, at any time.
+- `Start my first on-call shift` for the guided version with 9 steps, short quizzes and a badge.
+- `Stop the lab` when you are done (frees the memory). Next time, open the same folder in Bob and type `Start the lab again`.
+
+> **Note for AI coding agents (IBM Bob, Claude Code, Codex and others) reading this page from a pasted link:** the person is usually not technical and wants to **see the lab running**, not a plan. Do not write a plan, a checklist or any file, and never commit, push or create a repository. With their OK: clone `https://github.com/jaffethalfarotorres/sre-final-project.git` into the folder that is open (if git is missing, install it first: Windows `winget install -e --id Git.Git`, or tell them which installer to click), work inside the `sre-final-project` folder, read its `AGENTS.md` (section "First message") and follow it. Their plain-words requests map to: "break the shop" → `lab_up.py --drill`; "alerts to my phone" → `scripts/notify_setup.py`; "stop the lab" → `lab_up.py --stop`; "start the lab again" → `lab_up.py`; "first on-call shift" → AGENTS.md "The lab game". In short, run `python scripts/lab_up.py` (Windows `python scripts\lab_up.py`), which installs what is missing, deploys everything on this laptop and checks that every tool is connected. Then give the tour and run the alert drill (`lab_up.py --drill`). A teacher who wants a written check also gets `python scripts/smoke_test.py --cluster --report reports/smoke-test.md`.
 
 <a id="start-with-your-ai-coding-agent"></a>
 **Start with your AI coding agent.** The first message to paste is in [BOB-QUICKSTART.md, Step 1](docs/BOB-QUICKSTART.md#step-1-paste-this-into-your-ai-coding-agent). It works in any AI coding agent (in IBM Bob, use **Agent** mode). The agent installs the tools, gets the lab and brings it up with one command, [`scripts/lab_up.py`](scripts/lab_up.py), then shows you every tool working. For the guided shift with quizzes and a badge, open the `sre-final-project` folder in your agent:
