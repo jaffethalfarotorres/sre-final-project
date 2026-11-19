@@ -4,6 +4,10 @@ Bring the whole SRE lab up with one command, then show that every tool is runnin
 
     Windows (PowerShell):  python scripts\\lab_up.py
     Mac or Linux:          python3 scripts/lab_up.py
+    From the folder above the repository: python sre-final-project/scripts/lab_up.py (it works from any folder)
+
+Run it in the foreground and let it print: the first run can take up to 40 minutes. Everything it prints also
+goes to .lab/lab_up.log, so an AI agent that started it in the background can read the progress there.
 
 What it does, in order (it skips what is already done, so you can run it again at any time):
   1. Checks the laptop and installs the missing tools with the setup kit (scripts/install-tools.*).
@@ -71,14 +75,47 @@ def banner(text):
     print("\n" + "=" * 78 + "\n  " + text + "\n" + "=" * 78, flush=True)
 
 
+LOG_FILE = os.path.join(ROOT, ".lab", "lab_up.log")
+
+
+class Tee:
+    """Write everything to the screen and to .lab/lab_up.log, line by line, so an AI agent that runs this
+    in the background (or loses the output) can still read the progress from the log file."""
+
+    def __init__(self, screen, path):
+        self.screen = screen
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        self.log = open(path, "a", encoding="utf-8")
+
+    def write(self, text):
+        for target in (self.screen, self.log):
+            try:
+                target.write(text)
+                target.flush()
+            except (OSError, ValueError, UnicodeEncodeError):
+                pass
+        return len(text)
+
+    def flush(self):
+        for target in (self.screen, self.log):
+            try:
+                target.flush()
+            except (OSError, ValueError):
+                pass
+
+
 def stream(cmd):
-    """Run a command in the repository root and show its output live. Returns the exit code."""
+    """Run a command in the repository root and show its output live (and in the log). Returns the exit code."""
     print("> " + " ".join(cmd), flush=True)
     try:
-        return subprocess.call(cmd, cwd=ROOT)
+        proc = subprocess.Popen(cmd, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                universal_newlines=True, encoding="utf-8", errors="replace", bufsize=1)
     except FileNotFoundError:
         print("  not found: " + cmd[0])
         return 127
+    for line in proc.stdout:
+        sys.stdout.write(line)
+    return proc.wait()
 
 
 def script(name, *args):
@@ -265,6 +302,11 @@ def main(argv=None):
     parser.add_argument("--no-browser", action="store_true", help="do not open browser tabs")
     args = parser.parse_args(argv)
 
+    if not isinstance(sys.stdout, Tee):
+        sys.stdout = Tee(sys.stdout, LOG_FILE)
+    print("lab_up.py started {}. Progress is also written to {}".format(
+        time.strftime("%Y-%m-%d %H:%M:%S"), os.path.relpath(LOG_FILE, os.getcwd()) if os.path.splitdrive(
+            LOG_FILE)[0].lower() == os.path.splitdrive(os.getcwd())[0].lower() else LOG_FILE), flush=True)
     refresh_path()
     if args.stop:
         return stop()
