@@ -42,6 +42,8 @@ PY = "python" if sys.platform == "win32" else "python3"
 # ntfy turns Alertmanager's JSON into a readable push with these Go templates
 # (https://docs.ntfy.sh/publish/#message-templating).
 TITLE = "[{{.status}}] {{.commonLabels.severity}}: {{.commonLabels.alertname}}"
+RUNBOOK_EXAMPLE = ("https://github.com/jaffethalfarotorres/sre-final-project/"
+                   "blob/main/docs/runbooks/high-error-rate.md")
 MESSAGE = "{{range .alerts}}{{.annotations.summary}}\nRunbook: {{.annotations.runbook_url}}\n{{end}}"
 
 
@@ -93,7 +95,7 @@ def send_test(url):
     body = {"status": "test", "commonLabels": {"severity": "info", "alertname": "LabConnected"},
             "alerts": [{"annotations": {
                 "summary": "Your SRE lab can reach your phone. Real alerts look like this.",
-                "runbook_url": "https://github.com/jaffethalfarotorres/sre-final-project/blob/main/docs/runbooks/high-error-rate.md"}}]}
+                "runbook_url": RUNBOOK_EXAMPLE}}]}
     request = urllib.request.Request(url, data=json.dumps(body).encode(), method="POST",
                                      headers={"Content-Type": "application/json"})
     try:
