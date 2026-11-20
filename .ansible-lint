@@ -1,6 +1,7 @@
-# ansible-lint settings (used by CI with --profile production).
+# ansible-lint settings. The production profile is set here, so plain `ansible-lint` matches CI.
 # The diagnostics runbook builds a Markdown report with long Jinja lines; wrapping them would change
 # the report layout, so line length is the only rule relaxed here.
+profile: production
 skip_list:
   - yaml[line-length]
 exclude_paths:

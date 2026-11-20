@@ -116,6 +116,16 @@ REQUEST_DURATION = Histogram(
     buckets=[0.05, 0.1, 0.2, 0.3, 0.5, 0.75, 1.0, 2.5],
 )
 
+# Create every series at 0 when the app starts. Without this, a series that has never happened does not exist,
+# so Prometheus cannot compute rate() or increase() for the first error, and a dashboard shows "No data"
+# instead of 0. (Prometheus instrumentation best practice: initialise labels you know you will use.)
+_INITIAL_SERIES = [("/", "200"), ("/store", "200"), ("/store", "500"), ("/error", "500"),
+                   ("/ask", "200"), ("/inject", "200"), ("/inject", "404")]
+for _endpoint, _status in _INITIAL_SERIES:
+    REQUESTS.labels(method="GET", endpoint=_endpoint, status=_status)
+for _endpoint in ("/store", "/error"):
+    REQUEST_DURATION.labels(method="GET", endpoint=_endpoint)
+
 # GenAI demo metrics (see /ask): token usage drives cost, duration drives user experience.
 GENAI_TOKENS = Counter("genai_tokens_total", "Tokens used by the simulated model, by type.", ["type"])
 GENAI_DURATION = Histogram("genai_request_duration_seconds", "Simulated model call latency in seconds.",

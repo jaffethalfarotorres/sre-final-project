@@ -15,3 +15,13 @@ helm/
 scripts/
 *.md
 *.pdf
+terraform/
+ansible/
+.github/
+.lab/
+reports/
+awx/
+chaos/
+gitops/
+policy/
+progressive/

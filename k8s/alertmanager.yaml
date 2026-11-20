@@ -173,9 +173,21 @@ spec:
       labels:
         app: alertmanager
     spec:
+      # Pod Security "restricted" profile: a numeric non-root user, the runtime's default seccomp profile, and
+      # no automatic API token (this workload never calls the Kubernetes API).
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      automountServiceAccountToken: false
       containers:
         - name: alertmanager
           image: prom/alertmanager:v0.27.0
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           args:
             - --config.file=/etc/alertmanager/alertmanager.yml
             - --storage.path=/alertmanager
@@ -188,6 +200,12 @@ spec:
             limits:
               cpu: 200m
               memory: 128Mi
+          startupProbe:
+            httpGet:
+              path: /-/ready
+              port: 9093
+            periodSeconds: 5
+            failureThreshold: 24
           livenessProbe:
             httpGet:
               path: /-/healthy

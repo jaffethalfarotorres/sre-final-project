@@ -184,3 +184,23 @@ tests:
               summary: "Service sre-metrics-app is down (no replica can be scraped)"
               description: "No sre-metrics-app pod answers: every replica is down, or Prometheus finds no app pod at all."
               runbook_url: "https://github.com/jaffethalfarotorres/sre-final-project/blob/main/docs/runbooks/service-down.md"
+
+  # 5) Meta-monitoring: AlertmanagerDown stays silent while Alertmanager answers, and fires after 2 minutes of silence.
+  - interval: 1m
+    input_series:
+      - series: 'up{job="alertmanager"}'
+        values: '1x10 0x20'
+    alert_rule_test:
+      - eval_time: 9m
+        alertname: AlertmanagerDown
+        exp_alerts: []
+      - eval_time: 15m
+        alertname: AlertmanagerDown
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              service: alertmanager
+            exp_annotations:
+              summary: "Alertmanager is down: no alert can be delivered"
+              description: "Prometheus cannot scrape Alertmanager, so alerts are not being routed to anyone."
+              runbook_url: "https://github.com/jaffethalfarotorres/sre-final-project/blob/main/docs/runbooks/alertmanager-down.md"

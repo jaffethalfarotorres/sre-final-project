@@ -1,6 +1,10 @@
 global:
   scrape_interval: 10s
   evaluation_interval: 10s
+  # Labels added to every alert this Prometheus sends (not to stored series): they say where an alert came from.
+  external_labels:
+    cluster: minikube
+    environment: lab
 
 alerting:
   alertmanagers:
@@ -14,6 +18,11 @@ scrape_configs:
   - job_name: prometheus
     static_configs:
       - targets: ["localhost:9090"]
+
+  # Meta-monitoring: the alerting pipeline is watched like any other service (see AlertmanagerDown in alerts.yml).
+  - job_name: alertmanager
+    static_configs:
+      - targets: ["alertmanager.monitoring.svc.cluster.local:9093"]
 
   # Pull model + service discovery: every pod annotated with prometheus.io/scrape="true" is scraped.
   # This finds the app (/metrics on :5000) and the OpenTelemetry Collector (span metrics on :9464).

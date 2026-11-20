@@ -7,6 +7,9 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: opentelemetry
+  labels:
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/audit: restricted
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -28,9 +31,21 @@ spec:
         prometheus.io/port: "9464"
         prometheus.io/path: /metrics
     spec:
+      # Pod Security "restricted" profile: a numeric non-root user, the runtime's default seccomp profile, and
+      # no automatic API token (this workload never calls the Kubernetes API).
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      automountServiceAccountToken: false
       containers:
         - name: otel-collector
           image: otel/opentelemetry-collector-contrib:0.111.0
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           args: ["--config=/etc/otelcol/config.yaml"]
           ports:
             - name: otlp-grpc
@@ -85,9 +100,21 @@ spec:
       labels:
         app: jaeger
     spec:
+      # Pod Security "restricted" profile: a numeric non-root user, the runtime's default seccomp profile, and
+      # no automatic API token (this workload never calls the Kubernetes API).
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      automountServiceAccountToken: false
       containers:
         - name: jaeger
           image: jaegertracing/all-in-one:1.62.0
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           env:
             - name: COLLECTOR_OTLP_ENABLED
               value: "true"
@@ -142,11 +169,22 @@ spec:
       labels:
         app: loki
     spec:
+      # Pod Security "restricted" profile: a numeric non-root user, the runtime's default seccomp profile, and
+      # no automatic API token (this workload never calls the Kubernetes API).
       securityContext:
         fsGroup: 10001
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      automountServiceAccountToken: false
       containers:
         - name: loki
           image: grafana/loki:3.1.0
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           args: ["-config.file=/etc/loki/loki.yaml"]
           ports:
             - name: http

@@ -1,32 +1,45 @@
 # Default values for sre-metrics-app.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
+# Every property below has a comment that starts with its name.
 
+# replicaCount is the number of sre-metrics-app pods.
 replicaCount: 1
 
 image:
+  # image.repository is the app image name (built inside Minikube by the deploy script).
   repository: sre-metrics-app
+  # image.pullPolicy is the Kubernetes pull policy for the app image.
   pullPolicy: IfNotPresent
-  # Overrides the image tag whose default is the chart appVersion.
+  # image.tag overrides the image tag whose default is the chart appVersion.
   tag: "1.0.0"
 
+# imagePullSecrets lists registry secrets used to pull private images.
 imagePullSecrets: []
+# nameOverride replaces the chart name in generated resource names.
 nameOverride: ""
+# fullnameOverride replaces the whole generated resource name.
 fullnameOverride: ""
 
 serviceAccount:
+  # serviceAccount.create decides whether the chart creates a ServiceAccount.
   create: false
+  # serviceAccount.annotations are added to the ServiceAccount when it is created.
   annotations: {}
+  # serviceAccount.name is the ServiceAccount to use; generated from the release name when empty.
   name: ""
 
+# podAnnotations are added to the app pods (here they advertise the Prometheus scrape target).
 podAnnotations:
   prometheus.io/scrape: "true"
   prometheus.io/path: "/metrics"
   prometheus.io/port: "5000"
 
+# podSecurityContext is the pod-level security context (empty means none is set).
 podSecurityContext: {}
   # fsGroup: 2000
 
+# securityContext is the container-level security context: non-root, no privilege escalation, all capabilities dropped.
 securityContext:
   runAsNonRoot: true
   runAsUser: 10001
@@ -37,10 +50,14 @@ securityContext:
       - ALL
 
 service:
+  # service.type is the Kubernetes Service type (ClusterIP keeps it inside the cluster).
   type: ClusterIP
+  # service.port is the port the Service listens on.
   port: 5000
+  # service.targetPort is the container port the Service forwards to.
   targetPort: 5000
 
+# resources sets the app container requests and limits; requests stay low so the stack fits on a laptop.
 resources:
   requests:
     cpu: 50m
@@ -49,6 +66,7 @@ resources:
     cpu: 300m
     memory: 256Mi
 
+# livenessProbe is passed verbatim to the container.
 # Generous timeouts: a busy Minikube node (with the full monitoring stack) can delay responses.
 livenessProbe:
   httpGet:
@@ -59,6 +77,7 @@ livenessProbe:
   timeoutSeconds: 5
   failureThreshold: 6
 
+# readinessProbe is passed verbatim to the container; a pod receives traffic only when it passes.
 readinessProbe:
   httpGet:
     path: /
@@ -68,31 +87,42 @@ readinessProbe:
   timeoutSeconds: 5
   failureThreshold: 3
 
+# nodeSelector constrains the app pods to nodes with matching labels.
 nodeSelector: {}
 
+# tolerations lets the app pods schedule onto tainted nodes.
 tolerations: []
 
+# affinity sets pod and node affinity rules for the app pods.
 affinity: {}
 
-# Extra environment variables for the application container
+# env lists extra environment variables for the application container.
 env: []
 
-# Optional ConfigMap configuration
 configMap:
+  # configMap.enabled creates an optional ConfigMap from configMap.data.
   enabled: false
+  # configMap.data holds the key/value pairs of that ConfigMap.
   data: {}
 
-# Traffic generator configuration
+# trafficGenerator configures the curl pod that sends steady requests to the app.
 trafficGenerator:
+  # trafficGenerator.enabled starts the traffic generator Deployment.
   enabled: true
+  # trafficGenerator.replicaCount is the number of traffic generator pods.
   replicaCount: 1
   image:
+    # trafficGenerator.image.repository is the curl image name.
     repository: curlimages/curl
+    # trafficGenerator.image.tag is the curl image tag.
     tag: "8.10.1"
+    # trafficGenerator.image.pullPolicy is the Kubernetes pull policy for the curl image.
     pullPolicy: IfNotPresent
-  # Target URL to generate traffic against; defaults to http://<service-name>:<port>/store if empty
+  # trafficGenerator.targetUrl is the URL to call; defaults to http://<service-name>:<port>/store when empty.
   targetUrl: ""
+  # trafficGenerator.intervalSeconds is the pause between two requests (the pod sleeps this long in its loop).
   intervalSeconds: 2
+  # trafficGenerator.resources sets requests and limits for the curl container.
   resources:
     requests:
       cpu: 10m
@@ -101,22 +131,33 @@ trafficGenerator:
       cpu: 50m
       memory: 32Mi
 
-# ServiceMonitor CRD for Prometheus Operator / kube-prometheus-stack
+# serviceMonitor configures the ServiceMonitor CRD for Prometheus Operator / kube-prometheus-stack.
 serviceMonitor:
+  # serviceMonitor.enabled creates the ServiceMonitor (needs the CRDs from kube-prometheus-stack).
   enabled: true
+  # serviceMonitor.interval is how often Prometheus scrapes the app.
   interval: 10s
+  # serviceMonitor.scrapeTimeout is the per-scrape timeout; keep it at or below the interval.
   scrapeTimeout: 10s
+  # serviceMonitor.path is the metrics path on the app.
   path: /metrics
+  # serviceMonitor.port is the name of the Service port to scrape.
   port: http
-  # Labels required for Prometheus Operator to discover this ServiceMonitor.
+  # serviceMonitor.labels are labels required for Prometheus Operator to discover this ServiceMonitor.
   # Example: release: kube-prometheus-stack
   labels: {}
 
-# PodMonitor CRD for Prometheus Operator (alternative to ServiceMonitor)
+# podMonitor configures the PodMonitor CRD for Prometheus Operator (alternative to ServiceMonitor).
 podMonitor:
+  # podMonitor.enabled creates the PodMonitor.
   enabled: false
+  # podMonitor.interval is how often Prometheus scrapes the pods.
   interval: 10s
+  # podMonitor.scrapeTimeout is the per-scrape timeout.
   scrapeTimeout: 10s
+  # podMonitor.path is the metrics path on the pods.
   path: /metrics
+  # podMonitor.port is the name of the container port to scrape.
   port: http
+  # podMonitor.labels are labels required for Prometheus Operator to discover this PodMonitor.
   labels: {}

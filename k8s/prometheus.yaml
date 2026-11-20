@@ -5,6 +5,10 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: monitoring
+  labels:
+    # Pod Security Admission: warn and audit when a pod breaks the "restricted" profile (nothing is rejected).
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/audit: restricted
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -22,15 +26,27 @@ spec:
         app: prometheus
     spec:
       serviceAccountName: prometheus
+      # Pod Security "restricted" profile: a numeric non-root user and the runtime's default seccomp profile.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: prometheus
           image: prom/prometheus:v2.54.1
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           args:
             - --config.file=/etc/prometheus/prometheus.yml
             - --storage.tsdb.path=/prometheus
             # 31d so the 30-day SLO window fits. The data volume is still an emptyDir (lab only):
             # a pod restart loses the history. See docs/SLO.md, "Limits of this lab".
             - --storage.tsdb.retention.time=31d
+            # A size cap next to the time cap: whichever limit is reached first deletes the oldest blocks.
+            - --storage.tsdb.retention.size=2GB
             - --web.enable-lifecycle
           ports:
             - containerPort: 9090
@@ -41,11 +57,18 @@ spec:
             limits:
               cpu: 500m
               memory: 768Mi
+          # The startup probe gives Prometheus up to 5 minutes to replay its write-ahead log after a restart;
+          # the liveness probe only starts once it succeeds, so a slow start is never mistaken for a hang.
+          startupProbe:
+            httpGet:
+              path: /-/ready
+              port: 9090
+            periodSeconds: 10
+            failureThreshold: 30
           livenessProbe:
             httpGet:
               path: /-/healthy
               port: 9090
-            initialDelaySeconds: 15
             periodSeconds: 15
           readinessProbe:
             httpGet:

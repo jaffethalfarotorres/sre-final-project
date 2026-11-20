@@ -1,12 +1,14 @@
 {
   "title": "Golden Signals",
   "uid": "golden-signals",
+  "tags": ["sre-lab", "golden-signals"],
   "description": "The four golden signals of sre-metrics-app (SRE Academy exercise 11): latency, traffic, errors and saturation, from app metrics, traces (spanmetrics), cAdvisor and Loki logs.",
   "editable": true,
   "schemaVersion": 39,
   "version": 1,
   "time": {"from": "now-30m", "to": "now"},
   "refresh": "10s",
+  "links": [{"title": "Lab dashboards", "type": "dashboards", "tags": ["sre-lab"], "asDropdown": true, "keepTime": true}],
   "panels": [
     {"id": 100, "type": "row", "title": "Latency", "collapsed": false, "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0}, "panels": []},
     {

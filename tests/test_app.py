@@ -100,3 +100,11 @@ def test_metrics_exposes_counters_and_histogram(client, monkeypatch):
     assert 'http_requests_total{endpoint="/store",method="GET",status="200"}' in body
     assert 'http_requests_total{endpoint="/error",method="GET",status="500"}' in body
     assert "http_request_duration_seconds_bucket" in body
+
+
+def test_every_series_exists_at_zero_before_the_first_event(client):
+    """Prometheus can only compute rate() for a series that exists, so the app creates them all at start."""
+    text = client.get("/metrics").data.decode()
+    for endpoint, status in app_module._INITIAL_SERIES:
+        line = 'http_requests_total{{endpoint="{}",method="GET",status="{}"}}'.format(endpoint, status)
+        assert line in text, line

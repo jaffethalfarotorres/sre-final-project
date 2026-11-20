@@ -46,7 +46,8 @@ groups:
               conditions:
                 - evaluator: {type: gt, params: [500]}
         noDataState: OK
-        execErrState: OK
+        # Error: a broken data source makes the alert visible instead of silently looking healthy.
+        execErrState: Error
         for: 2m
         labels:
           severity: warning
@@ -78,7 +79,8 @@ groups:
               conditions:
                 - evaluator: {type: gt, params: [100]}
         noDataState: OK
-        execErrState: OK
+        # Error: a broken data source makes the alert visible instead of silently looking healthy.
+        execErrState: Error
         for: 1m
         labels:
           severity: warning

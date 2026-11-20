@@ -93,3 +93,23 @@ groups:
         annotations:
           summary: "Demonstration alert for Alertmanager verification"
           description: "Continuous demo alert verifying Prometheus-to-Alertmanager alerting pipeline."
+
+  # Who watches the watchers? Alertmanager is the one component that delivers every other alert, so it needs its own.
+  # If it is down this alert cannot page anyone (it still shows red in Prometheus > Alerts), which is why real teams
+  # also run a "dead man's switch": an alert that is always firing and an outside service that complains when it stops
+  # arriving. The always-on AlwaysFiringDemoAlert in this lab is that alert.
+  - name: sre-meta-monitoring
+    rules:
+      - alert: AlertmanagerDown
+        expr: |
+          sum(up{job="alertmanager"}) == 0
+          or
+          absent(up{job="alertmanager"})
+        for: 2m
+        labels:
+          severity: critical
+          service: alertmanager
+        annotations:
+          summary: "Alertmanager is down: no alert can be delivered"
+          description: "Prometheus cannot scrape Alertmanager, so alerts are not being routed to anyone."
+          runbook_url: "https://github.com/jaffethalfarotorres/sre-final-project/blob/main/docs/runbooks/alertmanager-down.md"

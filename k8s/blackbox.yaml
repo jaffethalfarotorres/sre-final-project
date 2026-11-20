@@ -30,9 +30,21 @@ spec:
       labels:
         app: blackbox-exporter
     spec:
+      # Pod Security "restricted" profile: a numeric non-root user, the runtime's default seccomp profile, and
+      # no automatic API token (this workload never calls the Kubernetes API).
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      automountServiceAccountToken: false
       containers:
         - name: blackbox-exporter
           image: prom/blackbox-exporter:v0.25.0
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           args: ["--config.file=/etc/blackbox/blackbox.yml"]
           ports:
             - containerPort: 9115

@@ -1,12 +1,14 @@
 {
   "title": "SLO and Error Budget",
   "uid": "slo-error-budget",
+  "tags": ["sre-lab", "slo"],
   "description": "SLIs, SLOs, error budget and burn rate (SRE Academy topic 0), plus synthetic checks (topic 2). Definitions are in docs/SLO.md.",
   "editable": true,
   "schemaVersion": 39,
   "version": 1,
   "time": {"from": "now-6h", "to": "now"},
   "refresh": "30s",
+  "links": [{"title": "Lab dashboards", "type": "dashboards", "tags": ["sre-lab"], "asDropdown": true, "keepTime": true}],
   "panels": [
     {
       "id": 1, "type": "stat", "title": "Availability SLI (30 days)",

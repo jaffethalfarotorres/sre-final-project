@@ -42,7 +42,7 @@ PY = "python" if sys.platform == "win32" else "python3"
 # ntfy turns Alertmanager's JSON into a readable push with these Go templates
 # (https://docs.ntfy.sh/publish/#message-templating).
 TITLE = "[{{.status}}] {{.commonLabels.severity}}: {{.commonLabels.alertname}}"
-MESSAGE = "{{range .alerts}}{{.annotations.summary}}\n{{end}}"
+MESSAGE = "{{range .alerts}}{{.annotations.summary}}\nRunbook: {{.annotations.runbook_url}}\n{{end}}"
 
 
 def run(*args):

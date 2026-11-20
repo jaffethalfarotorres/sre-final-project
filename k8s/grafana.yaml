@@ -19,9 +19,21 @@ spec:
       labels:
         app: grafana
     spec:
+      # Pod Security "restricted" profile: a numeric non-root user, the runtime's default seccomp profile, and
+      # no automatic API token (this workload never calls the Kubernetes API).
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 472
+        seccompProfile:
+          type: RuntimeDefault
+      automountServiceAccountToken: false
       containers:
         - name: grafana
           image: grafana/grafana:11.1.0
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           ports:
             - containerPort: 3000
           env:

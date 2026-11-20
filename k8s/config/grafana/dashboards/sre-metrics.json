@@ -1,16 +1,14 @@
 {
   "title": "SRE Metrics Demo",
   "uid": "sre-metrics-demo",
+  "tags": ["sre-lab", "overview"],
   "description": "Start here: the four basic app signals, with links to the golden signals and SLO dashboards.",
   "editable": true,
   "schemaVersion": 39,
   "version": 2,
   "time": {"from": "now-30m", "to": "now"},
   "refresh": "10s",
-  "links": [
-    {"title": "Golden Signals", "type": "link", "url": "/d/golden-signals/golden-signals"},
-    {"title": "SLO & Error Budget", "type": "link", "url": "/d/slo-error-budget/slo-and-error-budget"}
-  ],
+  "links": [{"title": "Lab dashboards", "type": "dashboards", "tags": ["sre-lab"], "asDropdown": true, "keepTime": true}],
   "panels": [
     {
       "id": 1, "type": "timeseries", "title": "Store Request Rate",

@@ -17,6 +17,14 @@ resources:
   - observability.yaml
   - application.yaml
 
+# Kubernetes recommended labels: one label on every object says which project it belongs to. includeSelectors is
+# false on purpose: a Deployment's selector cannot change after it is created.
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: sre-final-project
+    includeSelectors: false
+    includeTemplates: true
+
 configMapGenerator:
   - name: prometheus-config
     namespace: monitoring

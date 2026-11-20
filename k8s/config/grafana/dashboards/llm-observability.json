@@ -1,12 +1,14 @@
 {
   "title": "LLM Observability",
   "uid": "llm-observability",
+  "tags": ["sre-lab", "llm"],
   "description": "SRE Academy 2027 module M23: watching a generative AI dependency like any other. The /ask endpoint simulates a model call and records OpenTelemetry gen_ai.* attributes (Development status) and token metrics.",
   "editable": true,
   "schemaVersion": 39,
   "version": 1,
   "time": {"from": "now-30m", "to": "now"},
   "refresh": "10s",
+  "links": [{"title": "Lab dashboards", "type": "dashboards", "tags": ["sre-lab"], "asDropdown": true, "keepTime": true}],
   "panels": [
     {
       "id": 1, "type": "timeseries", "title": "Tokens per minute (input vs output)",

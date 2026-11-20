@@ -15,6 +15,7 @@ metadata:
     app: errload
 spec:
   restartPolicy: Never
+  automountServiceAccountToken: false
   # Safety net: Kubernetes stops the drill after 20 minutes even if the loop runs slower than planned.
   activeDeadlineSeconds: 1200
   securityContext:

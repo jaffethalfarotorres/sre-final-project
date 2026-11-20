@@ -9,11 +9,13 @@ output "namespace" {
 }
 
 output "deployment_name" {
-  value = kubernetes_deployment_v1.app.metadata[0].name
+  description = "Name of the Kubernetes Deployment created for this environment."
+  value       = kubernetes_deployment_v1.app.metadata[0].name
 }
 
 output "service_name" {
-  value = kubernetes_service_v1.app.metadata[0].name
+  description = "Name of the ClusterIP Service in front of the Deployment."
+  value       = kubernetes_service_v1.app.metadata[0].name
 }
 
 output "try_it" {
