@@ -20,7 +20,7 @@ It is for learners from any background, for classmates and teachers, and for the
 <a id="start-with-your-ai-coding-agent"></a>
 ## Start here: step by step
 
-You will not type commands: your agent types them, you click **Approve** and watch, and it explains each thing in plain words. Plan about 1 hour the first time, mostly downloads. You need a laptop with 16 GB of memory (8 GB works, slower) and 25 GB of free disk. On an IBM-managed laptop, if something is blocked, send IT the [request template](docs/IT-REQUEST.md).
+You will not type commands: your agent types them, you click **Approve** and watch, and it explains each thing in plain words. Plan about 1 hour the first time in total (the automatic setup itself is 15-40 minutes, mostly downloads; the rest is the tour). You need a laptop with 16 GB of memory (8 GB works, slower) and 25 GB of free disk. On an IBM-managed laptop, if something is blocked, send IT the [request template](docs/IT-REQUEST.md).
 
 1. **Get IBM Bob.** IBMers: install it from [bob.ibm.com](https://bob.ibm.com) and sign in. Others can start a free trial there. (Claude Code, Codex and other agents also work: they read the same `AGENTS.md`.)
 2. **Open the lab in Bob.** On Bob's welcome page click **Clone Git Repository...**, paste `https://github.com/jaffethalfarotorres/sre-final-project`, pick a folder such as Documents, and when it asks, click **Open**. If Bob asks whether you trust the authors, click **Yes**. *Why:* Bob reads the lab's rules, modes and commands from the folder you open ([Bob's rules documentation](https://bob.ibm.com/docs/ide/configuration/rules)).
@@ -50,7 +50,7 @@ Open an empty folder in your agent (in Bob: File > Open Folder), choose the **Ag
 Set up the SRE lab from https://github.com/jaffethalfarotorres/sre-final-project on my laptop and show me every tool working. I am not technical: do the work for me and explain in plain words. Follow the "Note for AI coding agents" in its README. Ask me for one OK before you start.
 ```
 
-The agent clones the repository and asks you to open the cloned folder (File > Open Folder) so that it can load the lab's rules; continue there. Other agents: paste `Read AGENTS.md and set up the lab for me`.
+The agent clones the repository and asks you to open the cloned folder (File > Open Folder) so that it can load the lab's rules; continue there. Other agents: paste `Read AGENTS.md and set up the lab for me`. If you cannot reopen your workspace, keep working from the clone (use its path in every command); the scripts do not depend on the open folder, only the rules loading does.
 </details>
 
 **Prefer the command line, without an agent?** `git clone` the repository, then run `python scripts/lab_up.py` (Mac: `python3`). In a terminal it runs in the foreground and shows everything live. `--status` shows where it is, `--tour 1` to `--tour 7` is the tour, `--drill` breaks the shop, `--stop` pauses the lab. More: [docs/GUIDE.md](docs/GUIDE.md).
