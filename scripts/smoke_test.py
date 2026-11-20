@@ -37,12 +37,15 @@ import shutil
 import subprocess
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import labpods  # noqa: E402
+
 Result = collections.namedtuple("Result", "status name detail fix")
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WINDOWS = platform.system() == "Windows"
 PY = "python" if WINDOWS else "python3"
-LAB_NAMESPACES = ("application", "monitoring", "opentelemetry")
+LAB_NAMESPACES = labpods.LAB_NAMESPACES
 KEY_ALERTS = ("HighErrorRate", "ServiceDown", "ErrorBudgetFastBurn")
 PROMETHEUS_IMAGE = "prom/prometheus:v2.54.1"
 # Read-only GET requests through the Kubernetes API server's service proxy (no port-forward needed).
@@ -209,18 +212,12 @@ def check_pods():
     bad, count, app_ready = [], 0, 0
     for pod in data.get("items", []):
         ns = pod["metadata"]["namespace"]
-        if ns not in LAB_NAMESPACES:
+        if ns not in LAB_NAMESPACES or not labpods.counts(pod):
             continue
-        phase = pod.get("status", {}).get("phase", "")
-        statuses = pod.get("status", {}).get("containerStatuses", [])
-        ready = bool(statuses) and all(s.get("ready") for s in statuses)
-        if pod["metadata"]["name"] == "errload":
-            continue  # the alert-drill pod (k8s/drills/errload-pod.yaml): it comes and goes, never part of the lab
-        if phase in ("Succeeded", "Failed") and not pod["metadata"].get("ownerReferences"):
-            continue  # a finished one-off pod (for example the errload drill), not part of the running lab
         count += 1
-        if phase != "Running" or not ready:
-            bad.append("{}/{} ({})".format(ns, pod["metadata"]["name"], phase or "unknown"))
+        if not labpods.is_ready(pod):
+            phase = pod.get("status", {}).get("phase") or "unknown"
+            bad.append("{}/{} ({})".format(ns, pod["metadata"]["name"], phase))
         elif pod["metadata"]["name"].startswith("sre-metrics-app"):
             app_ready += 1
     if count == 0:

@@ -45,6 +45,9 @@ import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import labpods  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
 CATALOG = ROOT / "lab" / "missions.json"
 PROGRESS = ROOT / ".lab" / "progress.json"
@@ -105,9 +108,8 @@ def check_stack_ready():
         data = kubectl_json("get", "pods", "-n", namespace)
         if data is None:
             return evidence(False, f"cannot list pods in {namespace}: is Minikube running and the stack deployed?")
-        pods += [p for p in data["items"] if p["status"].get("phase") != "Succeeded"]
-    not_ready = [p["metadata"]["name"] for p in pods
-                 if not all(c.get("ready") for c in p["status"].get("containerStatuses", []) or [{}])]
+        pods += [p for p in data["items"] if labpods.counts(p)]
+    not_ready = [p["metadata"]["name"] for p in pods if not labpods.is_ready(p)]
     detail = f"{len(pods) - len(not_ready)}/{len(pods)} pods ready"
     if not_ready:
         detail += f"; waiting: {', '.join(not_ready[:4])}"
