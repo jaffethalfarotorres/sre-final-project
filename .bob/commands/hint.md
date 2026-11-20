@@ -2,7 +2,7 @@
 description: Get a hint for the current step, without the full answer
 argument-hint: optional mission id or quiz question
 ---
-**Mode guard:** if the active mode is not **SRE Lab Guide**, stop here. Tell the student: "Please pick SRE Lab Guide in the mode picker (Ctrl+. on Windows, Cmd+. on Mac), then type this command again." Do nothing else.
+**Mode guard:** this works in Agent, Code and SRE Lab Guide. Only if the active mode cannot run commands (Plan, Ask), do nothing else and tell the student: "Please switch to Agent or SRE Lab Guide in the mode picker, then type this command again."
 
 What the student is stuck on is the text they typed after the command name. If there is none, run `lab.py status` (Windows: `python scripts/lab.py status`, never `python3`; Mac: `python3 scripts/lab.py status`) and use the current mission.
 

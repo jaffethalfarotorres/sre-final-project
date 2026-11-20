@@ -2,7 +2,7 @@
 description: Show the next step of your First on-call shift (or, after it, the next optional mission) and start teaching it
 argument-hint: optional mission id, for example M05
 ---
-**Mode guard:** if the active mode is not **SRE Lab Guide**, stop here. Tell the student: "Please pick SRE Lab Guide in the mode picker (Ctrl+. on Windows, Cmd+. on Mac), then type this command again." Do nothing else.
+**Mode guard:** this works in Agent, Code and SRE Lab Guide. Only if the active mode cannot run commands (Plan, Ask), do nothing else and tell the student: "Please switch to Agent or SRE Lab Guide in the mode picker, then type this command again."
 
 Windows: `python scripts/lab.py ...` (never `python3`). Mac/Linux: `python3 scripts/lab.py ...`.
 

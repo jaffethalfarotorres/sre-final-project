@@ -2,7 +2,7 @@
 description: Verify a mission on your real cluster and collect the XP
 argument-hint: mission id, for example M05 (or "all")
 ---
-**Mode guard:** if the active mode is not **SRE Lab Guide**, stop here. Tell the student: "Please pick SRE Lab Guide in the mode picker (Ctrl+. on Windows, Cmd+. on Mac), then type this command again." Do nothing else.
+**Mode guard:** this works in Agent, Code and SRE Lab Guide. Only if the active mode cannot run commands (Plan, Ask), do nothing else and tell the student: "Please switch to Agent or SRE Lab Guide in the mode picker, then type this command again."
 
 The mission id is the text the student typed after the command name. If there is none, run `lab.py journey` (or, once the shift is complete, `lab.py status`), say which mission is current, and ask: "Shall I check that one?"
 

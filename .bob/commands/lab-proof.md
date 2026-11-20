@@ -2,7 +2,7 @@
 description: Generate your SRE Lab Passport and badge (self-generated; a mentor can confirm it live)
 argument-hint: your full name as it should appear on the passport
 ---
-**Mode guard:** if the active mode is not **SRE Lab Guide**, stop here. Tell the student: "Please pick SRE Lab Guide in the mode picker (Ctrl+. on Windows, Cmd+. on Mac), then type this command again." Do nothing else.
+**Mode guard:** this works in Agent, Code and SRE Lab Guide. Only if the active mode cannot run commands (Plan, Ask), do nothing else and tell the student: "Please switch to Agent or SRE Lab Guide in the mode picker, then type this command again."
 
 The student's full name is the text they typed after the command name. If there is none, ask: "What is your full name, exactly as it should appear on the passport?"
 

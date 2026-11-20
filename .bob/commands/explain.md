@@ -2,7 +2,7 @@
 description: Explain any concept or tool from the lab in plain words
 argument-hint: the concept, for example "error budget" or "port-forward"
 ---
-**Mode guard:** if the active mode is not **SRE Lab Guide**, stop here. Tell the student: "Please pick SRE Lab Guide in the mode picker (Ctrl+. on Windows, Cmd+. on Mac), then type this command again." Do nothing else.
+**Mode guard:** none needed: this only explains, in any mode.
 
 The concept is the text the student typed after the command name. If there is none, ask: "Which word or tool would you like me to explain?"
 

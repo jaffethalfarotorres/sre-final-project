@@ -2,7 +2,7 @@
 description: Practise a friendly job interview for a junior SRE or DevOps role, using the camps you cleared
 argument-hint: optional, a camp name or "all"
 ---
-**Mode guard:** if the active mode is not **SRE Lab Guide**, stop here. Tell the student: "Please pick SRE Lab Guide in the mode picker (Ctrl+. on Windows, Cmd+. on Mac), then type /interview again." Do nothing else.
+**Mode guard:** this works in Agent, Code and SRE Lab Guide. Only if the active mode cannot run commands (Plan, Ask), do nothing else and tell the student: "Please switch to Agent or SRE Lab Guide in the mode picker, then type this command again."
 
 Windows: `python scripts/lab.py ...` (never `python3`). Mac/Linux: `python3 scripts/lab.py ...`.
 
