@@ -91,7 +91,9 @@ def apply_and_restart():
 def send_test(url):
     """Send one push in the same format Alertmanager uses, straight from this laptop."""
     body = {"status": "test", "commonLabels": {"severity": "info", "alertname": "LabConnected"},
-            "alerts": [{"annotations": {"summary": "Your SRE lab can reach your phone. Real alerts look like this."}}]}
+            "alerts": [{"annotations": {
+                "summary": "Your SRE lab can reach your phone. Real alerts look like this.",
+                "runbook_url": "https://github.com/jaffethalfarotorres/sre-final-project/blob/main/docs/runbooks/high-error-rate.md"}}]}
     request = urllib.request.Request(url, data=json.dumps(body).encode(), method="POST",
                                      headers={"Content-Type": "application/json"})
     try:
