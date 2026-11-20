@@ -123,6 +123,21 @@ This table maps the official rubric to the repository. Each row links to the fil
 
 The full details are below: [What you get](#what-you-get), [Optional add-ons](#optional-add-ons-one-at-a-time), [CI/CD](#cicd) and [Evidence](#evidence).
 
+## How long it takes (measured)
+
+Real numbers from one run on the author's IBM-managed Windows laptop, 2026-11-19. Anything not measured says so.
+
+| What | Time | How it was measured |
+| --- | --- | --- |
+| Resume a stopped lab (Kubernetes start 87 s, deploy 11 s, pods ready 35 s, connection check 18 s) | **2 min 35 s** | `lab_up.py`, per-step times in `lab_up.py --status` |
+| Run `lab_up.py` on a lab that is already running | about 15 s | same |
+| Alert drill: from "break the shop" to `HighErrorRate` firing | **2 min 19 s** (a repeat run: 63 s) | `lab_up.py --drill` |
+| All checks: 214 unit tests, style, manifests, Helm, alert rules, live pods, targets, Grafana (12 of 12) | **90 s** | `smoke_test.py --cluster` |
+| IBM Bob, from an empty folder to every tool working and a real alert on the phone | about **75 minutes**, with long pauses to read and ask questions | one observed session ([screenshots below](#evidence)); the Kubernetes tools were already installed |
+| First install on a brand-new laptop | **not measured yet**; expect 15-40 minutes, mostly downloads | estimate only |
+
+For a group session with a timed agenda, see [docs/WORKSHOP.md](docs/WORKSHOP.md).
+
 ## How this was built
 
 I am an SRE Academy 2026 student from a non-technical background. I built this project with an AI coding assistant, and I want to be clear about who did what.
@@ -130,7 +145,7 @@ I am an SRE Academy 2026 student from a non-technical background. I built this p
 - **What I did:** I set the goals, the scope and the design decisions: a public portfolio project, Minikube on a laptop, Python for the app, a guided lab for the 2027 class led by an AI coding agent (IBM Bob recommended for IBMers), and the safety rules for the AI tools. I directed the work, approved the changes and decided each release. The whole stack runs on my own laptop.
 - **What the AI did:** Claude Code (by Anthropic) generated most of the code, the manifests and the documentation, following my direction. It also ran the live checks on my local Minikube cluster. I used AI review panels to find problems before submitting.
 - **How to see it:** commits made with AI help carry a `Co-Authored-By` trailer in the Git history.
-- **Which agent ran it:** I completed the guided shift on my laptop with Claude Code as the agent ([journey-complete.png](docs/screenshots/journey-complete.png)). IBM Bob also set up the whole lab from the repository link in an empty folder, fired the alert drill and got 12 of 12 from the smoke test (on a laptop that already had Docker, Minikube and kubectl). A fresh AI agent that got only the link did the same. The full install on a brand-new laptop is not yet timed.
+- **Which agent ran it:** I completed the guided shift on my laptop with Claude Code as the agent ([journey-complete.png](docs/screenshots/journey-complete.png)). IBM Bob also did the whole thing from the repository link in a fresh clone, in the SRE Lab Guide mode with `/start-lab`: it set up the lab, led the 7-stop tour of the tools, fired the alert drill and a real alert reached my phone ([screenshots](#evidence)); that laptop already had Docker, Minikube and kubectl. A fresh AI agent that got only the link also passed 12 of 12 checks. The full install on a brand-new laptop is not yet timed.
 - **What I can explain end to end:** the alert path, from a failing request to the metric, the Prometheus rule and the Alertmanager route; the SLO burn-rate alerts and why they use two windows; and how the app is deployed on Kubernetes. I wrote these answers down in the [FAQ](docs/FAQ.md), with the problems the checks found in AI-generated work.
 
 ## The lab path (optional, go deeper)
@@ -236,6 +251,18 @@ The low availability and the negative budget are expected here: Prometheus had r
 **Alerts delivered outside the cluster through ntfy** (captured 2026-11-19 during an alert drill, from an IBM laptop with no extra accounts; this is the ntfy web view of the topic, and a phone subscribed to the topic gets the same messages as pushes; the topic shown was replaced afterwards)
 
 ![Alerts delivered to an ntfy topic](docs/screenshots/notification-delivered.png)
+
+**IBM Bob running the lab** (one observed session on 2026-11-19: `/start-lab` in the SRE Lab Guide mode; the Windows taskbar is cropped out)
+
+![Bob leading the tour, Prometheus stop](docs/screenshots/bob-tour-prometheus.png)
+
+![Bob leading the tour, Alertmanager stop](docs/screenshots/bob-tour-alertmanager.png)
+
+![Bob's wrap-up after the alert drill: every tool working, Golden Signals showing the drill traffic](docs/screenshots/bob-lab-complete.png)
+
+**The alert drill on a real phone** (ntfy app; the private topic name is blurred; the first message is the setup test, the other two fired during the drill, each with a runbook link)
+
+![Phone: LabConnected test, HighErrorRate and ErrorLogBurst with runbook links](docs/screenshots/phone-alerts.png)
 
 ## Repository layout
 
