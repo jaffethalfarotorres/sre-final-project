@@ -29,6 +29,7 @@ jobs:
   publish:
     name: Build and push image
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
       packages: write       # push to GHCR, attestation push-to-registry
@@ -40,7 +41,7 @@ jobs:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
 
       - name: Work out the image names (registry paths must be lowercase)
         id: names
@@ -55,11 +56,11 @@ jobs:
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
-      - uses: docker/setup-qemu-action@v3
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130  # v3.7.0
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f  # v3.12.0
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v4
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550  # v4.8.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -67,7 +68,7 @@ jobs:
 
       - name: Log in to Docker Hub
         if: env.DOCKERHUB_USERNAME != '' && env.DOCKERHUB_TOKEN != ''
-        uses: docker/login-action@v4
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550  # v4.8.0
         with:
           username: ${{ env.DOCKERHUB_USERNAME }}
           password: ${{ env.DOCKERHUB_TOKEN }}
@@ -75,7 +76,7 @@ jobs:
       # Tags: 1.2.3, 1.2, sha-abc1234 and latest (latest is added for semver tags by the default
       # flavor latest=auto, and for manual runs on the default branch).
       - id: meta
-        uses: docker/metadata-action@v6
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302  # v6.2.0
         with:
           images: ${{ steps.names.outputs.images }}
           tags: |
@@ -86,7 +87,7 @@ jobs:
 
       - name: Build and push (linux/amd64 + linux/arm64)
         id: build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8  # v6.19.2
         with:
           context: .
           platforms: linux/amd64,linux/arm64
@@ -99,7 +100,9 @@ jobs:
       # ---- Software supply chain security (SRE Academy 2027, module M19) ----
       - name: Image reference by digest (immutable)
         id: ref
-        run: echo "image=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/sre-metrics-app@${{ steps.build.outputs.digest }}" >> "$GITHUB_OUTPUT"
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/sre-metrics-app@${DIGEST}" >> "$GITHUB_OUTPUT"
 
       - name: Generate an SBOM (Syft, SPDX JSON)
         uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c  # v0.24.3
@@ -119,9 +122,11 @@ jobs:
 
       - uses: sigstore/cosign-installer@7e8b541eb2e61bf99390e1afd4be13a184e9ebc5  # v3.10.1
       - name: Sign the image and attach the SBOM (keyless, GitHub OIDC)
+        env:
+          IMAGE: ${{ steps.ref.outputs.image }}
         run: |
-          cosign sign --yes "${{ steps.ref.outputs.image }}"
-          cosign attest --yes --type spdxjson --predicate sbom.spdx.json "${{ steps.ref.outputs.image }}"
+          cosign sign --yes "$IMAGE"
+          cosign attest --yes --type spdxjson --predicate sbom.spdx.json "$IMAGE"
 
       - name: Build provenance attestation (SLSA)
         uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be  # v2.4.0
@@ -131,18 +136,22 @@ jobs:
           push-to-registry: true
 
       - name: Summary
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+          IMAGE: ${{ steps.ref.outputs.image }}
         run: |
           {
             echo "### Published image tags"
             echo '```'
-            echo "${{ steps.meta.outputs.tags }}"
+            echo "$TAGS"
             echo '```'
-            echo "Digest: \`${{ steps.build.outputs.digest }}\`"
+            echo "Digest: \`${DIGEST}\`"
             echo ""
             echo "Verify the signature:"
             echo '```'
-            echo "cosign verify ${{ steps.ref.outputs.image }} \\"
-            echo "  --certificate-identity-regexp 'https://github.com/${{ github.repository }}/.*' \\"
+            echo "cosign verify ${IMAGE} \\"
+            echo "  --certificate-identity-regexp 'https://github.com/${GITHUB_REPOSITORY}/.*' \\"
             echo "  --certificate-oidc-issuer https://token.actions.githubusercontent.com"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
@@ -150,10 +159,11 @@ jobs:
   smoke-test:
     name: Smoke test (docker + kind)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
 
       - name: Build the image
         run: docker build -t sre-metrics-app:smoke .
@@ -222,11 +232,12 @@ jobs:
   helm-chart:
     name: Package Helm chart and release
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: [publish, smoke-test]
     permissions:
       contents: write       # create the GitHub Release and attach the chart
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
 
       - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4  # v4.3.1
         with:
@@ -244,7 +255,7 @@ jobs:
           fi
           ls -l dist
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         with:
           name: helm-chart
           path: dist/*.tgz

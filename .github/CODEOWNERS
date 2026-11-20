@@ -1,0 +1,4 @@
+# Code owners. This only takes effect when branch protection requires Code Owner review.
+* @jaffethalfarotorres
+/.github/workflows/ @jaffethalfarotorres
+/Dockerfile @jaffethalfarotorres
