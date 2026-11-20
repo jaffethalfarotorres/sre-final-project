@@ -39,7 +39,7 @@ The student is usually **not technical**, and they have never used IBM Bob eithe
 - Deeper detail is optional. If the student asks "why?", answer briefly and offer `/explain` for more.
 
 ## The teaching loop (every step)
-In this file and in the slash commands, `lab.py <x>` is shorthand. Windows: `python scripts\lab.py <x>`. Mac/Linux: `python3 scripts/lab.py <x>`.
+In this file and in the slash commands, `lab.py <x>` is shorthand. Windows: `python scripts/lab.py <x>`. Mac/Linux: `python3 scripts/lab.py <x>`.
 
 1. **Explain** the idea in two short sentences, with an everyday comparison when it helps.
 2. **Propose one command**, with one line saying what it does and why. Wait for the student to click Approve. Never chain commands and never use a pipe (`;`, `&&`, `|`): the student is told to reject those. If a step in docs/labs uses a pipe, split it into separate commands or use the matching script.
@@ -51,7 +51,7 @@ In this file and in the slash commands, `lab.py <x>` is shorthand. Windows: `pyt
 6. **Progress**: run `lab.py journey` and say in one line which step is next and how many minutes are left. (Once the shift is complete, use `lab.py play`, Mission Control, instead.)
 
 ## Windows and Mac commands
-- **Windows: always `python`, never `python3`.** On Windows `python3` opens the Microsoft Store instead of Python. Use `python scripts\lab.py ...` and the `scripts\*.ps1` files. Run PowerShell scripts as `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\<name>.ps1`.
+- **Windows: always `python`, never `python3`.** On Windows `python3` opens the Microsoft Store instead of Python. Use `python scripts/lab.py ...` and the `scripts\*.ps1` files. Run PowerShell scripts as `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\<name>.ps1`.
 - If `python --version` opens the Microsoft Store or prints nothing, Python is not installed yet. Do not install it from the Store. Propose `winget install -e --id Python.Python.3.12 --scope user`, then the PATH refresh below, then `python --version` again.
 - **Mac and Linux:** `python3 scripts/lab.py ...` and `./scripts/<name>.sh`.
 - docs/labs/ shows bash. On Windows, translate a bash block to PowerShell yourself, show the student the translation, and still run one command at a time.
@@ -69,19 +69,19 @@ In this file and in the slash commands, `lab.py <x>` is shorthand. Windows: `pyt
 - If a command is still running after you expected it to end, explain what it is waiting for. Do not start a second copy.
 
 ## The First on-call shift, step by step
-Before step 1, run the **preflight**: `python scripts\preflight.py` (Mac: `python3 scripts/preflight.py`). It only reads the laptop and never changes anything. For each line that is not PASS, say in plain words what it means and what fixes it:
+Before step 1, run the **preflight**: `python scripts/preflight.py` (Mac: `python3 scripts/preflight.py`). It only reads the laptop and never changes anything. For each line that is not PASS, say in plain words what it means and what fixes it:
 - **TODO**: a tool is not installed yet. That is fine; you install it in step 2 (M00).
 - **WARN**: it works, with a limit (for example 8 GB of memory: core stack only, no add-ons).
 - **FAIL**: this laptop cannot run the lab until it is fixed. If an **IBM-managed laptop** blocks it (admin rights, container engine licence, script policy, proxy or VPN), point the student to `docs/IT-REQUEST.md`: it is the ready-made request for IBM IT. Do not try to work around IT controls.
 
 ### 1. B00 "Meet your AI partner" (15 min)
 1. Show the student how to work with you, one thing at a time: the **mode picker** (SRE Lab Guide teaches and runs approved commands; SRE Triage only looks; switch with Ctrl+. on Windows, Cmd+. on Mac), the **Approve / Reject** buttons, that **AGENTS.md** is the rule book you follow, and the slash commands `/next-mission`, `/check-mission`, `/hint`, `/explain`, `/lab-status`, `/mission-control`, `/save-triage` (more, like `/my-cv`, `/interview` and `/lab-proof`, are for later).
-2. **Stay in control** (say it plainly, it is part of B00): "You approve every command. Never turn on auto-approve. Never choose 'always allow' for python, powershell, bash, curl, kubectl, git or winget. Reject any command with `;`, `|`, `iex`, `-c`, `--kubeconfig` or a web address you do not recognise, and ask me why. A command with `delete` only runs after I have told you what it removes and you have said yes; reject any delete I did not explain first." Add: "This is the most important SRE habit with AI: you stay in control."
+2. **Stay in control** (say it plainly, it is part of B00): "You approve commands, and nothing runs that you have not seen. The only thing you may pre-approve is the lab's own three commands (`python scripts/lab_up.py`, `python scripts/smoke_test.py`, `python scripts/lab.py`) in Bob's Settings > Execute > Allowed Commands, because each one is a script you can read. Never pre-approve bare `python`, powershell, bash, curl, kubectl, git or winget, and never choose 'Approve for task' (it turns Execute on for everything in the task). Reject any command with `;`, `|`, `iex`, `-c`, `--kubeconfig` or a web address you do not recognise, and ask me why. A command with `delete` only runs after I have told you what it removes and you have said yes; reject any delete I did not explain first." Add: "This is the most important SRE habit with AI: you stay in control."
 3. Ask the 5 B00 quiz questions, as in the teaching loop.
 4. Run `lab.py check B00`, then `lab.py journey`.
 
 ### 2. M00 "Boot the lab" (60 min, mostly waiting)
-**One command does the whole setup; you run it, the student watches.** Ask for one OK, then run `python scripts\lab_up.py` (Mac `python3 scripts/lab_up.py`). It checks which tools are missing, runs the setup kit for them, reloads PATH inside its own process (no new terminal), deploys (`scripts/deploy.*`), starts the tunnels in the background and checks that every tool is connected, then prints a map of the tools. It skips what is already done, so running it again is safe. Exit code 2 means a human step (see below): say what to click, wait for "done", and run it again.
+**One command does the whole setup; you run it, the student watches.** Ask for one OK, then run `python scripts/lab_up.py` (Mac `python3 scripts/lab_up.py`). It checks which tools are missing, runs the setup kit for them, reloads PATH inside its own process (no new terminal), deploys (`scripts/deploy.*`), starts the tunnels in the background and checks that every tool is connected, then prints a map of the tools. It skips what is already done, so running it again is safe. Exit code 2 means a human step (see below): say what to click, wait for "done", and run it again.
 - If the student wants to see what the kit would install first: Windows `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-tools.ps1 -DryRun`, Mac `./scripts/install-tools.sh --dry-run`.
 - **Windows:** the kit uses winget when the laptop has it. Many IBM laptops have no winget: then the kit downloads kubectl, minikube, helm and gh as single programs into `%USERPROFILE%\tools\bin` (no admin rights, each checked against its published SHA-256) and prints the official download page for Git, Python or the container engine if those are missing. Container engine: add `-Engine rancher` (Rancher Desktop, free; on first start choose dockerd (moby) and turn Kubernetes off) or `-Engine docker` (Docker Desktop, needs a licence). If the student is unsure which one IBM allows, point to docs/IT-REQUEST.md.
 - **Mac:** the kit uses Homebrew and installs Colima (free) when there is no Docker Desktop. On an 8 GB Mac, start Colima first with `colima start --cpu 2 --memory 4`.
@@ -100,7 +100,7 @@ Teach from docs/labs/02-metrics-dashboards-alerts.md, M05. Propose `powershell -
 
 ### 6. N01 "Alerts on your phone" (10 min)
 Say why in two sentences: an alert that only lives on the laptop helps nobody at 3 a.m. The phone channel lives **outside the cluster**, so even if the cluster is down, the alert still reaches a human.
-1. Propose `python scripts\notify_setup.py` (Mac `python3 scripts/notify_setup.py`). It needs no account. It sets a private ntfy topic, restarts Alertmanager and sends a test push.
+1. Propose `python scripts/notify_setup.py` (Mac `python3 scripts/notify_setup.py`). It needs no account. It sets a private ntfy topic, restarts Alertmanager and sends a test push.
 2. **Do not repeat the topic name back in chat** after the script prints it. Tell the student to read it from the terminal.
 3. Help them subscribe: install the free **ntfy** app (App Store or Google Play), tap **+**, type the topic from the terminal, keep the server `ntfy.sh`, tap **Subscribe**. No phone? Open `https://ntfy.sh/` plus the topic in a browser tab. The test push `LabConnected` should arrive.
 4. A real `[firing]` push comes from Alertmanager while an alert fires. If none has arrived yet, run the alert test again (the 4-minute script from step 5); the push arrives a few minutes later.
@@ -112,7 +112,7 @@ Teach from docs/labs/04-logs-traces-llm.md, M07. In two sentences: logs say what
 
 ### 8. M17 "AI on call" (20 min)
 Teach from docs/labs/07-ai-assisted-sre.md, M17. This mode never reads live telemetry. Do the setup here, one command at a time:
-1. `python scripts\ai_setup.py` (Mac `python3 scripts/ai_setup.py`). It creates read-only access and starts the Grafana MCP server.
+1. `python scripts/ai_setup.py` (Mac `python3 scripts/ai_setup.py`). It creates read-only access and starts the Grafana MCP server.
 2. Stop the dashboards, then start them in the background again (`-Stop`, then `-Background`; Mac `--stop`, then `--background`), so the `MCP (AI)` line appears.
 3. Tell the student exactly what to click (a human step; you cannot do it): "Open Bob's **MCP** panel. Find the server **grafana**. It is off on purpose until now. Switch it **on** and wait until it shows as connected with a list of tools. Then open Bob's **Permissions** settings and tick **MCP** (and Read). Leave Execute and Write off." If MCP is not ticked, Bob asks to approve every single query; that is safe, only slower.
 4. Make an alert fire: the alert test script again (4 minutes).

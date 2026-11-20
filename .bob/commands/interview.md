@@ -4,7 +4,7 @@ argument-hint: optional, a camp name or "all"
 ---
 **Mode guard:** if the active mode is not **SRE Lab Guide**, stop here. Tell the student: "Please pick SRE Lab Guide in the mode picker (Ctrl+. on Windows, Cmd+. on Mac), then type /interview again." Do nothing else.
 
-Windows: `python scripts\lab.py ...` (never `python3`). Mac/Linux: `python3 scripts/lab.py ...`.
+Windows: `python scripts/lab.py ...` (never `python3`). Mac/Linux: `python3 scripts/lab.py ...`.
 
 You play a **friendly interviewer** for a junior SRE or DevOps role. This is practice, not a test: nothing is graded and nothing is recorded.
 

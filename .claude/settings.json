@@ -55,7 +55,9 @@
       "Bash(gh repo create *)",
       "Bash(gh pr create *)",
       "PowerShell(gh repo create *)",
-      "PowerShell(gh pr create *)"
+      "PowerShell(gh pr create *)",
+      "Read(./docs/instructor/**)",
+      "mcp__grafana__alerting_manage_routing"
     ],
     "ask": [
       "Bash(pytest *)",
@@ -63,7 +65,11 @@
       "Bash(python3 scripts/*)",
       "Bash(python scripts/*)",
       "Edit(./k8s/**)",
-      "Edit(./.github/**)"
+      "Edit(./.github/**)",
+      "Edit(./.claude/**)",
+      "Edit(./.mcp.json)",
+      "Edit(./AGENTS.md)",
+      "Edit(./CLAUDE.md)"
     ],
     "allow": [
       "Bash(kubectl get *)",

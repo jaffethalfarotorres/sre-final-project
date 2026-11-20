@@ -4,7 +4,7 @@ argument-hint: optional, the role you are aiming for, for example "junior SRE" o
 ---
 **Mode guard:** if the active mode is not **SRE Lab Guide**, stop here. Tell the student: "Please pick SRE Lab Guide in the mode picker (Ctrl+. on Windows, Cmd+. on Mac), then type /my-cv again." Do nothing else.
 
-Windows: `python scripts\lab.py ...` (never `python3`). Mac/Linux: `python3 scripts/lab.py ...`.
+Windows: `python scripts/lab.py ...` (never `python3`). Mac/Linux: `python3 scripts/lab.py ...`.
 
 The role the student is aiming for is the text they typed after the command name. If there is none, ask: "Which kind of role are you aiming for: junior SRE, DevOps, cloud or operations?"
 

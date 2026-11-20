@@ -4,7 +4,7 @@ argument-hint: optional mission id, for example M05
 ---
 **Mode guard:** if the active mode is not **SRE Lab Guide**, stop here. Tell the student: "Please pick SRE Lab Guide in the mode picker (Ctrl+. on Windows, Cmd+. on Mac), then type this command again." Do nothing else.
 
-Windows: `python scripts\lab.py ...` (never `python3`). Mac/Linux: `python3 scripts/lab.py ...`.
+Windows: `python scripts/lab.py ...` (never `python3`). Mac/Linux: `python3 scripts/lab.py ...`.
 
 If the student typed a mission id after the command name, run `lab.py show <ID>` for that mission. Otherwise run `lab.py journey`: while the **First on-call shift** is not complete, use the next step it names. Once the shift is complete, run `lab.py status` and use the next mission it names; that is optional "keep exploring" work, so say so kindly.
 

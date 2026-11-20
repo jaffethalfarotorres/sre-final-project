@@ -6,7 +6,7 @@ argument-hint: your full name as it should appear on the passport
 
 The student's full name is the text they typed after the command name. If there is none, ask: "What is your full name, exactly as it should appear on the passport?"
 
-Windows: `python scripts\lab.py ...` (never `python3`). Mac/Linux: `python3 scripts/lab.py ...`.
+Windows: `python scripts/lab.py ...` (never `python3`). Mac/Linux: `python3 scripts/lab.py ...`.
 
 1. Run `lab.py check --all` first, so every mission that is done is recorded.
 2. Run `lab.py proof --name "<the student's full name>"`.

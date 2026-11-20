@@ -6,7 +6,9 @@
 - **Students start with `/lab`** (`.claude/skills/lab/SKILL.md`). It runs the same First on-call shift as IBM Bob:
   the same 9 steps (`lab.py journey`), the preflight first, then the setup kit, then a new terminal and a Claude Code
   restart (`claude --continue`) so the new tools are on PATH. Windows: always `python` (never `python3`);
-  Mac/Linux: `python3`. The student runs setup, deploy and cluster-changing commands in their own terminal.
+  Mac/Linux: `python3`. You run `python scripts/lab_up.py` for them (one approval): it sets up, deploys, opens the
+  tunnels and checks everything. Follow the "First message" section of AGENTS.md and its result-line protocol.
+  Direct cluster-changing commands stay denied in `.claude/settings.json`; the lab scripts are the way in.
 - **Teachers and graders**: run `python scripts/smoke_test.py` (add `--cluster` when the lab runs). It only reads.
   Never commit, push or create a repository for anyone (AGENTS.md, Writing).
 - Subagents: `sre-triage` (read-only alert triage) and `postmortem-writer` (drafts in docs/postmortems/ only).

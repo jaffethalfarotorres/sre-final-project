@@ -6,7 +6,7 @@ argument-hint: mission id, for example M05 (or "all")
 
 The mission id is the text the student typed after the command name. If there is none, run `lab.py journey` (or, once the shift is complete, `lab.py status`), say which mission is current, and ask: "Shall I check that one?"
 
-Run `lab.py check <ID>` (use `lab.py check --all` when the student said "all"). Windows: `python scripts\lab.py ...` (never `python3`). Mac/Linux: `python3 scripts/lab.py ...`.
+Run `lab.py check <ID>` (use `lab.py check --all` when the student said "all"). Windows: `python scripts/lab.py ...` (never `python3`). Mac/Linux: `python3 scripts/lab.py ...`.
 
 - **PASS:** celebrate in one sentence and name any achievement. Then ask the mission's quiz questions one by one (from `lab.py show <ID>`) and record each answer with `lab.py answer <ID> <n> <letter>`. Remind them once: full XP on the first try, half on the second, then it locks. If wrong, give a hint, never the answer.
 - **LEVEL UP** in the output: celebrate the camp cleared in two short lines (the new capability of Nimbus Store and the SRE principle). During the shift keep it short and move on; after the shift, also read the new CV skills and the interview question and offer `/interview`.
