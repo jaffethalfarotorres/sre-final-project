@@ -1,7 +1,7 @@
 ---
 description: A guided session - Bob sets up the lab, tours every tool with you, fires an alert drill and answers questions
 ---
-**Mode guard:** this works in Agent, Code and SRE Lab Guide. Only if the active mode cannot run commands (Plan, Ask), do nothing else and tell the student: "Please switch to Agent or SRE Lab Guide in the mode picker, then type /start-lab again."
+**Mode guard:** the best mode for this is **SRE Lab Guide**. If the active mode is Plan or Ask (they cannot run commands), do nothing else and tell the student: "Please pick SRE Lab Guide in the mode picker (Ctrl+. on Windows, Cmd+. on Mac), then type /start-lab again." In Agent or Code mode, say once, in one friendly sentence, that SRE Lab Guide works best here, then carry on.
 
 Lead a guided session. Follow AGENTS.md ("First message") and keep it warm, short and one step at a time. The student is usually not technical: you do the typing, they approve and watch.
 

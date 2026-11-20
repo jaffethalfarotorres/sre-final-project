@@ -8,7 +8,7 @@ The shift is the whole ice-breaker. If you liked it, the rest of the repository 
 
 | You are... | Start with |
 | --- | --- |
-| A student with IBM Bob | [BOB-QUICKSTART.md](BOB-QUICKSTART.md): open the folder in Bob, choose **Agent**, type `/start-lab` |
+| A student with IBM Bob | [BOB-QUICKSTART.md](BOB-QUICKSTART.md): open the folder in Bob, choose the mode **SRE Lab Guide**, type `/start-lab` |
 | A student without Bob | The [step-by-step guide for Mac and Windows](GUIDE.md), then `python3 scripts/lab.py status` (Windows: `python scripts/lab.py status`; or `/lab` in Claude Code) |
 | A professor | The [lab guide](labs/README.md) (the shift, then the deeper parts with objectives and timing), the [course map](COURSE-MAP.md) and the [instructor notes](instructor/README.md) |
 

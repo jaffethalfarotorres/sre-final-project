@@ -14,7 +14,7 @@ An **AI coding agent** is an AI assistant that works inside a project folder and
 
 | Agent | How to start the shift | What it reads |
 | --- | --- | --- |
-| **IBM Bob** (recommended for IBMers) | Open the `sre-final-project` folder, choose **Agent** (or **SRE Lab Guide**), type `/start-lab` | `.bob/` (modes, rules, slash commands) and `AGENTS.md` |
+| **IBM Bob** (recommended for IBMers) | Open the `sre-final-project` folder, choose the mode **SRE Lab Guide**, type `/start-lab` | `.bob/` (modes, rules, slash commands) and `AGENTS.md` |
 | **Claude Code** | Open the `sre-final-project` folder, type `/lab` | `CLAUDE.md`, which loads `AGENTS.md`, plus the `/lab` skill |
 | **Other agents** (for example OpenAI Codex, Google Antigravity or Cursor) | Open the `sre-final-project` folder and paste: `Read AGENTS.md and guide me through the First on-call shift` | `AGENTS.md` |
 
