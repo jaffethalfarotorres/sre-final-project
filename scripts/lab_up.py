@@ -687,15 +687,21 @@ def run_worker(args):
     atexit.register(lambda: os.path.exists(PID_FILE) and os.remove(PID_FILE))
     total = len(STEPS)
     set_status(state="running", pid=os.getpid(), started_at=now(), total_steps=total, step_index=0, percent=0,
-               message="starting", next_action="wait")
+               message="starting", next_action="wait", step_seconds={})
+    run_started = time.time()
     for index, (key, title) in enumerate(STEPS, 1):
         set_status(step=key, title=title, step_index=index, percent=int((index - 1) * 100 / total), message=title,
                    next_action="wait")
         banner("Step {} of {}: {}".format(index, total, title))
+        step_started = time.time()
         try:
             kind, message = globals()["step_" + key](args)
         except Exception as exc:  # noqa: BLE001 - the worker must always leave a clear status behind
             kind, message = FAIL, "unexpected error in step {}: {}".format(key, exc)
+        # Real durations, so a facilitator can time the lab instead of guessing (see docs/WORKSHOP.md).
+        seconds = dict(read_status().get("step_seconds") or {})
+        seconds[key] = round(time.time() - step_started)
+        set_status(step_seconds=seconds, run_seconds=round(time.time() - run_started))
         if kind != OK:
             state = "needs_human" if kind == HUMAN else "failed"
             set_status(state=state, message=message, next_action=message)
@@ -805,6 +811,10 @@ def cmd_status():
                        ("next_action", "next action"), ("updated_at", "updated")):
         if status.get(key) not in (None, ""):
             print("{:<12} {}".format(label + ":", status[key]))
+    seconds = status.get("step_seconds") or {}
+    if seconds:
+        print("{:<12} {}".format("step times:", ", ".join("{} {}s".format(k, v) for k, v in seconds.items())))
+        print("{:<12} {} s".format("run time:", status.get("run_seconds", sum(seconds.values()))))
     try:
         with open(LOG_FILE, encoding="utf-8", errors="replace") as handle:
             tail = handle.read().splitlines()[-12:]

@@ -14,7 +14,7 @@ An **AI coding agent** is an AI assistant that works inside a project folder and
 
 | Agent | How to start the shift | What it reads |
 | --- | --- | --- |
-| **IBM Bob** (recommended for IBMers) | Open the `sre-final-project` folder, choose the mode **SRE Lab Guide**, type `/start-lab` | `.bob/` (modes, rules, slash commands) and `AGENTS.md` |
+| **IBM Bob** (recommended for IBMers) | Open the `sre-final-project` folder, choose **Agent** (or **SRE Lab Guide**), type `/start-lab` | `.bob/` (modes, rules, slash commands) and `AGENTS.md` |
 | **Claude Code** | Open the `sre-final-project` folder, type `/lab` | `CLAUDE.md`, which loads `AGENTS.md`, plus the `/lab` skill |
 | **Other agents** (for example OpenAI Codex, Google Antigravity or Cursor) | Open the `sre-final-project` folder and paste: `Read AGENTS.md and guide me through the First on-call shift` | `AGENTS.md` |
 
@@ -205,9 +205,11 @@ If you climb all the camps, type `/lab-proof Your Name`. The agent creates `lab-
 
 These slash commands are IBM Bob's. In Claude Code, use `/lab` and ask in plain words; in other agents, ask in plain words (for example "next mission" or "check M05").
 
+**You only need three:** `/start-lab` (Bob leads the session), `/explain` (ask about any idea) and `/save-triage` (keep an AI triage report). `/smoke-test` is for teachers and graders. All the others belong to the optional quiz game: you can ignore them, and Bob offers them when you want a challenge.
+
 | Command | What it does |
 | --- | --- |
-| `/start-lab` | Start your shift, or continue where you left off |
+| `/start-lab` | A guided session: set up, tour every tool, alert drill, then explore (the quiz game is offered at the end) |
 | `/next-mission` | Explain and begin the next mission |
 | `/check-mission M05` | Check a mission on your laptop and collect the XP |
 | `/hint` | A small hint, without spoiling the answer |

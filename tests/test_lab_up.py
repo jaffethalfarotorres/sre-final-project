@@ -251,6 +251,13 @@ def test_worker_runs_every_step_and_ends_done(monkeypatch):
     assert status["state"] == "done" and status["percent"] == 100 and status["pid"] == os.getpid()
 
 
+def test_worker_records_how_long_each_step_took(monkeypatch):
+    fake_steps(monkeypatch, {"a": (lab_up.OK, ""), "b": (lab_up.OK, "")})
+    assert lab_up.run_worker(args()) == 0
+    status = lab_up.read_status()
+    assert set(status["step_seconds"]) == {"a", "b"} and status["run_seconds"] >= 0
+
+
 def test_worker_stops_at_a_human_step(monkeypatch):
     fake_steps(monkeypatch, {"a": (lab_up.OK, ""), "b": (lab_up.HUMAN, "open Docker Desktop"),
                              "c": (lab_up.OK, "")})

@@ -24,7 +24,7 @@ You will not type commands: your agent types them, you click **Approve** and wat
 
 1. **Get IBM Bob.** IBMers: install it from [bob.ibm.com](https://bob.ibm.com) and sign in. Others can start a free trial there. (Claude Code, Codex and other agents also work: they read the same `AGENTS.md`.)
 2. **Open the lab in Bob.** On Bob's welcome page click **Clone Git Repository...**, paste `https://github.com/jaffethalfarotorres/sre-final-project`, pick a folder such as Documents, and when it asks, click **Open**. (If Bob first shows a list called "Open Existing Repository Clone", you have cloned this lab before: pick **Clone again** for a clean start, or pick the existing entry to resume.) If Bob asks whether you trust the authors, click **Yes**. *Why:* Bob reads the lab's rules, modes and commands from the folder you open ([Bob's rules documentation](https://bob.ibm.com/docs/ide/configuration/rules)).
-3. **Choose the mode.** At the bottom of the Bob chat, pick **Agent**. (For the guided 9-step shift with quizzes, pick **SRE Lab Guide** and type `/start-lab` instead.)
+3. **Choose the mode.** At the bottom of the Bob chat, pick **Agent**. (Prefer to be led step by step? Type `/start-lab` and Bob leads the whole session. Questions any time: `/explain` and a tool name.)
 4. **Optional, makes it hands-free.** Let Bob run only the lab's own commands without asking each time. Open Settings > **Execute** and, under Allowed Commands, add `python scripts/lab_up.py`, `python scripts/smoke_test.py` and `python scripts/lab.py` (on a Mac use `python3`). Then open **Permissions** (beside the mode picker) and tick **Execute**. Bob matches only the start of each command, so everything else still asks ([how Allowed Commands work](https://bob.ibm.com/docs/ide/features/auto-approving-actions)). Never add plain `python` or `powershell`.
 5. **Type one message:** `Set up the lab and show me every tool working.` Bob explains what it will do, asks one OK, and runs `python scripts/lab_up.py`.
 6. **Click Approve, then wait.** The first run takes 15-40 minutes (it downloads Kubernetes and the images). If Windows asks "Do you want to allow this app to make changes?", click **Yes**. If Docker Desktop opens for the first time, accept its terms and wait until it says it is running. The command always ends with one clear line: `DONE`; `NOT_FINISHED` (Bob runs it again and it continues); `NEEDS_HUMAN` (it says what you must do); or `FAILED` (it says why).
@@ -61,6 +61,7 @@ The agent clones the repository and asks you to open the cloned folder (File > O
 | --- | --- |
 | **A learner** | [docs/EXPLORE.md](docs/EXPLORE.md) (the map of the tools), then the [lab guide](docs/labs/README.md) (7 optional parts, from foundations to AI-assisted on-call) |
 | **The grader** | The [grader view](#final-project-grader-view) below. To check it yourself, say "I want to check the project" to your agent (Bob: `/smoke-test`), or run `python scripts/smoke_test.py --cluster` (about 2 minutes, read-only) |
+| **Running a workshop** | [docs/WORKSHOP.md](docs/WORKSHOP.md): a timed agenda for one facilitator and about 30 people, pre-work, catch-up rules and how to measure the timings |
 | **A professor or team lead** | The [instructor notes](docs/instructor/README.md), the [course map](docs/COURSE-MAP.md) and the [Road to Junior SRE](docs/JOURNEY.md) (camps, badges, reuse for onboarding) |
 | **A hiring manager** | [What you get](#what-you-get), [How this was built](#how-this-was-built), the [evidence](#evidence) and a real [drill postmortem](docs/postmortems/2026-11-19-alert-drill-and-ai-triage.md) |
 
@@ -238,16 +239,17 @@ The low availability and the negative budget are expected here: Prometheus had r
 
 ## Repository layout
 
+You do not need to open any of these folders: your agent guides you. They are here so you can see how it is built.
+
 ```
-app/            Flask service (metrics, traces, logs, /ask GenAI demo, /inject drill)
-k8s/            Kustomize stack: manifests + config/ (Prometheus, Grafana, Collector, Loki), ai/, drills/
-helm/           App chart + kube-prometheus-stack values (alternative install: ./scripts/deploy.sh --helm)
-ansible/        Deploy playbook and incident runbooks      awx/        AWX operator, instance, RBAC
-terraform/      Staging environment as code                 gitops/     ArgoCD project and application
-chaos/          LitmusChaos experiment as an Argo Workflow  policy/     Kyverno policies
-progressive/    Argo Rollouts canary + SLO analysis         scripts/    One-command tools (bash, PowerShell, Python)
-docs/           Guide, lab parts, SLO, ORR, incident response, runbooks, course map
-.claude/ .bob/  AI assistant configuration (shared rules in AGENTS.md)
+START HERE (the lab itself)
+  README.md  AGENTS.md  scripts/ (lab_up.py is the one command)  k8s/ (the monitoring stack)  app/ (the shop)  docs/
+
+OPTIONAL EXTRAS (each has its own script and lab part; not needed for the tour)
+  helm/ ansible/ terraform/ awx/ gitops/ chaos/ policy/ progressive/
+
+FOR MAINTAINERS (CI, tests and agent configuration)
+  .github/ tests/ lab/ .bob/ .claude/ CLAUDE.md CONTRIBUTING.md SECURITY.md
 ```
 
 ## CI/CD
