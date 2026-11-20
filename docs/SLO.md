@@ -50,10 +50,27 @@ The request guards keep a drill on a fresh cluster from firing the long-window a
 - **In production**, use persistent storage (a PersistentVolumeClaim) and long-term storage such as Thanos or Mimir, so the SLO window survives restarts and upgrades.
 
 ## Error budget policy
-- **Budget above 50%:** normal feature work. Experiments and risky changes are allowed.
-- **Budget between 0 and 50%:** releases need a rollback plan, and the reliability backlog gets reviewed weekly.
-- **Budget spent:** feature freeze. Only fixes and rollbacks ship until the budget recovers. Write a postmortem for every incident that used budget.
-- **Quarterly review:** compare the SLO with what users experienced. Adjust the SLO if it is always met with budget to spare, or never met.
+This policy is written for the lab's 99% SLO over 30 days. "Budget spent" means the share of the 30-day error budget already used, which is `1 - slo:availability:error_budget_remaining` on the **SLO and Error Budget** dashboard. One drill uses about 9% (see the worked example below). Use it as a starting point. A real team writes its own numbers and gets them agreed by the service owner and the product owner.
+
+**Who decides.** The service owner (the person accountable for this service) declares a freeze and lifts it. This is a lab convention, not a rule from the Google SRE Workbook. The Workbook's example policy says what stops, not who calls it. In a real team, write the role down by name.
+
+| Budget spent | What happens |
+| --- | --- |
+| **Under 50%** | Normal feature work. Experiments and risky changes are allowed. |
+| **50% or more** (50% or less left) | Releases need a rollback plan. The reliability backlog is reviewed every week. |
+| **75% or more** (25% or less left) | Risky changes wait. Reliability work on the causes that used the budget comes first. The service owner tells the product owner. |
+| **100%** (budget below 0, `ErrorBudgetExhausted` fires) | Feature freeze. Only fixes for urgent (P0) problems, security fixes and rollbacks ship, until the service is back inside its SLO. Write a postmortem for every incident that used budget. |
+
+**What does not count (exceptions).** The Workbook example lets feature work continue in cases like these, so the team is not punished for things it cannot control:
+- A planned drill or load test, such as `scripts/trigger-alert`. Say so in the team channel before you start, and note it in the postmortem.
+- An outage caused by a dependency owned by another team. Feature work can go on if that team has frozen its own releases to fix it. The postmortem still asks whether a hard dependency can be made softer (for example with a fallback).
+- Errors that were counted wrongly and affected no user. Fix the measurement first.
+
+The opposite also holds: if a bug or a process mistake in this service used the budget, or wrong error counting hid how much was spent, reliability work is required.
+
+**Disagreements.** If the service owner and the product owner disagree about how the budget was calculated or what the policy requires, either of them escalates to the engineering manager, who decides. The Workbook example escalates to the CTO. Record the decision and the reason in the postmortem or the ticket.
+
+**Quarterly review.** Compare the SLO with what users experienced. Adjust the SLO if it is always met with budget to spare, or never met.
 
 ## Worked example (from the course)
 With a 99.9% monthly SLO, the error budget is 0.1% of 30 days, which is 43.2 minutes. After a 35-minute outage, 8.2 minutes remain, so one more small incident would freeze deployments.

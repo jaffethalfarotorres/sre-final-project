@@ -2,11 +2,15 @@
 
 > Blameless: describe what the system and the process allowed to happen, not who made a mistake (SRE Academy topic 6).
 
+**Write one when** there was user-visible downtime or degradation, data loss, a rollback or other manual step (or a rollback failed), resolution took more than 30 minutes, or a person noticed before the alert did. Anyone can ask for one. The full list is in [INCIDENT-RESPONSE.md](INCIDENT-RESPONSE.md#when-a-postmortem-is-required).
+
 | Field | Value |
 | --- | --- |
 | Date | YYYY-MM-DD |
 | Severity | Sev-1 / Sev-2 / Sev-3 |
 | Incident Commander | |
+| Detected by | alert / person / user |
+| Reviewer | A second engineer and the service owner, within 5 working days |
 | Status | Draft / Reviewed / Action items done |
 | Error budget used | x% of the 30-day availability budget (from the SLO dashboard) |
 
@@ -41,6 +45,8 @@ Two or three sentences: what users experienced, for how long, and how it was fix
 -
 
 ## Action items
+Every action item needs one named owner and a due date. An item without both is not accepted at review.
+
 | Action | Type (prevent / detect / mitigate) | Owner | Issue | Due |
 | --- | --- | --- | --- | --- |
 | | | | #  | |

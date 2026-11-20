@@ -45,11 +45,11 @@ The ORR checklist from SRE Academy topic 3, applied to `sre-metrics-app`. Each i
 | Bad release recovery | ✅ | Rolling update plus `kubectl rollout undo`, and ArgoCD history/rollback for the GitOps copy |
 | Rebuild from scratch (RTO) | ✅ | Whole stack re-created from Git with one command (`scripts/deploy`, `ansible/site.yml`, or Terraform for the app). RTO about 10 minutes |
 | Monitoring data backups (RPO) | 🟡 Medium | Prometheus and Loki use `emptyDir`; history is lost when their pods restart. Acceptable for a laptop demo. In production use persistent volumes and remote storage |
-| Multi-node / multi-region failover | 🟡 Low | Single-node Minikube by design. In production: several nodes, pod anti-affinity and a PodDisruptionBudget |
+| Multi-node / multi-region failover | 🟡 Low | Single-node Minikube by design. In production: several nodes and pod anti-affinity (the shop already has a PodDisruptionBudget) |
 
 ## Follow-up items
 | Gap | Priority | Next step |
 | --- | --- | --- |
 | Persistent storage for Prometheus and Loki | Medium | PersistentVolumeClaims plus a retention or remote-write plan |
-| Multi-node resilience | Low | PodDisruptionBudget and anti-affinity once more than one node exists |
+| Multi-node resilience | Low | Pod anti-affinity once more than one node exists (the PodDisruptionBudget is already in place) |
 | Automate this ORR | Low | A CI job that checks every alert has a `runbook_url` (the course suggests GitHub Actions) |
