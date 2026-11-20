@@ -633,7 +633,7 @@ Optional and open to everyone. It is worth 250 XP. Real teams try a change in a 
    cd ..
    ```
    What you should see: type `yes`, then `Apply complete!`, and 2 pods in the namespace `sre-metrics-app-dev`.
-3. Check it from the project folder while the workspace still exists (Windows: `python scripts\lab.py check P-ENV`):
+3. Check it from the project folder while the workspace still exists (Windows: `python scripts/lab.py check P-ENV`):
    ```bash
    python3 scripts/lab.py check P-ENV
    ```

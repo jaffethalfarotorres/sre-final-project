@@ -10,7 +10,7 @@ Part 1 gets every student to the same starting point. You set up a laptop cluste
 
 Lab time is about 3.5-4 h. Total with lecture and breaks: about 5.5 h.
 
-All commands are the same in **Terminal** (Mac) and the **Ubuntu** window (Windows with WSL2). Run them from the project folder (`cd ~/sre-final-project`). If you use **Windows PowerShell** instead (IBM Bob, with Docker Desktop or Rancher Desktop), the same scripts exist as `scripts\*.ps1`, you type `python` instead of `python3`, and the lab script is `python scripts\lab.py` (Mac and Ubuntu: `python3 scripts/lab.py`). In M00 and M01, steps that use `curl`, `source`, `grep` or `pkill` have a **Windows PowerShell** line or block right under them.
+All commands are the same in **Terminal** (Mac) and the **Ubuntu** window (Windows with WSL2). Run them from the project folder (`cd ~/sre-final-project`). If you use **Windows PowerShell** instead (IBM Bob, with Docker Desktop or Rancher Desktop), the same scripts exist as `scripts\*.ps1`, you type `python` instead of `python3`, and the lab script is `python scripts/lab.py` (Mac and Ubuntu: `python3 scripts/lab.py`). In M00 and M01, steps that use `curl`, `source`, `grep` or `pkill` have a **Windows PowerShell** line or block right under them.
 
 ---
 
@@ -35,7 +35,7 @@ Memory is the most common blocker. The core stack uses about 3.2-3.8 GiB. Later 
 
 **Lab steps**
 
-0. Before class: run the read-only preflight, `python scripts\preflight.py` (Mac: `python3 scripts/preflight.py`). It needs no admin rights and prints PASS, WARN, TODO or FAIL with a fix for each line. On an IBM-managed laptop, send [IT-REQUEST.md](../IT-REQUEST.md) to IT at least two weeks before class.
+0. Before class: run the read-only preflight, `python scripts/preflight.py` (Mac: `python3 scripts/preflight.py`). It needs no admin rights and prints PASS, WARN, TODO or FAIL with a fix for each line. On an IBM-managed laptop, send [IT-REQUEST.md](../IT-REQUEST.md) to IT at least two weeks before class.
    What you should see: no FAIL line. TODO lines are the tools step 1 installs.
 
 1. Install the tools. Follow [docs/GUIDE.md step 2](../GUIDE.md#2-install-the-tools-one-time) exactly (Mac or Windows section). Then check:
@@ -226,7 +226,7 @@ If `OTEL_EXPORTER_OTLP_ENDPOINT` is not set (tests, local runs), spans and logs 
    ```
    What you should see: JSON lines with `"trace_id"` and `"span_id"`, mixed with Gunicorn access-log lines (those are plain text, not JSON).
 
-9. Record the mission: `python scripts\lab.py check M01` (Mac/Linux: `python3 scripts/lab.py check M01`).
+9. Record the mission: `python scripts/lab.py check M01` (Mac/Linux: `python3 scripts/lab.py check M01`).
 
 > **Be honest about this check.** `lab.py check M01` looks for the app's metric series in Prometheus and for the service `sre-metrics-app` in Jaeger. The traffic generator creates both a few minutes after M00, so **the check can pass before you do steps 1-8**. A green check here only proves the stack sends signals. Your own work in M01 is the evidence below (the test output, your PromQL graph, and one trace ID found in both Jaeger and Loki). That is what a professor asks for.
 

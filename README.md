@@ -1,192 +1,70 @@
-# SRE Academy: your first on-call shift, guided by your AI coding agent
+# SRE Academy lab: a reference architecture you set up in one command, then explore
 
 [![CI](https://github.com/jaffethalfarotorres/sre-final-project/actions/workflows/ci.yml/badge.svg)](https://github.com/jaffethalfarotorres/sre-final-project/actions/workflows/ci.yml)
 [![CD](https://github.com/jaffethalfarotorres/sre-final-project/actions/workflows/cd.yml/badge.svg)](https://github.com/jaffethalfarotorres/sre-final-project/actions/workflows/cd.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE.md)
-[![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB.svg?logo=python&logoColor=white)](app/app.py)
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB.svg?logo=python&logoColor=white)](app/app.py)
 [![Runs on Mac and Windows](https://img.shields.io/badge/runs%20on-macOS%20%7C%20Windows-informational)](docs/GUIDE.md)
-[![Guided by your AI coding agent](https://img.shields.io/badge/guided%20by-your%20AI%20coding%20agent-0f62fe)](docs/BOB-QUICKSTART.md)
+[![Set up by your AI coding agent](https://img.shields.io/badge/set%20up%20by-your%20AI%20coding%20agent-0f62fe)](#start-here-step-by-step)
 
-**What this is, in plain words:** an ice-breaker for Site Reliability Engineering (SRE: the people who keep online services working), guided by your AI coding agent: [IBM Bob](https://bob.ibm.com) for IBMers, or Claude Code, Codex and others. You open your agent, paste the link to this repository, and in **about 1 hour you see it all running** (most of it waiting for downloads). If you want more, the guided shift takes **2-3 hours in one sitting** (estimated): the agent sets up a real SRE toolchain on your laptop and walks you through your **first on-call shift**: live dashboards, an alert that reaches your phone, the trace of one failing request, and an AI teammate that investigates safely without being allowed to break anything.
+> **Note for AI coding agents (IBM Bob, Claude Code, Codex and others) reading this page from a pasted link.** The person is usually not technical and wants to see the lab running, not a plan. Do not write plans or files, and never commit, push or create a repository. With their OK: clone `https://github.com/jaffethalfarotorres/sre-final-project.git`, tell them to open that folder (File > Open Folder) so that you load its `AGENTS.md` and `.bob/` rules, then follow `AGENTS.md`, section "First message". In short, run `python scripts/lab_up.py` (Mac and Linux: `python3`). It sets everything up and ends with one line: `LAB_UP RESULT: DONE`, `NOT_FINISHED`, `NEEDS_HUMAN` or `FAILED`. If it says NOT_FINISHED, run the same command again; it continues where it stopped. Do not run it as a background task: it already manages its own background worker. Then give the tour (`python scripts/lab_up.py --tour 1`) and fire the drill (`--drill`). A teacher who wants a written check also gets `python scripts/smoke_test.py --cluster --report reports/smoke-test.md`.
 
-You do not need a technical background. Nobody grades it. The agent does the work, you approve and watch, and it explains what you see. New words? See the [glossary](docs/GUIDE.md#glossary) or the [FAQ](docs/FAQ.md).
+## What this is
 
-## Start here: step by step (never used IBM Bob? This is for you)
+A small online shop, **Nimbus Store**, running on your laptop and watched by the tools real SRE teams use: **Prometheus** (numbers over time), **Alertmanager** (who gets woken up), **Grafana** (charts), **Loki** (logs), **Jaeger** and **OpenTelemetry** (the path of one request), all on **Kubernetes**. SRE (Site Reliability Engineering) is the work of keeping online services running well.
 
-You only need this page. You will not type commands: IBM Bob types them, you click **Approve** and watch, and Bob explains what is happening in plain words, so you learn while it works. Ask it anything, any time ("what is Kubernetes?", "why did that alarm go off?").
+It is meant to be read as a **reference architecture**: each tool is configured the way its own documentation recommends, so you can see how these things should be structured, and why. Setting it up is normally the hard part, so your **AI coding agent does it for you** with one command. After that the time is yours: look around, break things on purpose, read the files, ask the agent anything, and learn at your own pace. No technical background is needed, and nobody grades it.
 
-**What you will learn by the end:** what SRE people do all day; how a website is watched with **metrics** (numbers over time), **logs** (what happened) and **traces** (the path of one click); how an **alert** decides to wake someone up and reaches a phone; and how to work safely with an AI that proposes and you decide.
-
-Plan **about 1 hour** the first time (most of it is waiting for downloads), on a laptop with **16 GB of memory** (8 GB works, slower) and **25 GB of free disk**.
-
-**Before you start (5 minutes, once)**
-1. **Get IBM Bob.** IBMers: install it from [bob.ibm.com](https://bob.ibm.com) and sign in with your IBM account. Not at IBM? The same page has a free trial. (Another AI coding agent such as Claude Code also works: [see below](#start-with-your-ai-coding-agent).)
-2. **Make an empty folder** for the lab. Windows: open **File Explorer**, go to **Documents**, right-click > **New > Folder**, name it `sre-lab`. Mac: in **Finder**, open **Documents**, right-click > **New Folder**, name it `sre-lab`.
-
-**Start the lab (2 minutes of clicking, then you watch)**
-
-3. **Open IBM Bob.** It looks like a code editor with a chat panel. If it shows a welcome page, close it.
-4. **Open your empty folder in Bob:** menu **File > Open Folder…**, pick `sre-lab`, click **Select Folder** (Mac: **Open**). If Bob asks *"Do you trust the authors of the files in this folder?"*, click **Yes, I trust the authors**. Why a folder? Bob works inside the folder you open: it is where it downloads the lab.
-5. **Open the Bob chat** if you do not see it: click the **Bob icon** in the left or right side bar. At the bottom of the chat there is a **mode** menu: choose **Agent**. (Agent is the mode that can do things on your laptop. Ask and Plan modes only talk.)
-6. **Copy this message, paste it into the Bob chat and press Enter:**
-
-   ```text
-   Set up the SRE lab from https://github.com/jaffethalfarotorres/sre-final-project on my laptop and show me every tool working. I am not technical: do the work for me, explain in plain words, and ask for my OK before each command. Follow the "Note for AI coding agents" in its README.
-   ```
-
-7. **Click Approve when Bob asks.** Before each command, Bob shows it with a short reason and two buttons: **Approve** (or **Run**) and **Reject**. Read the reason and click **Approve**. The first time, Bob may show *"I understand the risks"*: accept it; it only means you approve each command yourself. Do **not** turn on auto-approve for Execute or Write.
-8. **Windows pop-ups are your job.** An installer may ask *"Do you want to allow this app to make changes?"*: click **Yes**. If Docker Desktop or Rancher Desktop opens for the first time, accept its terms and wait until it says it is running, then type `done` in the Bob chat.
-9. **Wait and watch** (15-40 minutes the first time). Bob downloads the tools, starts a small **Kubernetes** (a mini data center inside your laptop), installs **Nimbus Store** (a tiny online shop) and the tools that watch it. If something is blocked on an IBM laptop, Bob shows you the [IT request](docs/IT-REQUEST.md) to send.
-10. **See it working.** When it is ready, your browser opens these pages, and Bob explains each one:
-
-    | Page | What you see |
-    | --- | --- |
-    | <http://localhost:5000> | **Nimbus Store**, the shop |
-    | <http://localhost:3000> | **Grafana**: live charts of the shop. No login needed to look; to change things, user `admin`, password `admin` |
-    | <http://localhost:9090/targets> | **Prometheus**: everything it measures, all green (UP) |
-    | <http://localhost:16686> | **Jaeger**: the path of each click through the shop |
-    | <http://localhost:9093> | **Alertmanager**: the alarms |
-
-**Play with it (type these in the Bob chat, in plain words)**
-- `Break the shop on purpose and show me the alert` (the alert drill: in about 3 minutes an alarm goes off, and you follow it from chart to Alertmanager).
-- `Send the alerts to my phone` (free ntfy app, no account; Bob tells you what to tap).
-- `What am I looking at?` on any page, at any time.
-- `Start my first on-call shift` for the guided version with 9 steps, short quizzes and a badge.
-- `Stop the lab` when you are done (frees the memory). Next time, open the same folder in Bob and type `Start the lab again`.
-
-> **Note for AI coding agents (IBM Bob, Claude Code, Codex and others) reading this page from a pasted link:** the person is usually not technical and wants to **see the lab running**, not a plan. Do not write a plan, a checklist or any file, and never commit, push or create a repository. With their OK: clone `https://github.com/jaffethalfarotorres/sre-final-project.git` into the folder that is open (if git is missing, install it first: Windows `winget install -e --id Git.Git`, or tell them which installer to click), work inside the `sre-final-project` folder, read its `AGENTS.md` (section "First message") and follow it. Their plain-words requests map to: "break the shop" → `lab_up.py --drill`; "alerts to my phone" → `scripts/notify_setup.py`; "stop the lab" → `lab_up.py --stop`; "start the lab again" → `lab_up.py`; "first on-call shift" → AGENTS.md "The lab game". In short, run `python sre-final-project/scripts/lab_up.py` (Windows `python sre-final-project\scripts\lab_up.py`; it works from any folder) **in the foreground, and wait**: it prints progress for up to 40 minutes, and also writes it to `sre-final-project/.lab/lab_up.log`. It installs what is missing, deploys everything on this laptop and checks that every tool is connected. Then give the tour and run the alert drill (`lab_up.py --drill`). A teacher who wants a written check also gets `python scripts/smoke_test.py --cluster --report reports/smoke-test.md`.
+It is for learners from any background, for classmates and teachers, and for the author's own study and practice.
 
 <a id="start-with-your-ai-coding-agent"></a>
-**Start with your AI coding agent.** The first message to paste is in [BOB-QUICKSTART.md, Step 1](docs/BOB-QUICKSTART.md#step-1-paste-this-into-your-ai-coding-agent). It works in any AI coding agent (in IBM Bob, use **Agent** mode). The agent installs the tools, gets the lab and brings it up with one command, [`scripts/lab_up.py`](scripts/lab_up.py), then shows you every tool working. For the guided shift with quizzes and a badge, open the `sre-final-project` folder in your agent:
+## Start here: step by step
 
-| Your agent | How it reads this lab | How to start |
-| --- | --- | --- |
-| **IBM Bob** (recommended for IBMers) | [`.bob/`](.bob/) (modes, rules, slash commands) plus [`AGENTS.md`](AGENTS.md) | Choose the mode **SRE Lab Guide**, type `/start-lab` |
-| **Claude Code** | [`CLAUDE.md`](CLAUDE.md) (imports `AGENTS.md`), the `/lab` skill in [`.claude/skills/lab/`](.claude/skills/lab/) and the `sre-triage` subagent | Type `/lab` |
-| **Others** (OpenAI Codex, Google Antigravity, Cursor...) | [`AGENTS.md`](AGENTS.md), the shared entry point that many agents read | Paste `Read AGENTS.md and guide me through the First on-call shift` |
+You will not type commands: your agent types them, you click **Approve** and watch, and it explains each thing in plain words. Plan about 1 hour the first time, mostly downloads. You need a laptop with 16 GB of memory (8 GB works, slower) and 25 GB of free disk. On an IBM-managed laptop, if something is blocked, send IT the [request template](docs/IT-REQUEST.md).
 
-**Tested with:** the shift and the AI triage drill were run with Claude Code on the author's laptop. A fresh AI agent that got only this link also cloned it, ran `lab_up.py`, fired the drill and got 12/12 PASS from the smoke test (on a laptop with the tools already installed). The IBM Bob setup was written for Bob 2.x, but a full shift in Bob has not been timed yet. Other agents follow `AGENTS.md` but were not tested. More in [Use any AI coding agent](docs/BOB-QUICKSTART.md#use-any-ai-coding-agent).
+1. **Get IBM Bob.** IBMers: install it from [bob.ibm.com](https://bob.ibm.com) and sign in. Others can start a free trial there. (Claude Code, Codex and other agents also work: they read the same `AGENTS.md`.)
+2. **Open the lab in Bob.** On Bob's welcome page click **Clone Git Repository...**, paste `https://github.com/jaffethalfarotorres/sre-final-project`, pick a folder such as Documents, and when it asks, click **Open**. If Bob asks whether you trust the authors, click **Yes**. *Why:* Bob reads the lab's rules, modes and commands from the folder you open ([Bob's rules documentation](https://bob.ibm.com/docs/ide/configuration/rules)).
+3. **Choose the mode.** At the bottom of the Bob chat, pick **Agent**. (For the guided 9-step shift with quizzes, pick **SRE Lab Guide** and type `/start-lab` instead.)
+4. **Optional, makes it hands-free.** Let Bob run only the lab's own commands without asking each time. Open Settings > **Execute** and, under Allowed Commands, add `python scripts/lab_up.py`, `python scripts/smoke_test.py` and `python scripts/lab.py` (on a Mac use `python3`). Then open **Permissions** (beside the mode picker) and tick **Execute**. Bob matches only the start of each command, so everything else still asks ([how Allowed Commands work](https://bob.ibm.com/docs/ide/features/auto-approving-actions)). Never add plain `python` or `powershell`.
+5. **Type one message:** `Set up the lab and show me every tool working.` Bob explains what it will do, asks one OK, and runs `python scripts/lab_up.py`.
+6. **Click Approve, then wait.** The first run takes 15-40 minutes (it downloads Kubernetes and the images). If Windows asks "Do you want to allow this app to make changes?", click **Yes**. If Docker Desktop opens for the first time, accept its terms and wait until it says it is running. The command always ends with one clear line: `DONE`; `NOT_FINISHED` (Bob runs it again and it continues); `NEEDS_HUMAN` (it says what you must do); or `FAILED` (it says why).
+7. **Take the tour.** Bob opens each tool in your browser, one at a time, and tells you what you are looking at:
 
-**→ [Start your first on-call shift](docs/BOB-QUICKSTART.md)**
+   | Page | What it is |
+   | --- | --- |
+   | <http://localhost:5000> | **Nimbus Store**, the shop |
+   | <http://localhost:9090/targets> | **Prometheus**: everything it measures, all green (UP) |
+   | <http://localhost:3000> | **Grafana**: live charts. No login to look; `admin` / `admin` to change things |
+   | <http://localhost:16686> | **Jaeger**: the path of each click through the shop |
+   | <http://localhost:9093> | **Alertmanager**: the alarms |
 
-<a id="the-first-on-call-shift"></a>
-## Your first on-call shift: 9 steps, about 165 minutes
+8. **Break it on purpose.** Ask `Break the shop on purpose and show me the alert`. In about 2.5 minutes the alarm `HighErrorRate` fires, and you follow it from Grafana to Prometheus to Alertmanager. Then `Send the alerts to my phone` (free ntfy app, no account) makes the next one reach your phone.
+9. **Explore.** Everything is running now. Read [docs/EXPLORE.md](docs/EXPLORE.md): for each tool it shows what good looks like, where it lives in this repository, a few safe experiments, and questions to ask your agent. Say `Stop the lab` when you are done (it frees the memory); `Start the lab again` resumes.
 
-The minutes are estimates for a laptop that is ready (admin rights, disk space, a container engine). They have not been timed with a real class yet.
+<details>
+<summary>Only have the link, or using another agent? Paste this instead</summary>
 
-The pretend shop is **Nimbus Store**. It went down for an hour last week and nobody noticed. Today you make sure that never happens again.
+Open an empty folder in your agent (in Bob: File > Open Folder), choose the **Agent** mode and paste:
 
-| # | Mission | What you do | Minutes |
-| --- | --- | --- | --- |
-| 1 | B00 Meet your AI partner | Learn how you and your agent (Bob for IBMers) work together, including the "Stay in control" rules | 15 |
-| 2 | M00 Boot the lab | The agent runs one command, `scripts/lab_up.py`: it installs what is missing, deploys the stack and checks that every tool is connected (mostly waiting; 15-40 minutes the first time) | 60 |
-| 3 | M01 Instrument a service | See the numbers, traces and logs the shop sends out | 10 |
-| 4 | M04 Dashboards as code | Open Grafana and read the live charts | 10 |
-| 5 | M05 First alert | Break the shop on purpose (`scripts/trigger-alert.*`) and watch an alert fire | 15 |
-| 6 | N01 Alerts on your phone | Run `scripts/notify_setup.py`, subscribe in the free ntfy app or a browser, and get a real `[firing]` push | 10 |
-| 7 | M07 Follow the trace | Follow one failing request step by step in Jaeger | 10 |
-| 8 | M17 AI on call | Turn on the agent's read-only access (`scripts/ai_setup.py`) and let it triage the alert (Bob: **SRE Triage** mode and `/save-triage`; Claude Code: the `sre-triage` subagent) | 20 |
-| 9 | M18 Injection proof | See the agent spot a planted instruction in the logs and refuse to follow it | 15 |
+```text
+Set up the SRE lab from https://github.com/jaffethalfarotorres/sre-final-project on my laptop and show me every tool working. I am not technical: do the work for me and explain in plain words. Follow the "Note for AI coding agents" in its README. Ask me for one OK before you start.
+```
 
-When all nine are done you get a **SHIFT COMPLETE** moment and the **First On-Call Shift** badge. Check where you are at any time with `python scripts\lab.py journey` on Windows (Mac and Linux: `python3 scripts/lab.py journey`). Everything else in this repository is optional: see [Keep exploring](#keep-exploring).
+The agent clones the repository and asks you to open the cloned folder (File > Open Folder) so that it can load the lab's rules; continue there. Other agents: paste `Read AGENTS.md and set up the lab for me`.
+</details>
 
-## Start here, by audience
+**Prefer the command line, without an agent?** `git clone` the repository, then run `python scripts/lab_up.py` (Mac: `python3`). In a terminal it runs in the foreground and shows everything live. `--status` shows where it is, `--tour 1` to `--tour 7` is the tour, `--drill` breaks the shop, `--stop` pauses the lab. More: [docs/GUIDE.md](docs/GUIDE.md).
 
-| You are... | Read this first | Then |
-| --- | --- | --- |
-| **An IBMer trying SRE for the first time** | [BOB-QUICKSTART.md](docs/BOB-QUICKSTART.md): paste one message into IBM Bob (or another [AI coding agent](#start-with-your-ai-coding-agent)) and follow the [9 steps](#the-first-on-call-shift) | First check your laptop with `python scripts\preflight.py` on Windows (Mac: `python3 scripts/preflight.py`). If something is blocked, send IT the [IT request template](docs/IT-REQUEST.md) |
-| **The grader** | The [grader view](#final-project-grader-view) just below (rubric to file to screenshot). To check it on your laptop, paste the repository link into your AI coding agent and say "I want to check the project" (IBM Bob: `/smoke-test`), or run `python scripts/smoke_test.py` yourself: the main CI checks, read-only, about 2 minutes | The [FAQ](docs/FAQ.md) (alert path, burn-rate math, design choices, limits) and the evidence: [screenshots](#evidence), [AI triage drill](docs/evidence/ai-triage-2026-11-19.md), [postmortem](docs/postmortems/2026-11-19-alert-drill-and-ai-triage.md) |
-| **A professor or team lead running a session** | The [instructor notes](docs/instructor/README.md) (how to run it as one class session) | The [course map](docs/COURSE-MAP.md) and the [lab guide](docs/labs/README.md) (the shift first, then optional deeper parts) |
-| **A team that onboards SRE new hires or interns** | [Reuse it for onboarding](#reuse-it-for-onboarding) | The mission catalog [`lab/missions.json`](lab/missions.json) and [`scripts/lab.py`](scripts/lab.py) |
-| **A classmate who only wants to understand it** | The plain-words paragraph at the top of this page, then [GUIDE section 1, "What is this project?"](docs/GUIDE.md#1-what-is-this-project) | The [step-by-step guide](docs/GUIDE.md) and its [glossary](docs/GUIDE.md#glossary) |
-| **A hiring manager** | [What I built](#what-you-get) and [How this was built](#how-this-was-built) (what I did, what the AI did) | The [evidence](#evidence), a [real drill postmortem](docs/postmortems/2026-11-19-alert-drill-and-ai-triage.md) (time to detect 2 min 19 s) and the [CI runs](https://github.com/jaffethalfarotorres/sre-final-project/actions/workflows/ci.yml) |
+## Where to go next
 
-This repository is also my SRE Academy 2026 final project. There is no presentation: the repository is the whole submission, and the [FAQ](docs/FAQ.md) answers the questions I would get in person, with links to the proof. The rubric mapping is right below.
-
-<a id="final-project-requirements"></a>
-## Final project: grader view
-
-This table maps the official rubric to the repository. Each row links to the file and to the evidence. The [FAQ](docs/FAQ.md#2-from-a-failing-request-to-a-phone-push) walks one failing request all the way to a phone push.
-
-| Requirement | Where it is | Evidence |
-| --- | --- | --- |
-| 1. Application emits metrics | Python Flask app with Prometheus metrics (numbers over time), OpenTelemetry traces (the path of one request) and JSON logs: [`app/app.py`](app/app.py); tests in [`tests/`](tests/) | [grafana-golden-signals.png](docs/screenshots/grafana-golden-signals.png), [jaeger-trace.png](docs/screenshots/jaeger-trace.png), [grafana-loki-logs.png](docs/screenshots/grafana-loki-logs.png) |
-| 2. Kubernetes deployment | Minikube (Kubernetes on one laptop) and Kustomize (built into kubectl), 2 replicas, probes, limits, non-root, rolling updates: [`k8s/application.yaml`](k8s/application.yaml), [`k8s/kustomization.yaml`](k8s/kustomization.yaml), [`scripts/deploy.sh`](scripts/deploy.sh), [`scripts/deploy.ps1`](scripts/deploy.ps1) | [pods.png](docs/screenshots/pods.png) |
-| 3. Prometheus scraping | Pull model: Kubernetes service discovery finds the app and the Collector's span metrics, plus cAdvisor and blackbox jobs: [`k8s/config/prometheus/prometheus.yml`](k8s/config/prometheus/prometheus.yml); 6 alert rules in [`alerts.yml`](k8s/config/prometheus/alerts.yml) (one is a pipeline test); 17 recording rules and 4 SLO burn-rate alerts (how fast the error budget is spent) in [`slo.yml`](k8s/config/prometheus/slo.yml) | [prometheus-targets.png](docs/screenshots/prometheus-targets.png), [prometheus-alerts.png](docs/screenshots/prometheus-alerts.png) |
-| 4. Grafana dashboards | 4 dashboards as code: overview, golden signals, SLO and error budget, LLM observability: [`k8s/config/grafana/dashboards/`](k8s/config/grafana/dashboards/), [`datasources.yaml`](k8s/config/grafana/datasources.yaml) | [grafana-sre-metrics.png](docs/screenshots/grafana-sre-metrics.png), [grafana-golden-signals.png](docs/screenshots/grafana-golden-signals.png), [grafana-slo.png](docs/screenshots/grafana-slo.png), [grafana-llm.png](docs/screenshots/grafana-llm.png) |
-| 5. Alertmanager | Routing by severity, inhibition, receivers for a phone push (ntfy), Slack, email and AWX (automation): [`k8s/alertmanager.yaml`](k8s/alertmanager.yaml); Grafana alerts use the same routes; runbooks in [`docs/runbooks/`](docs/runbooks/) | [alertmanager-alert.png](docs/screenshots/alertmanager-alert.png) |
-| 6. Documentation | This README, the [FAQ](docs/FAQ.md), the [guide](docs/GUIDE.md), the [lab parts](docs/labs/README.md), [`LICENSE.md`](LICENSE.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), comments in the code and manifests | [Screenshots](#evidence) |
-| Bonus: external notifications | Phone push through [ntfy](https://ntfy.sh) (no account, works on IBM laptops: [`scripts/notify_setup.py`](scripts/notify_setup.py)), plus Slack and email receivers, all in [`k8s/alertmanager.yaml`](k8s/alertmanager.yaml); setup in [guide section 6](docs/GUIDE.md#6-optional-get-alerts-in-slack-and-email) | [notification-delivered.png](docs/screenshots/notification-delivered.png) (HighErrorRate, ErrorBudgetFastBurn and ErrorLogBurst delivered to the ntfy topic; a subscribed phone gets them as pushes) |
-| Bonus: Infrastructure as Code (IaC: setup written as files) | [`terraform/`](terraform/), [`ansible/`](ansible/), [`helm/`](helm/), Kustomize in [`k8s/`](k8s/) | [helm-deployment.png](docs/screenshots/helm-deployment.png), [helm-prometheus-targets.png](docs/screenshots/helm-prometheus-targets.png) (Helm path, earlier capture) |
-| Bonus: CI/CD (automatic checks and releases) | [`ci.yml`](.github/workflows/ci.yml) (tests, flake8, bandit, pip-audit, kubeconform, promtool, amtool, Terraform, Ansible) and [`cd.yml`](.github/workflows/cd.yml) (builds, scans and signs the image: GHCR, SBOM, Trivy, cosign, provenance) | [ci-green.png](docs/screenshots/ci-green.png), and the badges above |
-
-**Minimum to meet the six requirements:** the core stack from `scripts/deploy.*` (no add-ons needed). Time and steps: [FAQ question 9](docs/FAQ.md#9-what-is-the-minimum-to-meet-the-six-requirements). **Check it yourself in 15 minutes:** [FAQ, Verify everything](docs/FAQ.md#verify-everything-in-15-minutes). **In one command:** `python scripts/smoke_test.py` (add `--cluster` when the lab runs) prints PASS, FAIL or SKIP for unit tests, flake8, the Kustomize render, Helm lint, the promtool rule tests and, with `--cluster`, the live pods, targets, alert rules, Alertmanager and Grafana. It only reads.
-
-The full details are below: [What you get](#what-you-get), [Quick start](#quick-start), [Optional add-ons](#optional-add-ons-one-at-a-time), [CI/CD](#cicd) and [Evidence](#evidence).
-
-## How this was built
-
-I am an SRE Academy 2026 student from a non-technical background. I built this project with an AI coding assistant, and I want to be clear about who did what.
-
-- **What I did:** I set the goals, the scope and the design decisions: a public portfolio project, Minikube on a laptop, Python for the app, a guided lab for the 2027 class led by an AI coding agent (IBM Bob recommended for IBMers), and the safety rules for the AI tools. I directed the work, approved the changes and decided each release. The whole stack runs on my own laptop.
-- **What the AI did:** Claude Code (by Anthropic) generated most of the code, the manifests and the documentation, following my direction. It also ran the live checks on my local Minikube cluster. I used AI review panels to find problems before submitting.
-- **How to see it:** commits made with AI help carry a `Co-Authored-By` trailer in the Git history.
-- **Which agent ran the shift:** I completed the shift on my laptop with Claude Code as the agent ([journey-complete.png](docs/screenshots/journey-complete.png)). A full, timed run in IBM Bob is still to do.
-- **What I can explain end to end:** the alert path, from a failing request to the metric, the Prometheus rule and the Alertmanager route; the SLO burn-rate alerts and why they use two windows; and how the app is deployed on Kubernetes. I wrote these answers down in the [FAQ](docs/FAQ.md), with the problems the checks found in AI-generated work.
-
-<a id="keep-exploring"></a>
-## Keep exploring (optional, at your own pace)
-
-The shift is the whole ice-breaker. If you liked it, the rest of the repository is there for you, with no deadline and no grade. Your agent stays your guide: in IBM Bob, choose the **SRE Lab Guide** mode and type `/next-mission`; in Claude Code, type `/lab`.
-
-| You are... | Start with |
+| You are... | Go to |
 | --- | --- |
-| A student with IBM Bob | [BOB-QUICKSTART.md](docs/BOB-QUICKSTART.md): open the folder in Bob, choose the **SRE Lab Guide** mode, type `/start-lab` |
-| A student without Bob | The [step-by-step guide for Mac and Windows](docs/GUIDE.md), then `python3 scripts/lab.py status` (Windows: `python scripts\lab.py status`; or `/lab` in Claude Code) |
-| A professor | The [lab guide](docs/labs/README.md) (the shift, then the deeper parts with objectives and timing), the [course map](docs/COURSE-MAP.md) and the [instructor notes](docs/instructor/README.md) |
+| **A learner** | [docs/EXPLORE.md](docs/EXPLORE.md) (the map of the tools), then the [lab guide](docs/labs/README.md) (7 optional parts, from foundations to AI-assisted on-call) |
+| **The grader** | The [grader view](#final-project-grader-view) below. To check it yourself, say "I want to check the project" to your agent (Bob: `/smoke-test`), or run `python scripts/smoke_test.py --cluster` (about 2 minutes, read-only) |
+| **A professor or team lead** | The [instructor notes](docs/instructor/README.md), the [course map](docs/COURSE-MAP.md) and the [Road to Junior SRE](docs/JOURNEY.md) (camps, badges, reuse for onboarding) |
+| **A hiring manager** | [What you get](#what-you-get), [How this was built](#how-this-was-built), the [evidence](#evidence) and a real [drill postmortem](docs/postmortems/2026-11-19-alert-drill-and-ai-triage.md) |
 
-A mission counts only when [`scripts/lab.py`](scripts/lab.py) finds the evidence on your own cluster or fork. Quizzes are for learning and never count toward a grade.
-
-### The journey: Road to Junior SRE
-
-The full lab is a longer climb, built for IBMers from non-technical teams who want to move into technical roles such as junior SRE, DevOps, cloud or operations. With **your AI pair**, your AI coding agent (fast and helpful, never allowed to change anything without your OK), you climb camp by camp from **Career Changer** to the last camp, **On-Call Ready**. Each camp gives Nimbus a real capability, teaches one SRE principle, lists skills you can name on a CV and adds one interview question to rehearse with your agent (`lab.py cv`; in Bob: `/my-cv` and `/interview`). The first on-call shift already touches camps 0, 1, 2, 4 and 7. The lab gives hands-on evidence for junior roles; it does not claim to make anyone a senior engineer.
-
-| Camp | SRE principle |
-| --- | --- |
-| 0. Orientation Day | Humans stay in control: automation and AI propose, people approve |
-| 1. The Engine Room | Reliability starts with small, safe, repeatable changes |
-| 2. The Watchtower | Monitor what users feel, and alert only when a human must act |
-| 3. The War Room | Embrace risk with SLOs and error budgets; learn from incidents without blame |
-| 4. The Detective Agency | Observability: explain any failure from evidence, not guesses |
-| 5. The Robot Workshop | Eliminate toil: automate repetitive work and keep infrastructure in code |
-| 6. The Proving Grounds | Release engineering: gradual, reversible changes, tested by breaking things on purpose |
-| 7. The AI Command Center | Trust, but verify: AI helps on call only with least privilege and human judgement |
-
-Ranks by XP: Career Changer (0) → Tech Apprentice (500) → SRE Intern (1300) → Junior SRE Candidate (2300) → Junior SRE Lab Graduate (3300). See every mission with `lab.py missions`: the 9 shift missions, the other core missions of the camps (for example M02, M03, M06, M09, M09b work in your own fork, M14), 6 optional add-ons (M10X, M13, M15, M19, M20, M21), 4 optional portfolio projects and the capstone game day **M27**. The mission IDs have gaps on purpose: M22 and M24 to M26 are not used.
-
-**Portfolio projects** (optional, open to everyone, pieces to show in interviews):
-
-| Project | What you build | Badge |
-| --- | --- | --- |
-| **P-DASH** | Your own Grafana dashboard | Dashboard Builder |
-| **P-ENV** | A second `dev` environment with a Terraform workspace | Environment Builder |
-| **P-RUNBOOK** | A new runbook linked from an alert's `runbook_url` | Runbook Author |
-| **P-POLICY** | A new Kyverno ClusterPolicy | Guardrail Author |
-
-**Badges** are earned along the way, for example *Paired with AI* (B00), *Hello, Cluster* (M00), *First Page* (M05), *AI Wrangler* (M17) and *Injection Proof* (M18) during the shift, then *Budget Keeper* (M06), *Storyteller* (M09), *Rollback Hero* (M14) and *Game Day Captain* (M27), plus one per add-on and portfolio project. `lab.py play` (Bob: `/mission-control`) opens Mission Control, the visual dashboard of the climb, with "Your CV so far" and "Interview practice" panels.
-
-**For professors (optional):** `python3 scripts/cohort_report.py <folder of the students' lab-proof/evidence.json files>` (Windows: `python scripts\cohort_report.py ...`) gives a class summary: how many students reached On-Call Ready, the missions most students skipped and a fingerprint check of each file. The passport from `lab.py proof` is a self-generated record, not a certificate; its fingerprint is not a signature.
-
-<a id="reuse-it-for-onboarding"></a>
-## Reuse it for onboarding
-
-Nothing in the shift is hard-coded to one class. The steps live in the catalog [`lab/missions.json`](lab/missions.json), and [`scripts/lab.py`](scripts/lab.py) reads them. That makes the repository a starting kit for a team that onboards **SRE new hires or interns**: fork it and define your own first-week journey.
-
-- **A journey** is one entry in the catalog's `journeys` list: an `id` (here `first-shift`), a `name` ("First on-call shift"), a `summary` (one plain sentence for the student), an `achievement` (the badge recorded when every step is done, here "First On-Call Shift"), `default: true` for the journey `lab.py status` shows first, an optional `banner` (the big line at the end; "SHIFT COMPLETE" when it is left out), and `steps`, an ordered list where each step is `{"mission": "<mission id>", "minutes": <estimate>}`. `lab.py journey` shows the steps in order, the done marks and the minutes left. A step can only point to a mission that exists in the same catalog.
-- **A mission** has an `id`, a `title`, a `goal`, a `guide` (the page that teaches it), `xp`, a `kind` (for example `core`, `addon` or `portfolio`), a `part` (its camp), `needs` (an add-on it depends on, or `null`), an optional `achievement`, an optional short `quiz` and a `check`: the name of the evidence test that marks it done, sometimes with one argument after a colon (for example `alert_fired:HighErrorRate`).
-- **What needs no code:** a new journey that reuses existing missions, new titles, goals, guides and minutes, and new quiz questions. A quiz answer is stored as the first 16 characters of `sha256("<salt>:<mission id>:<question number>:<letter>")`, using the catalog's `salt`, so students and their AI cannot read it.
-- **What needs a little Python:** a new kind of evidence. Each `check` name maps to one `check_<name>()` function in `scripts/lab.py` (for example `check_alert_fired`), so a new check is one new function and a test in `tests/`.
-- **Keep the safety rules:** [`AGENTS.md`](AGENTS.md) and the "Stay in control" box in B00 are what make it safe to let an AI guide a beginner. Keep them in your fork.
+This repository is also my SRE Academy 2026 final project. There is no presentation: the repository is the whole submission, and the [FAQ](docs/FAQ.md) answers the questions I would get in person, with links to the proof.
 
 ## What you get
 
@@ -218,19 +96,41 @@ flowchart LR
 | **Resilience and guardrails** | LitmusChaos experiments, Kyverno policies, SBOM, image scanning and signing |
 | **AI-assisted SRE** | Shared [`AGENTS.md`](AGENTS.md) for every AI coding agent (IBM Bob, Claude Code and others), read-only MCP access, guard hooks, injection drill ([`docs/AI-SRE.md`](docs/AI-SRE.md)) |
 
-## Quick start
+<a id="the-first-on-call-shift"></a>
+## Optional: the guided first on-call shift
 
-One command does everything, on Windows (PowerShell) and Mac, once Git and Python are installed:
+If you like structure, [BOB-QUICKSTART.md](docs/BOB-QUICKSTART.md) runs the same lab as a guided **first on-call shift**: 9 short steps with a quiz after each, a badge at the end and the skills you practised turned into CV lines. Pick the **SRE Lab Guide** mode in Bob and type `/start-lab` (Claude Code: `/lab`). The longer, game-like path (camps, ranks, portfolio projects) is in [docs/JOURNEY.md](docs/JOURNEY.md). A mission counts only when [`scripts/lab.py`](scripts/lab.py) finds the evidence on your own cluster, and nothing is graded.
 
-```bash
-git clone https://github.com/jaffethalfarotorres/sre-final-project.git
-cd sre-final-project
-python scripts/lab_up.py           # Mac: python3. Installs what is missing, deploys, opens the pages, checks the connections
-python scripts/lab_up.py --drill   # break the shop on purpose and follow the alert (about 3 minutes)
-python scripts/lab_up.py --stop    # stop the lab and free the memory; run lab_up.py again to resume
-```
+<a id="final-project-requirements"></a>
+## Final project: grader view
 
-No accounts or credentials are needed (Grafana: view-only without a login, or `admin` / `admin`). For a written check, `python scripts/smoke_test.py --cluster --report reports/smoke-test.md`. The scripts it uses are also there to run one by one: `scripts/install-tools.*`, `scripts/deploy.*`, `scripts/dashboards.*`, `scripts/trigger-alert.*` (`.ps1` in Windows PowerShell, `.sh` on Mac and Linux).
+This table maps the official rubric to the repository. Each row links to the file and to the evidence. The [FAQ](docs/FAQ.md#2-from-a-failing-request-to-a-phone-push) walks one failing request all the way to a phone push.
+
+| Requirement | Where it is | Evidence |
+| --- | --- | --- |
+| 1. Application emits metrics | Python Flask app with Prometheus metrics (numbers over time), OpenTelemetry traces (the path of one request) and JSON logs: [`app/app.py`](app/app.py); tests in [`tests/`](tests/) | [grafana-golden-signals.png](docs/screenshots/grafana-golden-signals.png), [jaeger-trace.png](docs/screenshots/jaeger-trace.png), [grafana-loki-logs.png](docs/screenshots/grafana-loki-logs.png) |
+| 2. Kubernetes deployment | Minikube (Kubernetes on one laptop) and Kustomize (built into kubectl), 2 replicas, probes, limits, non-root, rolling updates: [`k8s/application.yaml`](k8s/application.yaml), [`k8s/kustomization.yaml`](k8s/kustomization.yaml), [`scripts/deploy.sh`](scripts/deploy.sh), [`scripts/deploy.ps1`](scripts/deploy.ps1) | [pods.png](docs/screenshots/pods.png) |
+| 3. Prometheus scraping | Pull model: Kubernetes service discovery finds the app and the Collector's span metrics, plus cAdvisor and blackbox jobs: [`k8s/config/prometheus/prometheus.yml`](k8s/config/prometheus/prometheus.yml); 6 alert rules in [`alerts.yml`](k8s/config/prometheus/alerts.yml) (one is a pipeline test); 17 recording rules and 4 SLO burn-rate alerts (how fast the error budget is spent) in [`slo.yml`](k8s/config/prometheus/slo.yml) | [prometheus-targets.png](docs/screenshots/prometheus-targets.png), [prometheus-alerts.png](docs/screenshots/prometheus-alerts.png) |
+| 4. Grafana dashboards | 4 dashboards as code: overview, golden signals, SLO and error budget, LLM observability: [`k8s/config/grafana/dashboards/`](k8s/config/grafana/dashboards/), [`datasources.yaml`](k8s/config/grafana/datasources.yaml) | [grafana-sre-metrics.png](docs/screenshots/grafana-sre-metrics.png), [grafana-golden-signals.png](docs/screenshots/grafana-golden-signals.png), [grafana-slo.png](docs/screenshots/grafana-slo.png), [grafana-llm.png](docs/screenshots/grafana-llm.png) |
+| 5. Alertmanager | Routing by severity, inhibition, receivers for a phone push (ntfy), Slack, email and AWX (automation): [`k8s/alertmanager.yaml`](k8s/alertmanager.yaml); Grafana alerts use the same routes; runbooks in [`docs/runbooks/`](docs/runbooks/) | [alertmanager-alert.png](docs/screenshots/alertmanager-alert.png) |
+| 6. Documentation | This README, the [FAQ](docs/FAQ.md), the [guide](docs/GUIDE.md), the [lab parts](docs/labs/README.md), [`LICENSE.md`](LICENSE.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), comments in the code and manifests | [Screenshots](#evidence) |
+| Bonus: external notifications | Phone push through [ntfy](https://ntfy.sh) (no account, works on IBM laptops: [`scripts/notify_setup.py`](scripts/notify_setup.py)), plus Slack and email receivers, all in [`k8s/alertmanager.yaml`](k8s/alertmanager.yaml); setup in [guide section 6](docs/GUIDE.md#6-optional-get-alerts-in-slack-and-email) | [notification-delivered.png](docs/screenshots/notification-delivered.png) (HighErrorRate, ErrorBudgetFastBurn and ErrorLogBurst delivered to the ntfy topic; a subscribed phone gets them as pushes) |
+| Bonus: Infrastructure as Code (IaC: setup written as files) | [`terraform/`](terraform/), [`ansible/`](ansible/), [`helm/`](helm/), Kustomize in [`k8s/`](k8s/) | [helm-deployment.png](docs/screenshots/helm-deployment.png), [helm-prometheus-targets.png](docs/screenshots/helm-prometheus-targets.png) (Helm path, earlier capture) |
+| Bonus: CI/CD (automatic checks and releases) | [`ci.yml`](.github/workflows/ci.yml) (tests, flake8, bandit, pip-audit, kubeconform, promtool, amtool, Terraform, Ansible) and [`cd.yml`](.github/workflows/cd.yml) (builds, scans and signs the image: GHCR, SBOM, Trivy, cosign, provenance) | [ci-green.png](docs/screenshots/ci-green.png), and the badges above |
+
+**Minimum to meet the six requirements:** the core stack from `scripts/deploy.*` (no add-ons needed). Time and steps: [FAQ question 9](docs/FAQ.md#9-what-is-the-minimum-to-meet-the-six-requirements). **Check it yourself in 15 minutes:** [FAQ, Verify everything](docs/FAQ.md#verify-everything-in-15-minutes). **In one command:** `python scripts/smoke_test.py` (add `--cluster` when the lab runs) prints PASS, FAIL or SKIP for unit tests, flake8, the Kustomize render, Helm lint, the promtool rule tests and, with `--cluster`, the live pods, targets, alert rules, Alertmanager and Grafana. It only reads.
+
+The full details are below: [What you get](#what-you-get), [Optional add-ons](#optional-add-ons-one-at-a-time), [CI/CD](#cicd) and [Evidence](#evidence).
+
+## How this was built
+
+I am an SRE Academy 2026 student from a non-technical background. I built this project with an AI coding assistant, and I want to be clear about who did what.
+
+- **What I did:** I set the goals, the scope and the design decisions: a public portfolio project, Minikube on a laptop, Python for the app, a guided lab for the 2027 class led by an AI coding agent (IBM Bob recommended for IBMers), and the safety rules for the AI tools. I directed the work, approved the changes and decided each release. The whole stack runs on my own laptop.
+- **What the AI did:** Claude Code (by Anthropic) generated most of the code, the manifests and the documentation, following my direction. It also ran the live checks on my local Minikube cluster. I used AI review panels to find problems before submitting.
+- **How to see it:** commits made with AI help carry a `Co-Authored-By` trailer in the Git history.
+- **Which agent ran it:** I completed the guided shift on my laptop with Claude Code as the agent ([journey-complete.png](docs/screenshots/journey-complete.png)). IBM Bob also set up the whole lab from the repository link in an empty folder, fired the alert drill and got 12 of 12 from the smoke test (on a laptop that already had Docker, Minikube and kubectl). A fresh AI agent that got only the link did the same. The full install on a brand-new laptop is not yet timed.
+- **What I can explain end to end:** the alert path, from a failing request to the metric, the Prometheus rule and the Alertmanager route; the SLO burn-rate alerts and why they use two windows; and how the app is deployed on Kubernetes. I wrote these answers down in the [FAQ](docs/FAQ.md), with the problems the checks found in AI-generated work.
 
 ## The lab path (optional, go deeper)
 

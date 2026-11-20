@@ -1,6 +1,6 @@
 # Start the lab with your AI coding agent
 
-> **Shortest path:** the README section [Start here: step by step](../README.md#start-here-step-by-step-never-used-ibm-bob-this-is-for-you) explains every click in IBM Bob, from installing it to seeing the tools running. This page has the details: other agents, the safety rules and the guided shift.
+> **Shortest path:** the README section [Start here: step by step](../README.md#start-here-step-by-step) explains every click in IBM Bob, from installing it to seeing the tools running. This page has the details: other agents, the safety rules and the guided shift.
 
 ## Your first on-call shift, in one sitting
 
@@ -72,11 +72,11 @@ When all 9 are done: **SHIFT COMPLETE**, and you earn the **First On-Call Shift*
 
 > **You are the one in charge, not the agent.** The agent proposes; you approve. A few rules keep your laptop safe, in every agent:
 >
-> - **Never** turn on auto-approve for **running commands** or **changing files** (in IBM Bob: **Execute** and **Write**).
-> - **Never** click "always allow" for `python`, `powershell`, `bash`, `curl`, `kubectl`, `git` or `winget`. Approve each command one by one.
+> - **Never** turn on a blanket auto-approve for **running commands** or **changing files** (in IBM Bob: the **Execute** and **Write** switches), and never choose **Approve for task**.
+> - The one allowed shortcut: in Bob, **Settings > Execute > Allowed Commands**, add only `python scripts/lab_up.py`, `python scripts/smoke_test.py` and `python scripts/lab.py`. Each is a script you can read. Never add bare `python`, `powershell`, `bash`, `curl`, `kubectl`, `git` or `winget`; approve everything else one command at a time.
 > - **Reject** any command that contains `|`, `;`, `iex`, `-c` as a separate word (like `python -c`), `--kubeconfig`, `delete`, or a web address you do not recognise. Then ask the agent: "Why do you need this?" (Longer words that only start with `-c`, like `--clone` in Step 1, are fine.)
 > - Two known exceptions are safe: the **PATH refresh line** in Step 1 (its `;` is inside quotes), and on Mac the official **Homebrew installer** from [brew.sh](https://brew.sh) (it uses `-c` and an address starting with `https://raw.githubusercontent.com/Homebrew/`). The two Mac `brew shellenv` lines in Step 1 are also install steps from this page: they only add Homebrew to your PATH.
-> - Only the lab's own commands should run: `python scripts\lab.py ...` and `scripts\*.ps1` in Windows PowerShell; `python3 scripts/lab.py ...` and `scripts/*.sh` on Mac and in Ubuntu (WSL); and the install steps in this page.
+> - Only the lab's own commands should run: `python scripts/lab.py ...` and `scripts\*.ps1` in Windows PowerShell; `python3 scripts/lab.py ...` and `scripts/*.sh` on Mac and in Ubuntu (WSL); and the install steps in this page.
 > - A clean-up step that **deletes** something is fine only after the agent has told you what will be lost and you have typed "yes".
 > - If something feels wrong, click **Reject**. Nothing breaks when you say no.
 
@@ -94,12 +94,12 @@ In Bob's settings, add this deny list. Bob then refuses these commands even if y
 ### Data rules for IBMers
 - Use an AI coding agent that IBM approves for you. For IBM Bob, use your IBM Bob entitlement.
 - **Never** paste client data, your w3 password, IBM tokens or screenshots of internal IBM tools into any AI agent or into this repository.
-- To get alerts on your phone on an IBM laptop, ask the agent to run `python scripts\notify_setup.py` (ntfy: no account, section 6-0 of the [guide](GUIDE.md)). Only the alert text goes to ntfy.sh, on a random private topic. Slack and email (sections 6a-6e) are optional, and need a **personal** Slack workspace and a **personal** Gmail, which IBM laptops usually block. Never IBM Slack or IBM mail.
+- To get alerts on your phone on an IBM laptop, ask the agent to run `python scripts/notify_setup.py` (ntfy: no account, section 6-0 of the [guide](GUIDE.md)). Only the alert text goes to ntfy.sh, on a random private topic. Slack and email (sections 6a-6e) are optional, and need a **personal** Slack workspace and a **personal** Gmail, which IBM laptops usually block. Never IBM Slack or IBM mail.
 
 <details>
 <summary><b>On an IBM-managed laptop? Read this before the lab day</b></summary>
 
-- **Preflight first:** once the lab is on your laptop, the agent runs `python scripts\preflight.py`. It only reads your laptop and says what is missing. If IBM IT has to unlock something, send them [IT-REQUEST.md](IT-REQUEST.md).
+- **Preflight first:** once the lab is on your laptop, the agent runs `python scripts/preflight.py`. It only reads your laptop and says what is missing. If IBM IT has to unlock something, send them [IT-REQUEST.md](IT-REQUEST.md).
 - **Admin rights:** installers need them. Request temporary administrator rights through IBM's usual IT help process **before** the lab.
 - **Container engine:** Docker Desktop needs a paid licence in large companies ([licence terms](https://docs.docker.com/subscription/desktop-license/)). Ask your manager or IT which one is approved. If Docker Desktop is not licensed for you, use [Rancher Desktop](https://rancherdesktop.io/) with the **dockerd (moby)** engine.
 - **VPN:** if downloads fail or hang, disconnect the VPN during installs (if your IBM policy allows), then reconnect.
@@ -141,7 +141,7 @@ Set up the SRE lab from https://github.com/jaffethalfarotorres/sre-final-project
    > **Important:** do not open a parent folder that only *contains* `sre-final-project`. Agents read the lab rules (`AGENTS.md`, and for Bob the **SRE Lab Guide** mode and `/start-lab`) only from the top of the open folder.
 2. If the agent asks whether you **trust** this folder, say yes. The rules it follows are in `AGENTS.md` (and `.bob/` for Bob, `CLAUDE.md` and `.claude/` for Claude Code), and you can read them.
 3. Start the shift, as in the [table above](#use-any-ai-coding-agent):
-   - **IBM Bob:** open Bob's **Permissions** (auto-approve) menu. Tick **Read** and **MCP** only. Leave **Execute** and **Write** off. (MCP is how Bob reads your dashboards. The **grafana** server stays off until step 8 of your shift, M17, when Bob shows you how to switch it on.) In the mode picker, choose **SRE Lab Guide**. Type `/start-lab` and press Enter.
+   - **IBM Bob:** open Bob's **Permissions** (auto-approve) menu. Tick **Read** and **MCP** only. Leave **Execute** and **Write** off (the lab scripts can be allow-listed instead, see "Stay in control" above). (MCP is how Bob reads your dashboards. The **grafana** server stays off until step 8 of your shift, M17, when Bob shows you how to switch it on.) In the mode picker, choose **SRE Lab Guide**. Type `/start-lab` and press Enter.
    - **Claude Code:** type `/lab` and press Enter. Keep the default permission mode, so it asks before every command; you approve, it does the work.
    - **Other agents:** paste `Read AGENTS.md and guide me through the First on-call shift`. Keep its approval setting on, so it asks before every command.
 
@@ -192,7 +192,7 @@ Take a screenshot, keep the file in your fork, and you have a real story to tell
 
 ### Your CV and interview practice
 
-- **`/my-cv`**: the agent runs `python scripts\lab.py cv` (Mac and Ubuntu: `python3 scripts/lab.py cv`). You see the skills you earned, the principles you practised and the interview questions of the camps you cleared. Then the agent helps you turn them into CV or LinkedIn lines in plain English. The agent only writes what you actually did in the lab. It never invents experience.
+- **`/my-cv`**: the agent runs `python scripts/lab.py cv` (Mac and Ubuntu: `python3 scripts/lab.py cv`). You see the skills you earned, the principles you practised and the interview questions of the camps you cleared. Then the agent helps you turn them into CV or LinkedIn lines in plain English. The agent only writes what you actually did in the lab. It never invents experience.
 - **`/interview`**: the agent plays a friendly interviewer for a junior SRE or DevOps role. It asks the questions of the camps you cleared, one at a time. After each answer you get kind feedback and a model answer that points to what you really did in the lab.
 
 ### Your proof (optional)

@@ -10,9 +10,9 @@ I wrote this page because there is no presentation for this project. You only ge
 
 **What is this?** A small pretend online shop runs on my laptop. The project measures how healthy it is, draws the measurements as live charts, and sends an alarm to my phone when something goes wrong. Then it practises what a Site Reliability Engineer (SRE, the person who keeps online services working) does next: find the cause, fix it and learn from it.
 
-**Who is it for?** First, it is an **ice-breaker** for IBMers who want to try SRE: you open your AI coding agent, paste the link to this repository, and the agent sets up the tools and walks you through your [first on-call shift](../README.md#the-first-on-call-shift). IBM Bob (IBM's AI coding agent) is the recommended agent for IBMers. Claude Code, OpenAI Codex, Google Antigravity, Cursor and others can follow the same shared instructions in [AGENTS.md](../AGENTS.md). Second, it is my SRE Academy 2026 final project, so the grader material stays here too. The README has a [table by audience](../README.md#start-here-by-audience).
+**Who is it for?** First, it is an **ice-breaker** for IBMers who want to try SRE: you open your AI coding agent, paste the link to this repository, and the agent sets up the tools and walks you through your [first on-call shift](../README.md#the-first-on-call-shift). IBM Bob (IBM's AI coding agent) is the recommended agent for IBMers. Claude Code, OpenAI Codex, Google Antigravity, Cursor and others can follow the same shared instructions in [AGENTS.md](../AGENTS.md). Second, it is my SRE Academy 2026 final project, so the grader material stays here too. The README has a [table by audience](../README.md#where-to-go-next).
 
-**How long does it take?** About 2-3 hours in one sitting once the laptop is ready (estimated, not yet timed with a class). "Ready" means admin rights, about 20 GB of free disk and an approved container engine ([BOB-QUICKSTART, "Before the lab day"](BOB-QUICKSTART.md#before-the-lab-day)). The 9 steps add up to about 165 minutes, and most of that is waiting while the agent installs the tools and deploys the stack (step M00, about 60 minutes). Everything else in the repository (the other camps, the add-ons, the portfolio projects, the seven deeper lab parts) is optional, at your own pace: [Keep exploring](../README.md#keep-exploring).
+**How long does it take?** About 1 hour until everything is running and you can start exploring (estimated, not yet timed with a class), mostly the agent downloading and deploying. "Ready" means admin rights, about 25 GB of free disk and an approved container engine ([BOB-QUICKSTART, "Before the lab day"](BOB-QUICKSTART.md#before-the-lab-day)). The optional guided first on-call shift (9 steps with quizzes) adds up to about 2-3 hours in one sitting. Everything else (the other camps, the add-ons, the portfolio projects, the seven deeper lab parts) is optional, at your own pace: [Where to go next](../README.md#where-to-go-next).
 
 **Which AI coding agent can I use?** The lab is agent-neutral. [AGENTS.md](../AGENTS.md) is the shared entry point. IBM Bob reads it plus [`.bob/`](../.bob/) (modes, rules, slash commands). Claude Code reads [CLAUDE.md](../CLAUDE.md), which imports AGENTS.md, plus the `/lab` skill and the `sre-triage` subagent. Other agents read AGENTS.md. What was tested: I ran the shift and the triage drill with Claude Code. The IBM Bob setup was written for Bob 2.x, but a full shift in Bob has not been timed yet. Other agents were not tested. The README has the [start table](../README.md#start-with-your-ai-coding-agent).
 
@@ -147,7 +147,7 @@ The core stack. One command (`scripts/deploy.sh` or `deploy.ps1`) covers require
 
 **How long:**
 - Installing the tools: the shift plans about 60 minutes for the install and the first deploy together (step M00), mostly waiting. A slow laptop or network can take longer ([BOB-QUICKSTART, "What you need"](BOB-QUICKSTART.md#what-you-need)).
-- The first deploy: 5 to 10 minutes ([README Quick start](../README.md#quick-start)).
+- The first deploy: 5 to 10 minutes ([README, Start here](../README.md#start-here-step-by-step)).
 - The first on-call shift: about 165 minutes in one sitting, the tool install included ([lab guide](labs/README.md#the-first-on-call-shift-one-sitting)).
 - Optional, to go deeper into what you deployed: the lab parts that cover requirements 1 to 5 are [Part 1](labs/01-foundations.md) (about 5.5 h) and [Part 2](labs/02-metrics-dashboards-alerts.md) (about 4 h), from the [lab guide table](labs/README.md#go-deeper-at-your-own-pace).
 
@@ -172,7 +172,7 @@ It is **one trial, not a guarantee**: one run, with Claude Code, and the planted
 
 You need Git, Python 3.10 or newer, and Docker. For part B you also need Minikube and kubectl ([GUIDE step 2](GUIDE.md#2-install-the-tools-one-time)). The times assume the tools are already installed.
 
-**Shortcut:** after `pip install -r requirements-dev.txt`, one read-only script runs part A and, with `--cluster`, a health check of the running lab (pods, targets, alert rules loaded, Alertmanager and Grafana up; it does not fire the drill, see part B step 4): `python3 scripts/smoke_test.py --cluster` (Windows: `python scripts\smoke_test.py --cluster`). Add `--report reports/smoke-test.md` for a Markdown report. In an AI coding agent, paste the repository link and say "I want to check the project" (IBM Bob: `/smoke-test`).
+**Shortcut:** after `pip install -r requirements-dev.txt`, one read-only script runs part A and, with `--cluster`, a health check of the running lab (pods, targets, alert rules loaded, Alertmanager and Grafana up; it does not fire the drill, see part B step 4): `python3 scripts/smoke_test.py --cluster` (Windows: `python scripts/smoke_test.py --cluster`). Add `--report reports/smoke-test.md` for a Markdown report. In an AI coding agent, paste the repository link and say "I want to check the project" (IBM Bob: `/smoke-test`).
 
 **A. Without a cluster (about 5 minutes).** These are the same checks CI runs ([CONTRIBUTING.md](../CONTRIBUTING.md) has all of them).
 
@@ -204,7 +204,7 @@ docker run --rm -v "${PWD}:/w" -w /w --entrypoint sh prom/prometheus:v2.54.1 -c 
 2. `kubectl get pods -A`: compare with [pods.png](screenshots/pods.png).
 3. `./scripts/dashboards.sh --background` (Windows: `scripts\dashboards.ps1 -Background`). Open Prometheus at http://localhost:9090, **Status > Targets**: compare with [prometheus-targets.png](screenshots/prometheus-targets.png).
 4. `./scripts/trigger-alert.sh` (Windows: `scripts\trigger-alert.ps1`). `HighErrorRate` fires after about 2 to 3 minutes. See it in Alertmanager at http://localhost:9093.
-5. Optional: `python3 scripts/notify_setup.py` (Windows: `python scripts\notify_setup.py`) and subscribe to the topic in the ntfy app. The next drill reaches your phone.
+5. Optional: `python3 scripts/notify_setup.py` (Windows: `python scripts/notify_setup.py`) and subscribe to the topic in the ntfy app. The next drill reaches your phone.
 
 **C. CI.** The [Actions tab](https://github.com/jaffethalfarotorres/sre-final-project/actions/workflows/ci.yml) shows every run. [ci-green.png](screenshots/ci-green.png) is one green run (run #30, commit `e308f25`, all 8 jobs green).
 
@@ -213,7 +213,7 @@ docker run --rm -v "${PWD}:/w" -w /w --entrypoint sh prom/prometheus:v2.54.1 -c 
 ## Honest limits
 
 - **The 30-day SLO** really covers only the time since the last Prometheus restart ([question 5](#5-the-slo-says-30-days-what-does-it-really-measure)).
-- **The SRE Lab Passport is self-generated.** `lab.py proof` writes it on the student's laptop. Its fingerprint is not a signature: anyone can recompute it. It is a record, not a certificate. A professor confirms it with `lab.py verify` or a short live demo ([README](../README.md#the-journey-road-to-junior-sre)).
+- **The SRE Lab Passport is self-generated.** `lab.py proof` writes it on the student's laptop. Its fingerprint is not a signature: anyone can recompute it. It is a record, not a certificate. A professor confirms it with `lab.py verify` or a short live demo ([Road to Junior SRE](JOURNEY.md#the-journey-road-to-junior-sre)).
 - **Slack and email delivery** are configured, but the repository does not show them working: they need a personal webhook or mail account. The delivered notification I can show is the ntfy push.
 - **The add-on results** in the README table (ArgoCD, canary, AWX, rollback times) come from my own runs on Minikube in November 2026, with Claude Code as the operator. Most run logs are not stored in the repository ([lab guide, "How the verification was done"](labs/README.md#how-the-verification-was-done)).
 - **The AI triage drill ran once**, with Claude Code, not with IBM Bob. It is one trial, not a guarantee. It used read-only HTTP queries and `kubectl get`, not the Grafana MCP path in [AGENTS.md](../AGENTS.md) ([evidence, "Limits of this test"](evidence/ai-triage-2026-11-19.md)).
@@ -239,8 +239,8 @@ docker run --rm -v "${PWD}:/w" -w /w --entrypoint sh prom/prometheus:v2.54.1 -c 
 
 **I am a professor. Where do I start?** The [instructor notes](instructor/README.md) explain how to run the shift as one class session. Then the [course map](COURSE-MAP.md) and the [lab guide](labs/README.md) for the optional deeper material.
 
-**I am a 2027 student on an IBM laptop. Where do I start?** [BOB-QUICKSTART.md](BOB-QUICKSTART.md). Run `python scripts\preflight.py` first to check your laptop (Mac: `python3 scripts/preflight.py`). It only reads and needs no admin rights. Then follow the 9 steps of the shift; `python scripts\lab.py journey` (Mac: `python3 scripts/lab.py journey`) shows where you are.
+**I am a 2027 student on an IBM laptop. Where do I start?** [BOB-QUICKSTART.md](BOB-QUICKSTART.md). Run `python scripts/preflight.py` first to check your laptop (Mac: `python3 scripts/preflight.py`). It only reads and needs no admin rights. Then follow the 9 steps of the shift; `python scripts/lab.py journey` (Mac: `python3 scripts/lab.py journey`) shows where you are.
 
-**Can my team reuse it to onboard SRE new hires or interns?** Yes. The shift is defined in the mission catalog [`lab/missions.json`](../lab/missions.json), so a team can define its own onboarding journey from the existing missions, or add its own. What needs code and what does not is in the README, [Reuse it for onboarding](../README.md#reuse-it-for-onboarding).
+**Can my team reuse it to onboard SRE new hires or interns?** Yes. The shift is defined in the mission catalog [`lab/missions.json`](../lab/missions.json), so a team can define its own onboarding journey from the existing missions, or add its own. What needs code and what does not is in [Reuse it for onboarding](JOURNEY.md#reuse-it-for-onboarding).
 
 **Can I reuse this?** Yes, under the MIT licence ([LICENSE.md](../LICENSE.md)). Keep the original copyright line and add your own.

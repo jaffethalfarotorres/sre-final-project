@@ -566,7 +566,7 @@ Optional and open to everyone. It is worth 250 XP. A guardrail policy stops unsa
 
 1. Do M20 first, so Kyverno is installed. Read [`policy/workload-baseline.yaml`](../../policy/workload-baseline.yaml) with Bob and ask him to explain each rule in plain words.
 2. Pick one rule a team would want, for example "every pod in `application` must have an `owner` label". Write it as a new file, for example `policy/require-owner-label.yaml`, with `kind: ClusterPolicy` and its own `metadata.name`. Start in `Audit` mode, so it reports but does not block.
-3. Apply it and check (Windows: `python scripts\lab.py check P-POLICY`):
+3. Apply it and check (Windows: `python scripts/lab.py check P-POLICY`):
    ```bash
    kubectl apply -f policy/require-owner-label.yaml
    kubectl get clusterpolicy

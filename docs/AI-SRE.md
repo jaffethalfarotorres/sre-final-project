@@ -25,7 +25,7 @@ Do steps 1-2 with Bob in the **SRE Lab Guide** mode: Bob proposes each command, 
 
 1. Create the read-only access and start the Grafana MCP server in the cluster:
    ```powershell
-   python scripts\ai_setup.py          # Mac/Linux: python3 scripts/ai_setup.py
+   python scripts/ai_setup.py          # Mac/Linux: python3 scripts/ai_setup.py
    ```
    It prints `ai-readonly can delete pods? no` and the number of MCP tools (about 60). All but one are read-only: `alerting_manage_routing` stays registered even with `-disable-write`, and the Grafana Viewer token refuses its writes.
 2. Restart the tunnels in the background, so they also forward the MCP server to `http://localhost:8000/mcp`:

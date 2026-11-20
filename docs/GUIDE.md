@@ -4,7 +4,7 @@
 
 > **Using an AI coding agent on Windows?** Use the [Windows (PowerShell, used by IBM Bob)](#windows-powershell-used-by-ibm-bob) section and skip WSL. The agent's terminal is PowerShell (in IBM Bob always), so every command must work there.
 
-> **Start with the preflight.** Run `python scripts\preflight.py` (Windows) or `python3 scripts/preflight.py` (Mac). It only reads your laptop and tells you what is missing. On an IBM-managed laptop, send [IT-REQUEST.md](IT-REQUEST.md) to IT before you start.
+> **Start with the preflight.** Run `python scripts/preflight.py` (Windows) or `python3 scripts/preflight.py` (Mac). It only reads your laptop and tells you what is missing. On an IBM-managed laptop, send [IT-REQUEST.md](IT-REQUEST.md) to IT before you start.
 
 This guide explains the project in plain language and walks you through running it on a **Mac** or a **Windows** computer, one step at a time. You do not need to know Kubernetes or programming. If a word is new, check the [glossary](#glossary) at the end.
 
@@ -356,7 +356,7 @@ Without this step the alarms still work; you just see them in Alertmanager inste
    ```bash
    python3 scripts/notify_setup.py
    ```
-   Windows PowerShell: `python scripts\notify_setup.py`
+   Windows PowerShell: `python scripts/notify_setup.py`
 
    What you should see: `Phone push is ON`, your private topic name (`sre-lab-...`), and a test push called `LabConnected`.
 2. On your phone, install the free **ntfy** app (App Store or Google Play). Tap **+**, type your topic name, keep the server `ntfy.sh`, and tap **Subscribe**. No phone? Open `https://ntfy.sh/<your topic>` in a browser and keep the tab open.
@@ -470,7 +470,7 @@ Windows PowerShell: `python scripts\chaos_test.py`
 
 ### The Road to Junior SRE (the lab game, also without an agent)
 
-The lab is one journey: you start as a **Career Changer** and climb 8 camps to **On-Call Ready**, the day a team trusts you with the pager. Each camp gives Nimbus Store (the pretend shop) a real new capability, teaches one SRE principle and lists skills you can name on your CV. The default start is the **First on-call shift**, 9 missions in one sitting: `python3 scripts/lab.py journey` lists them with done marks and minutes left. Everything after it is optional. You can play it by hand with the same script the agents use. By hand, the shift ends at step 7: steps 8-9 (M17, M18) need an AI coding agent, because their check looks for the agent's triage report in `reports/`. The commands below are for **Mac** and for the **Ubuntu window (WSL)**: `python3 scripts/lab.py ...`. Only in **Windows PowerShell** type `python scripts\lab.py ...` instead (the backslash and `python` work only there):
+The lab is one journey: you start as a **Career Changer** and climb 8 camps to **On-Call Ready**, the day a team trusts you with the pager. Each camp gives Nimbus Store (the pretend shop) a real new capability, teaches one SRE principle and lists skills you can name on your CV. The default start is the **First on-call shift**, 9 missions in one sitting: `python3 scripts/lab.py journey` lists them with done marks and minutes left. Everything after it is optional. You can play it by hand with the same script the agents use. By hand, the shift ends at step 7: steps 8-9 (M17, M18) need an AI coding agent, because their check looks for the agent's triage report in `reports/`. The commands below are for **Mac** and for the **Ubuntu window (WSL)**: `python3 scripts/lab.py ...`. Only in **Windows PowerShell** type `python scripts/lab.py ...` instead (the backslash and `python` work only there):
 
 ```bash
 python3 scripts/lab.py journey         # the 9 steps of the First on-call shift

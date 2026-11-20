@@ -312,7 +312,7 @@ Both carry `severity: warning` and `source: grafana`, so they follow the warning
    ```bash
    kubectl logs deployment/alertmanager -n monitoring --tail=30
    ```
-   What you should see: without Slack configured, `Notify for alerts failed` lines for `critical-notifications` (placeholder webhook) and for `awx-collect-diagnostics` (AWX not installed). That is expected. The routing worked; only delivery failed. On an IBM laptop, run `python scripts\notify_setup.py` (Mac/Linux: `python3 scripts/notify_setup.py`) to get the alerts as phone pushes with no account; see [guide 6-0](../GUIDE.md#6-0-phone-push-with-ntfy-recommended-on-ibm-laptops-no-account).
+   What you should see: without Slack configured, `Notify for alerts failed` lines for `critical-notifications` (placeholder webhook) and for `awx-collect-diagnostics` (AWX not installed). That is expected. The routing worked; only delivery failed. On an IBM laptop, run `python scripts/notify_setup.py` (Mac/Linux: `python3 scripts/notify_setup.py`) to get the alerts as phone pushes with no account; see [guide 6-0](../GUIDE.md#6-0-phone-push-with-ntfy-recommended-on-ibm-laptops-no-account).
 
 8. Optional: real Slack and email. Follow [GUIDE.md section 6](../GUIDE.md#6-optional-get-alerts-in-slack-and-email). In short: put your Slack webhook URL and Gmail app password in `k8s/alertmanager-secret.yaml`, put your addresses in `smtp_from`, `smtp_auth_username` and both `to:` lines of `k8s/alertmanager.yaml`, then:
    ```bash
@@ -392,7 +392,7 @@ Optional and open to everyone. It is worth 250 XP and gives you a screenshot for
 2. Copy one of the existing dashboards as a starting point, for example `k8s/config/grafana/dashboards/golden-signals.json`, and save it under a new name such as `k8s/config/grafana/dashboards/nimbus-checkout.json`. Give it a new `title` and a new `uid` inside the file.
 3. Change the panels so they answer your question. Two to four panels are enough. Ask Bob to explain any PromQL you do not understand.
 4. Add the new file to the `grafana-dashboards` list in `k8s/kustomization.yaml`, next to the four existing ones, with the same indentation.
-5. Deploy it and check it (Windows: `python scripts\lab.py check P-DASH`):
+5. Deploy it and check it (Windows: `python scripts/lab.py check P-DASH`):
    ```bash
    kubectl apply -k k8s && kubectl rollout status deployment/grafana -n monitoring
    python3 scripts/lab.py check P-DASH

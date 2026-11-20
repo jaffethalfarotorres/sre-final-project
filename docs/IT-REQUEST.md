@@ -8,7 +8,7 @@ This page has two parts:
 Run the preflight first. It only reads, needs no admin rights and shows what is missing on your laptop:
 
 ```
-Windows (PowerShell):  python scripts\preflight.py
+Windows (PowerShell):  python scripts/preflight.py
 Mac:                   python3 scripts/preflight.py
 ```
 

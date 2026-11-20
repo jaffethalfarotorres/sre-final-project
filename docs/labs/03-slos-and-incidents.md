@@ -388,7 +388,7 @@ Labels must exist before they are used. Dependabot does not create missing label
 
 **Lab steps**
 
-0. Point the project folder at your fork. This step is the lab mission **M09b "Join the guild"**. When you are done, check it with `python3 scripts/lab.py check M09b` (Windows PowerShell: `python scripts\lab.py check M09b`). [`../GUIDE.md`](../GUIDE.md) section 3 cloned the course repo, so `origin` is the course repo and you cannot push to it.
+0. Point the project folder at your fork. This step is the lab mission **M09b "Join the guild"**. When you are done, check it with `python3 scripts/lab.py check M09b` (Windows PowerShell: `python scripts/lab.py check M09b`). [`../GUIDE.md`](../GUIDE.md) section 3 cloned the course repo, so `origin` is the course repo and you cannot push to it.
    ```bash
    gh repo fork --remote
    gh repo set-default <your-user>/sre-final-project
@@ -490,7 +490,7 @@ Optional and open to everyone. It is worth 250 XP. A runbook is the page an on-c
 1. Pick an alert in `k8s/config/prometheus/alerts.yml` or `slo.yml` that has no runbook of its own yet, or one you add yourself. Read the existing runbooks first, for example [`docs/runbooks/high-error-rate.md`](../runbooks/high-error-rate.md), and follow the same shape: what the alert means, how bad it is for users, the first checks (read-only), the fix, and how to confirm it is fixed.
 2. Save your runbook under a new name, for example `docs/runbooks/synthetic-probe-failing.md`.
 3. In the alert rule, set `runbook_url` to the new file. Use the same form as the other rules, with your fork's address, for example `https://github.com/<your-user>/sre-final-project/blob/main/docs/runbooks/synthetic-probe-failing.md`. Keep the YAML indentation exactly as in the rules around it.
-4. Apply and check (Windows: `python scripts\lab.py check P-RUNBOOK`):
+4. Apply and check (Windows: `python scripts/lab.py check P-RUNBOOK`):
    ```bash
    kubectl apply -k k8s
    python3 scripts/lab.py check P-RUNBOOK
