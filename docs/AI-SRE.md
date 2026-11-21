@@ -6,17 +6,19 @@ AI coding assistants can now investigate incidents: they query metrics and logs,
 | --- | --- | --- |
 | **IBM Bob** (main tool) | IBM (GA April 2026, [bob.ibm.com](https://bob.ibm.com)) | IBMers through IBM; others through the 30-day trial |
 | **Claude Code** (optional) | Anthropic | Anthropic Academy has free courses on it. Students without Bob can do every exercise with Claude Code alone |
+| **Google Antigravity** (optional) | Google DeepMind | Antigravity IDE & CLI with native `.agents/` skills and MCP support |
 
-Both tools read the **same** project rules and connect to the **same** read-only data source, so you can compare them fairly.
+All tools read the **same** project rules and connect to the **same** read-only data source, so you can compare them fairly.
 
 ```
-            IBM Bob ─┐                       ┌─► Prometheus (metrics, SLOs, alert and pod state)
-                     ├─► Grafana MCP server ─┼─► Loki (logs)
-        Claude Code ─┘    (in the cluster,   └─► Alertmanager / Grafana alerts
-                           Viewer token,
-                           read-only tools)
-     both also read: AGENTS.md (rules) · docs/runbooks/
-     Bob's SRE Triage mode has no terminal; Claude Code uses kubectl only with a read-only kubeconfig
+            IBM Bob ─┐
+         Claude Code ─┼─► Grafana MCP server ─┬─► Prometheus (metrics, SLOs, alert and pod state)
+  Google Antigravity ─┘    (in the cluster,   ├─► Loki (logs)
+                            Viewer token,     └─► Alertmanager / Grafana alerts
+                            read-only tools)
+      all also read: AGENTS.md (rules) · docs/runbooks/
+      skills/ and agents/: canonical sources synchronized to .agents/ and .claude/
+      Bob's SRE Triage mode has no terminal; Claude Code and Antigravity use kubectl only with a read-only kubeconfig
 ```
 
 ## Setup (about 10 minutes, after the core stack is deployed)
@@ -49,13 +51,17 @@ The tokens expire after 8 hours. Run `ai_setup.py` again for a new lab session.
 
 | File | Read by | Purpose |
 | --- | --- | --- |
-| [`AGENTS.md`](../AGENTS.md) | IBM Bob (by default), Claude Code (through `CLAUDE.md`) | Project map, safety rules, triage output format. The single source of truth. |
+| [`AGENTS.md`](../AGENTS.md) | All agents (IBM Bob, Claude Code, Google Antigravity, OpenAI Codex) | Project map, safety rules, triage output format. The single source of truth. |
+| [`skills/`](../skills/) | Canonical | Single source of truth for portable agent skills (`skills/lab`, `skills/incident-triage`) |
+| [`agents/`](../agents/) | Canonical | Single source of truth for subagents (`sre-triage.md`, `postmortem-writer.md`) |
+| [`.agents/`](../.agents/) | Google Antigravity & Open Agent standard | Skills and subagents adapter folder (synced from `skills/` and `agents/`) |
+| [`scripts/sync_skills.py`](../scripts/sync_skills.py) | Developers / CI | Verifies and synchronizes canonical skills and subagents into `.agents/` and `.claude/` |
 | [`CLAUDE.md`](../CLAUDE.md) | Claude Code | Imports `AGENTS.md`, lists the subagents and the skill |
-| [`.claude/agents/sre-triage.md`](../.claude/agents/sre-triage.md) | Claude Code | Read-only triage subagent with a fixed tool list |
-| [`.claude/skills/incident-triage/SKILL.md`](../.claude/skills/incident-triage/SKILL.md) | Claude Code | `/incident-triage`: runs the whole triage and saves a report |
+| [`.claude/agents/`](../.claude/agents/) | Claude Code | Triage and postmortem subagents (synced from `agents/`) |
+| [`.claude/skills/`](../.claude/skills/) | Claude Code | Skills adapter folder (synced from `skills/`) |
 | [`.claude/settings.json`](../.claude/settings.json) | Claude Code | Denies changing commands and secret files; runs the hooks |
 | [`.claude/hooks/guard_mutations.py`](../.claude/hooks/guard_mutations.py) | Claude Code | Blocks cluster-changing commands, even inside `sh -c` (exit code 2) |
-| [`.mcp.json`](../.mcp.json) | Claude Code | Connects to the Grafana MCP server |
+| [`.mcp.json`](../.mcp.json) | Claude Code & Antigravity | Connects to the Grafana MCP server |
 | [`.bob/rules/`](../.bob/rules/), [`.bob/rules-sre-triage/`](../.bob/rules-sre-triage/) | IBM Bob | Safety rule and triage protocol (no kubectl: alert and pod state come from Prometheus) |
 | [`.bob/commands/save-triage.md`](../.bob/commands/save-triage.md) | IBM Bob | `/save-triage`: saves a pasted triage answer to `reports/ai-triage-bob-<timestamp>.md` |
 | [`.bob/custom_modes.yaml`](../.bob/custom_modes.yaml) | IBM Bob | Modes *SRE Lab Guide*, *SRE Triage (read-only)* and *SRE Postmortem writer* |

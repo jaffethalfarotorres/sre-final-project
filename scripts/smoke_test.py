@@ -162,6 +162,17 @@ def docker_running():
     return code == 0
 
 
+def check_agent_skills():
+    name = "Agent skills and subagents (skills/ -> .agents, .claude)"
+    sync_py = os.path.join(ROOT, "scripts", "sync_skills.py")
+    if not os.path.exists(sync_py):
+        return Result("FAIL", name, "scripts/sync_skills.py not found", "restore scripts/sync_skills.py")
+    code, out = run([sys.executable, sync_py, "--check"], timeout=60)
+    if code == 0:
+        return Result("PASS", name, "canonical skills and adapter folders in sync", "")
+    return Result("FAIL", name, tail(out), "run: python scripts/sync_skills.py")
+
+
 def check_promtool(quick):
     name = "Alert and SLO rules (promtool check + 2 rule test files)"
     if quick:
@@ -341,7 +352,7 @@ def main(argv=None):
     print("SRE final project smoke test (read-only). Repository: " + ROOT)
     global DEV_PY
     DEV_PY = dev_python(setup=not args.no_setup)
-    part_a = [check_python(), check_pytest(), check_flake8(), check_kustomize(), check_helm(),
+    part_a = [check_python(), check_agent_skills(), check_pytest(), check_flake8(), check_kustomize(), check_helm(),
               check_promtool(args.quick)]
     print_results("Part A: code and config, no cluster needed", part_a)
     results = list(part_a)

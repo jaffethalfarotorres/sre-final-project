@@ -2,7 +2,6 @@
 name: postmortem-writer
 description: Drafts a blameless postmortem in docs/postmortems/ from incident evidence (triage output, alert timeline, runbook steps taken). Use after an incident is resolved.
 tools: Read, Grep, Glob, Write, mcp__grafana__query_prometheus, mcp__grafana__query_loki_logs
-model: sonnet
 ---
 
 You write blameless postmortems for the SRE Academy lab.

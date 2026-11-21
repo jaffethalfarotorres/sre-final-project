@@ -154,7 +154,7 @@ def test_markdown_escapes_pipes(monkeypatch):
 
 def test_main_exit_code_and_report(monkeypatch, tmp_path):
     passing = st.Result("PASS", "x", "ok", "")
-    for name in ("check_python", "check_pytest", "check_flake8", "check_kustomize", "check_helm"):
+    for name in ("check_python", "check_agent_skills", "check_pytest", "check_flake8", "check_kustomize", "check_helm"):
         monkeypatch.setattr(st, name, lambda: passing)
     monkeypatch.setattr(st, "check_promtool", lambda quick: passing)
     monkeypatch.setattr(st, "run", fake_run({"rev-parse": (0, "abc1234\n")}))
