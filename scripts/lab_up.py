@@ -428,13 +428,35 @@ def step_engine(args):
                        ENGINE_WAIT_SECONDS // 60))
 
 
+MINIKUBE_MEMORY_MB = 4096
+MINIKUBE_MEMORY_FLOOR_MB = 3072
+
+
+def minikube_memory_mb():
+    """4096 MB, or less when the container engine has less (WSL2 .wslconfig memory=4GB gives about 3900 MB)."""
+    code, out = run(["docker", "info", "--format", "{{.MemTotal}}"], timeout=60)
+    try:
+        engine_mb = int(out.strip()) // (1024 * 1024)
+    except ValueError:
+        return MINIKUBE_MEMORY_MB
+    if code != 0 or engine_mb >= MINIKUBE_MEMORY_MB + 256:
+        return MINIKUBE_MEMORY_MB
+    fitted = max(MINIKUBE_MEMORY_FLOOR_MB, engine_mb - 256)
+    print("The container engine has {} MB of memory: giving Minikube {} MB. Core stack only, no add-ons. "
+          "For more, raise memory= in %UserProfile%\\.wslconfig (Windows) or the engine's memory setting.".format(
+              engine_mb, fitted))
+    return fitted
+
+
 def step_cluster(args):
     code, out = run(["minikube", "status", "--format", "{{.Host}}"], timeout=60)
     if out.strip() == "Running":
         print("Minikube is already running.")
         return OK, ""
-    print("Starting Minikube (the first time it downloads about 500 MB: 5-10 minutes)...", flush=True)
-    code = stream(["minikube", "start", "--driver=docker", "--memory=4096"], timeout=1500)
+    memory_mb = minikube_memory_mb()
+    print("Starting Minikube with {} MB (the first time it downloads about 500 MB: 5-10 minutes)...".format(
+        memory_mb), flush=True)
+    code = stream(["minikube", "start", "--driver=docker", "--memory={}".format(memory_mb)], timeout=1500)
     if code != 0:
         return FAIL, "minikube did not start (exit code {}): read the lines above in .lab/lab_up.log".format(code)
     return OK, ""
